@@ -53,7 +53,8 @@
 
                                             <button type="button"
                                                 class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode"
-                                                data-postcode="{{ strtoupper($sale->sale_postcode ?? 'N/A') }}" title="Copy Postcode">
+                                                data-postcode="{{ strtoupper($sale->sale_postcode ?? 'N/A') }}"
+                                                title="Copy Postcode">
                                                 <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
                                             </button>
                                         </li>
@@ -117,12 +118,19 @@
                                                 }
 
                                                 $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;
-                                                $html = preg_replace('/\sdata-bs-(toggle|target|dismiss)="[^"]*"/i', '', $html) ?? $html;
+                                                $html =
+                                                    preg_replace(
+                                                        '/\sdata-bs-(toggle|target|dismiss)="[^"]*"/i',
+                                                        '',
+                                                        $html,
+                                                    ) ?? $html;
 
                                                 libxml_use_internal_errors(true);
                                                 $doc = new DOMDocument();
                                                 $doc->loadHTML(
-                                                    '<?xml encoding="UTF-8"><div id="__sale_html_wrap__">' . $html . '</div>',
+                                                    '<?xml encoding="UTF-8"><div id="__sale_html_wrap__">' .
+                                                        $html .
+                                                        '</div>',
                                                 );
                                                 $wrap = $doc->getElementById('__sale_html_wrap__');
 
@@ -161,8 +169,7 @@
                                             <strong>Qualification:</strong>
                                             <button type="button"
                                                 class="btn btn-link p-0 align-baseline text-start text-wrap"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#qualification-{{ $sale->id }}">
+                                                data-bs-toggle="modal" data-bs-target="#qualification-{{ $sale->id }}">
                                                 {!! nl2br($qualificationPreview) !!}
                                             </button>
                                         </li>
@@ -170,8 +177,7 @@
                                             <strong>Benefits:</strong>
                                             <button type="button"
                                                 class="btn btn-link p-0 align-baseline text-start text-wrap"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#benefits-{{ $sale->id }}">
+                                                data-bs-toggle="modal" data-bs-target="#benefits-{{ $sale->id }}">
                                                 {!! nl2br($benefitsPreview) !!}
                                             </button>
                                         </li>
@@ -195,8 +201,7 @@
                                             <strong>Experience:</strong>
                                             <button type="button"
                                                 class="btn btn-link p-0 align-baseline text-start text-wrap"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#experience-{{ $sale->id }}">
+                                                data-bs-toggle="modal" data-bs-target="#experience-{{ $sale->id }}">
                                                 {!! nl2br($experiencePreview) !!}
                                             </button>
                                         </li>
@@ -251,48 +256,23 @@
                                 {{ $radiusInMiles }}Miles</h4>
                             <div class="text-end mb-3">
                                 <div class="d-inline-flex flex-wrap justify-content-end align-items-center">
-                                    <!-- Title Filter Dropdown -->
-                                    <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButtonTitle" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                        </button>
-                                        <div class="dropdown-menu p-2 filter-dropdowns" aria-labelledby="dropdownMenuButtonTitle"
-                                            style="min-width: 250px;">
-                                            <input type="text" class="form-control mb-2" id="titleSearchInput"
-                                                placeholder="Search titles...">
-                                            <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
-                                                    data-target=".title-filter" data-exclude="[data-title-id='']">Select All</a>
-                                                <a href="#" class="filter-deselect-all text-danger small fw-semibold"
-                                                    data-target=".title-filter" data-exclude="[data-title-id='']"
-                                                    style="display:none">Deselect All</a>
-                                            </div>
-                                            <div id="titleList">
-                                                @foreach ($jobTitles as $title)
-                                                    <div class="form-check">
-                                                        <input class="form-check-input title-filter" type="checkbox"
-                                                            value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                            data-title-id="{{ $title->id }}" data-category-id="{{ $title->job_category_id }}" data-type="{{ $title->type }}">
-                                                        <label class="form-check-label"
-                                                            for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
+
                                     <!-- Sources Filter Dropdown -->
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButtonSource" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All
+                                                Sources</span>
                                         </button>
-                                        <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButtonSource">
+                                        <div class="dropdown-menu filter-dropdowns"
+                                            aria-labelledby="dropdownMenuButtonSource">
                                             <input type="text" class="form-control mb-2" id="sourceSearchInput"
                                                 placeholder="Search Source...">
                                             <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
-                                                <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
-                                                    data-target=".source-filter" data-exclude="[data-source-id='']">Select All</a>
+                                                <a href="#"
+                                                    class="filter-select-all text-primary small fw-semibold me-2"
+                                                    data-target=".source-filter" data-exclude="[data-source-id='']">Select
+                                                    All</a>
                                                 <a href="#" class="filter-deselect-all text-danger small fw-semibold"
                                                     data-target=".source-filter" data-exclude="[data-source-id='']"
                                                     style="display:none">Deselect All</a>
@@ -313,24 +293,31 @@
                                     <!-- Applicant Status Filter Dropdown -->
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButtonApplicantStatus" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterApplicantStatus">All Applicant Status</span>
+                                            id="dropdownMenuButtonApplicantStatus" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterApplicantStatus">All
+                                                Applicant Status</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButtonApplicantStatus">
-                                            <a class="dropdown-item applicant-status-filter" href="#">All Applicant Status</a>
+                                            <a class="dropdown-item applicant-status-filter" href="#">All Applicant
+                                                Status</a>
                                             <a class="dropdown-item applicant-status-filter" href="#">Interested</a>
-                                            <a class="dropdown-item applicant-status-filter" href="#">Not Interested</a>
+                                            <a class="dropdown-item applicant-status-filter" href="#">Not
+                                                Interested</a>
                                             <a class="dropdown-item applicant-status-filter" href="#">No Job</a>
                                             <a class="dropdown-item applicant-status-filter" href="#">Blocked</a>
                                             <a class="dropdown-item applicant-status-filter" href="#">Callback</a>
-                                            <a class="dropdown-item applicant-status-filter" href="#">Have Nursing Home Experience</a>
+                                            <a class="dropdown-item applicant-status-filter" href="#">Have Nursing
+                                                Home Experience</a>
                                         </div>
                                     </div>
                                     <!-- CV Status Filter Dropdown -->
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButtonCvStatus" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterCvStatus">All CV Status</span>
+                                            id="dropdownMenuButtonCvStatus" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterCvStatus">All CV
+                                                Status</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButtonCvStatus">
                                             <a class="dropdown-item cv-status-filter" href="#">All CV Status</a>
@@ -342,17 +329,17 @@
                                         </div>
                                     </div>
                                     @canany(['applicant-export-from-sale-page'])
-                                    <div class="dropdown d-inline">
-                                        <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                            id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
-                                        </button>
-                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                            <a class="dropdown-item export-btn"
-                                                href="{{ route('applicantsExport', ['type' => 'withinRadius', 'radius' => $radius, 'model_type' => 'Horsefly\\Sale', 'model_id' => $sale->id]) }}">Export
-                                                Data</a>
+                                        <div class="dropdown d-inline">
+                                            <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                                id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
+                                            </button>
+                                            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
+                                                <a class="dropdown-item export-btn"
+                                                    href="{{ route('applicantsExport', ['type' => 'withinRadius', 'radius' => $radius, 'model_type' => 'Horsefly\\Sale', 'model_id' => $sale->id]) }}">Export
+                                                    Data</a>
+                                            </div>
                                         </div>
-                                    </div>
                                     @endcanany
                                     <!-- Add Updated Sales Filter Button -->
                                     <button class="btn btn-success my-1"
@@ -497,7 +484,6 @@
         $(document).ready(function() {
             var currentApplicantStatusFilter = '';
             var currentCvStatusFilter = '';
-            var currentTitleFilters = [];
             var currentSourceFilters = [];
 
             // Create loader row
@@ -524,7 +510,8 @@
                         d.radius = {{ $radius }};
                         d.status_filter = currentApplicantStatusFilter;
                         d.cv_status_filter = currentCvStatusFilter;
-                        d.title_filter = (typeof window.getVisibleListingTitleIds === 'function' ? window.getVisibleListingTitleIds() : currentTitleFilters);
+                        d.title_filter = (typeof window.getVisibleListingTitleIds === 'function' ?
+                            window.getVisibleListingTitleIds() : currentTitleFilters);
                         d.source_filter = currentSourceFilters;
                         // Clean up search parameter
                         if (d.search && d.search.value) {
@@ -769,16 +756,6 @@
                 return ids;
             }
 
-            function refreshTitleFilterUi() {
-                currentTitleFilters = selectedFilterIds('.title-filter', 'title-id');
-                const total = $('.title-filter').not('[data-title-id=""]').length;
-                const checked = currentTitleFilters.length;
-                $('#showFilterTitle').text(checked > 0 ? `Selected Titles (${checked})` : 'All Titles');
-                const container = $('#titleToggleContainer');
-                container.find('.filter-select-all').toggle(checked < total);
-                container.find('.filter-deselect-all').toggle(checked > 0);
-            }
-
             function refreshSourceFilterUi() {
                 currentSourceFilters = selectedFilterIds('.source-filter', 'source-id');
                 const total = $('.source-filter').not('[data-source-id=""]').length;
@@ -788,17 +765,6 @@
                 container.find('.filter-select-all').toggle(checked < total);
                 container.find('.filter-deselect-all').toggle(checked > 0);
             }
-
-            $('.title-filter').on('change', function() {
-                const id = $(this).data('title-id');
-                if (id === '' || id === undefined) {
-                    $('.title-filter').not(this).prop('checked', false);
-                } else {
-                    $('.title-filter[data-title-id=""]').prop('checked', false);
-                }
-                refreshTitleFilterUi();
-                table.ajax.reload();
-            });
 
             $('.source-filter').on('change', function() {
                 const id = $(this).data('source-id');
@@ -818,11 +784,9 @@
                 const excludeAttr = $(this).data('exclude');
                 $(filterClass + excludeAttr).prop('checked', false);
                 $(filterClass).not(excludeAttr).prop('checked', true);
-                if (filterClass === '.title-filter') {
-                    refreshTitleFilterUi();
-                } else {
-                    refreshSourceFilterUi();
-                }
+
+                refreshSourceFilterUi();
+
                 table.ajax.reload();
             });
 
@@ -832,24 +796,14 @@
                 const filterClass = $(this).data('target');
                 const excludeAttr = $(this).data('exclude');
                 $(filterClass).not(excludeAttr).prop('checked', false);
-                if (filterClass === '.title-filter') {
-                    refreshTitleFilterUi();
-                } else {
+                
                     refreshSourceFilterUi();
-                }
+                
                 table.ajax.reload();
             });
 
             $(document).on('click', '.filter-dropdowns', function(e) {
                 e.stopPropagation();
-            });
-
-            $('#titleSearchInput').on('keyup', function() {
-                const searchValue = this.value.toLowerCase();
-                $('#titleList .form-check').each(function() {
-                    const label = $(this).find('label').text().toLowerCase();
-                    $(this).toggle(label.includes(searchValue));
-                });
             });
 
             $('#sourceSearchInput').on('keyup', function() {
@@ -1839,13 +1793,15 @@
             const $icon = $btn.find('i');
             const $text = $btn.find('.btn-text');
 
-            const applicantStatus = ($('#showFilterApplicantStatus').text() || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            const applicantStatus = ($('#showFilterApplicantStatus').text() || '').trim().toLowerCase().replace(
+                /\s+/g, ' ');
             const cvStatus = ($('#showFilterCvStatus').text() || '').trim().toLowerCase().replace(/\s+/g, ' ');
-            const search = $.fn.DataTable.isDataTable('#applicants_table')
-                ? ($('#applicants_table').DataTable().search() || '').trim()
-                : '';
+            const search = $.fn.DataTable.isDataTable('#applicants_table') ?
+                ($('#applicants_table').DataTable().search() || '').trim() :
+                '';
 
-            url.searchParams.set('status_filter', applicantStatus === 'all applicant status' ? '' : applicantStatus);
+            url.searchParams.set('status_filter', applicantStatus === 'all applicant status' ? '' :
+                applicantStatus);
             url.searchParams.set('cv_status_filter', cvStatus === 'all cv status' ? '' : cvStatus);
             url.searchParams.set('search', search);
 
@@ -1853,9 +1809,6 @@
                 url.searchParams.delete(param + '[]');
                 url.searchParams.delete(param);
                 $(selector + ':checked').each(function() {
-                    if (selector === '.title-filter' && $(this).closest('.listing-title-hidden').length) {
-                        return;
-                    }
                     const id = $(this).data(dataKey);
                     if (id !== '' && id !== null && typeof id !== 'undefined') {
                         url.searchParams.append(param + '[]', id);
@@ -1863,7 +1816,6 @@
                 });
             }
 
-            appendSelectedIds('title_filter', '.title-filter', 'title-id');
             appendSelectedIds('source_filter', '.source-filter', 'source-id');
 
             // Disable button + show loader

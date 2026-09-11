@@ -412,13 +412,6 @@ class SaleController extends Controller
             ->where('status', 1)
             ->count();
 
-        $jobTitles = JobTitle::where('is_active', 1)
-            ->where('job_category_id', $sale->job_category_id)
-            ->when($sale->job_type, function ($query) use ($sale) {
-                $query->where('type', $sale->job_type);
-            })
-            ->orderBy('name', 'asc')
-            ->get();
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
         $hidePrivateData = array_filter(
@@ -453,7 +446,6 @@ class SaleController extends Controller
             'office',
             'unit',
             'radius',
-            'jobTitles',
             'jobSources'
         ));
     }
@@ -3893,16 +3885,11 @@ class SaleController extends Controller
             'radius'  => 'nullable|numeric|min:1',
         ]);
 
-        $sale_id      = (int) $validated['sale_id'];
-        $radius       = (float) ($validated['radius'] ?? 15);
-        $sale = Sale::findOrFail($sale_id);
-        $filters = [
-            'status_filter' => $request->input('status_filter', ''),
-            'cv_status_filter' => $request->input('cv_status_filter', ''),
-            'title_filter' => $request->input('title_filter', []),
-            'source_filter' => $request->input('source_filter', []),
-            'category_id' => $sale->job_category_id,
-        ];
+        $sale_id = (int) $validated['sale_id'];
+        $radius  = (float) ($validated['radius'] ?? 15);
+
+        // Load the sale together with its job title row (for related_titles)
+        $sale = Sale::with('jobTitle')->findOrFail($sale_id);
 
         if ($sale->lat === null || $sale->lng === null) {
             return response()->json(['error' => 'Sale location coordinates are missing.'], 422);
@@ -3910,6 +3897,44 @@ class SaleController extends Controller
 
         $lat = (float) $sale->lat;
         $lng = (float) $sale->lng;
+
+        // --- Resolve which job_title_ids applicants must match ---
+        // Always includes the sale's own title. If that title has related_titles
+        // (JSON array or comma-separated string), those are merged in too.
+        $titleIds = collect([$sale->job_title_id]);
+
+        if ($sale->jobTitle && !empty($sale->jobTitle->related_titles)) {
+            $raw = $sale->jobTitle->related_titles;
+
+            // Normalize into a plain array of title names, regardless of stored format
+            if (is_array($raw)) {
+                $relatedNames = $raw;
+            } else {
+                $decoded = json_decode($raw, true);
+                $relatedNames = is_array($decoded)
+                    ? $decoded
+                    : array_filter(array_map('trim', explode(',', $raw)));
+            }
+
+            if (!empty($relatedNames)) {
+                $relatedIds = JobTitle::whereIn('name', $relatedNames)->pluck('id');
+                $titleIds = $titleIds->merge($relatedIds);
+            }
+        }
+
+        $titleIds = $titleIds
+            ->filter() // drop null/empty
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $filters = [
+            'status_filter'    => $request->input('status_filter', ''),
+            'cv_status_filter' => $request->input('cv_status_filter', ''),
+            'source_filter'    => $request->input('source_filter', []),
+            'category_id'      => $sale->job_category_id,
+        ];
 
         $sale_cv_counts = CVNote::where('sale_id', $sale_id)
             ->where('status', 1)
@@ -3964,20 +3989,21 @@ class SaleController extends Controller
             ->where('applicants.is_in_nurse_home', 0)
             ->whereNotNull('applicants.lat')
             ->whereNotNull('applicants.lng')
+            ->whereIn('applicants.job_title_id', $titleIds) // <-- sale's title + related titles, not user-selectable
             ->whereRaw(
                 '(6371 * acos(cos(radians(?)) * cos(radians(applicants.lat)) * cos(radians(applicants.lng) - radians(?)) + sin(radians(?)) * sin(radians(applicants.lat)))) <= ?',
                 [$lat, $lng, $lat, $radius]
             )
             ->selectRaw("
-                CASE
-                    WHEN applicants.paid_status = 'close' THEN 1
-                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 1) THEN 2
-                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0 AND cv_notes.sale_id = ?) THEN 3
-                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0) THEN 4
-                    WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 2 AND cv_notes.sale_id = ? AND applicants.paid_status = 'open') THEN 5
-                    ELSE 6
-                END AS paid_status_order
-            ", [$sale_id, $sale_id]);
+            CASE
+                WHEN applicants.paid_status = 'close' THEN 1
+                WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 1) THEN 2
+                WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0 AND cv_notes.sale_id = ?) THEN 3
+                WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 0) THEN 4
+                WHEN EXISTS (SELECT 1 FROM cv_notes WHERE cv_notes.applicant_id = applicants.id AND cv_notes.status = 2 AND cv_notes.sale_id = ? AND applicants.paid_status = 'open') THEN 5
+                ELSE 6
+            END AS paid_status_order
+        ", [$sale_id, $sale_id]);
 
         // Title / category / source / Open-Sent status filters
         $this->applyRadiusApplicantFilters($model, $sale_id, $filters, false);
@@ -4045,7 +4071,9 @@ class SaleController extends Controller
                 return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
             })
             ->addColumn('job_source', function ($applicant) {
-                return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+                if (!$applicant->jobSource)
+                    return '-';
+                return '<span class="badge bg-light text-dark">' . e($applicant->jobSource->name) . '</span>';
             })
             ->addColumn('applicant_name', function ($applicant) {
                 return $applicant->formatted_applicant_name;
