@@ -5,6 +5,7 @@ namespace App\Exports;
 use Horsefly\Applicant;
 use Horsefly\Setting;
 use Horsefly\JobSource;
+use Horsefly\JobTitle;
 
 use App\Traits\HasDistanceCalculation;
 use App\Traits\FiltersRadiusApplicants;
@@ -618,6 +619,34 @@ class ApplicantsExport implements FromCollection, WithHeadings
             $this->filters['category_id'] = $sale->job_category_id;
         }
 
+        // --- Resolve job_title_id + related title ids ---
+        $titleIds = collect([$sale->job_title_id]);
+
+        if ($sale->jobTitle && !empty($sale->jobTitle->related_titles)) {
+            $raw = $sale->jobTitle->related_titles;
+
+            if (is_array($raw)) {
+                $relatedNames = $raw;
+            } else {
+                $decoded = json_decode($raw, true);
+                $relatedNames = is_array($decoded)
+                    ? $decoded
+                    : array_filter(array_map('trim', explode(',', $raw)));
+            }
+
+            if (!empty($relatedNames)) {
+                $relatedIds = JobTitle::whereIn(
+                    DB::raw('LOWER(TRIM(name))'),
+                    array_map(fn($n) => strtolower(trim($n)), $relatedNames)
+                )->pluck('id');
+
+                $titleIds = $titleIds->merge($relatedIds);
+            }
+        }
+
+        $titleIds = $titleIds->filter()->map(fn($id) => (int) $id)->unique()->values()->all();
+
+
         $latestModuleNotes = $this->latestRowsSubquery('module_notes', 'module_noteable_id', 'module_noteable_type', Applicant::class)
             ->select('module_noteable_id', 'details', 'created_at');
 
@@ -711,7 +740,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
             ->whereNull('applicants.deleted_at')
             ->where('applicants.is_in_nurse_home', 0)
             ->whereNotNull('applicants.lat')
-            ->whereNotNull('applicants.lng');
+            ->whereNotNull('applicants.lng')
+            ->whereIn('applicants.job_title_id', $titleIds);
 
         $this->applyRadiusDistanceFilter($query, $lat, $lng, $radius);
         $this->applyHiddenSources($query, $sourceIds);
