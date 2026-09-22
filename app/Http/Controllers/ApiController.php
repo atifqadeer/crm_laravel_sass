@@ -224,6 +224,209 @@ class ApiController extends Controller
         ]);
     }
 
+    public function openkingsburypersonnelSalesApi(Request $request)
+    {
+        $this->assertPortalApiToken($request);
+
+        // $typeFilter       = (string) $request->input('type_filter', '');
+        // $titleFilter      = $this->normalizeApiFilterArray($request->input('title_filter', []));
+        // $categoryFilter   = $this->normalizeApiFilterArray($request->input('category_filter', []));
+        // $searchTerm       = trim((string) $request->input('search', $request->input('search.value', '')));
+
+        // $perPage = (int) $request->input('per_page', 5);
+        // if ($perPage < 1) {
+        //     $perPage = 5;
+        // }
+        // if ($perPage > 100) {
+        //     $perPage = 5;
+        // }
+
+        $latestAuditSub = DB::table('audits')
+            ->selectRaw('MAX(id) as id, auditable_id')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereIn('message', ['open', 'sale-opened'])
+            //   ->orWhere('message', 'LIKE', '%has been updated%')
+            ->groupBy('auditable_id');
+
+        $cvCountSub = DB::table('cv_notes')
+            ->select('sale_id', DB::raw('COUNT(*) as cv_count'))
+            ->where('status', 1)
+            ->groupBy('sale_id');
+
+        // Same core membership as getOpenSales(): active + not on hold.
+        $query = Sale::query()
+            ->select([
+                'sales.id',
+                'sales.sale_uid',
+                'sales.office_id',
+                'sales.unit_id',
+                'sales.user_id',
+                'sales.job_category_id',
+                'sales.job_title_id',
+                'sales.job_source_id',
+                'sales.job_type',
+                'sales.position_type',
+                'sales.sale_postcode',
+                'sales.cv_limit',
+                'sales.timing',
+                'sales.status',
+                'sales.is_on_hold',
+                'sales.is_re_open',
+                'sales.lat',
+                'sales.lng',
+                'sales.sale_notes',
+                'sales.created_at',
+                'sales.updated_at',
+                'sales.experience',
+                'sales.salary',
+                'sales.qualification',
+                'sales.benefits',
+                'job_titles.name as job_title_name',
+                'job_categories.name as job_category_name',
+                'job_sources.name as job_source_name',
+                'offices.office_name as office_name',
+                'units.unit_name as unit_name',
+                'users.name as user_name',
+                'audits.created_at as open_date',
+                DB::raw('COALESCE(cv_counts.cv_count, 0) as no_of_sent_cv'),
+            ])
+            ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'sales.job_source_id', '=', 'job_sources.id')
+            ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
+            ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
+            ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+            ->leftJoinSub($latestAuditSub, 'latest_open_audit_ids', 'latest_open_audit_ids.auditable_id', '=', 'sales.id')
+            ->leftJoin('audits', 'audits.id', '=', 'latest_open_audit_ids.id')
+            ->leftJoinSub($cvCountSub, 'cv_counts', 'cv_counts.sale_id', '=', 'sales.id')
+            ->where('sales.status', 1)
+            ->whereNull('sales.deleted_at')
+            ->whereNotIn('sales.job_source_id', [10]) // Exclude sources: 1=Kingsbury Personnel, 2=Kingsbury Recruitment, 3=Kingsbury Group
+            ->where('sales.is_on_hold', 0);
+
+        // Portal has no logged-in Gate user — always honour hide_private_data.
+        // $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        // $hidePrivateData = array_filter(
+        //     array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        // );
+
+        // if (count($hidePrivateData) > 0) {
+        //     $sourceIds = JobSource::where('is_active', 1)
+        //         ->where(function ($q) use ($hidePrivateData) {
+        //             foreach ($hidePrivateData as $hideName) {
+        //                 $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+        //             }
+        //         })
+        //         ->pluck('id')
+        //         ->toArray();
+
+        //     if (count($sourceIds) > 0) {
+        //         $query->where(function ($q) use ($sourceIds) {
+        //             $q->whereNotIn('sales.job_source_id', $sourceIds)
+        //                 ->orWhereNull('sales.job_source_id');
+        //         });
+        //     }
+        // }
+
+        // if ($searchTerm !== '') {
+        //     $saleIds = Sale::search($searchTerm)->keys()->toArray();
+        //     $query->where(function ($q) use ($searchTerm, $saleIds) {
+        //         if (!empty($saleIds)) {
+        //             $q->whereIn('sales.id', $saleIds);
+        //         }
+        //         $q->orWhere('offices.office_name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('units.unit_name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
+        //             ->orWhere('sales.sale_postcode', 'LIKE', "%{$searchTerm}%");
+        //     });
+        // }
+
+        // if ($typeFilter !== '') {
+        //     $query->where('sales.job_type', $typeFilter);
+        // }
+        // if ($officeFilter !== []) {
+        //     $query->whereIn('sales.office_id', $officeFilter);
+        // }
+        // if ($categoryFilter !== []) {
+        //     $query->whereIn('sales.job_category_id', $categoryFilter);
+        // }
+        // if ($titleFilter !== []) {
+        //     $query->whereIn('sales.job_title_id', $titleFilter);
+        // }
+
+        $sortMap = [
+            'id'            => 'sales.id',
+            'sale_title'     => 'job_titles.name',
+            'sale_category'  => 'job_categories.name',
+            'postcode' => 'sales.sale_postcode',
+            'office'   => 'offices.office_name',
+            'location'     => 'units.unit_name',
+        ];
+
+        $sortBy = (string) $request->input('sort_by', 'created');
+        $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if (isset($sortMap[$sortBy])) {
+            $query->orderBy($sortMap[$sortBy], $sortDir);
+        } else {
+            // Open date when present, otherwise the sale's last update — newest first.
+            $query->orderByRaw('COALESCE(audits.created_at, sales.updated_at) ' . $sortDir);
+        }
+
+        // $paginator = $query->paginate($perPage)->appends($request->query());
+
+        // Load regions once; each sale is assigned the nearest region by Haversine
+        // using sales.lat / sales.lng against regions.latitude / regions.longitude.
+        $regions = Region::query()
+            ->get(['id', 'name', 'districts_code', 'latitude', 'longitude', 'radius']);
+
+        $data = $query->get()->map(function ($sale) use ($regions) {
+            $region = $this->resolveSaleRegionByHaversine(
+                $sale->lat !== null ? (float) $sale->lat : null,
+                $sale->lng !== null ? (float) $sale->lng : null,
+                $sale->sale_postcode,
+                $regions
+            );
+
+            $createdAt = $this->resolveApiCreatedAt($sale);
+
+            return [
+                'sale_id' => (int) $sale->id,
+                'office' => $sale->office_name ? ucwords($sale->office_name) : null,
+                'unit' => $sale->unit_name ? ucwords($sale->unit_name) : null,
+                'postcode' => $sale->sale_postcode,
+                'region' => $region['name'] ?? null,
+                'region_id' => $region['id'] ?? null,
+                'region_distance_km' => $region['distance_km'] ?? null,
+                'position_type' => $sale->position_type,
+                'title' => $sale->job_title_name ? strtoupper($sale->job_title_name) : null,
+                'category' => $sale->job_category_name ? ucwords($sale->job_category_name) : null,
+                'salary' => $this->formatSalaryForApi($sale->salary),
+                'timing' => $this->cleanSaleText($sale->timing),
+                'experience' => $this->cleanSaleText($sale->experience),
+                'qualification' => $this->cleanSaleText($sale->qualification),
+                'benefits' => $this->cleanSaleText($sale->benefits),
+                'status' => $sale->status == 1 ? 'active' : 'closed',
+                'created' => $this->formatApiCreatedDate($createdAt),
+                'ago' => $createdAt ? $this->formatCreatedAgo($createdAt) : null,
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            // 'meta' => [
+            //     'current_page' => $paginator->currentPage(),
+            //     'per_page' => $paginator->perPage(),
+            //     'total' => $paginator->total(),
+            //     'last_page' => $paginator->lastPage(),
+            //     'from' => $paginator->firstItem(),
+            //     'to' => $paginator->lastItem(),
+            // ],
+        ]);
+    }
+
     /**
      * Portal API: sale details by id (same field shape as openSalesApi).
      * Auth: Authorization: Bearer <PORTAL_API_TOKEN>
