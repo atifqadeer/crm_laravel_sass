@@ -509,6 +509,7 @@ class DashboardController extends Controller
                             'crm_request_reject',
                             'crm_declined',
                         ])
+                        ->whereBetween('updated_at', [$startDate, $endDate])
                         ->orderBy('id') // ascending -> chronological order per pair
                         ->get()
                         // only keep rows whose (applicant_id, sale_id) is a REAL pair from cvNotes
@@ -598,8 +599,8 @@ class DashboardController extends Controller
 
                         if (
                             !$pairCrmNote ||
-                            !Carbon::parse($pairHistory['crm_request']->created_at)
-                                ->gt($pairCrmNote->created_at)
+                            !Carbon::parse($pairHistory['crm_request']->updated_at)
+                                ->gt($pairCrmNote->updated_at)
                         ) {
                             continue;
                         }
@@ -1165,9 +1166,9 @@ class DashboardController extends Controller
                 // ── Step 1: same cv_notes base as counter ─────────────────────────
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereBetween('updated_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
-                    ->latest('created_at') // newest first
+                    ->latest('updated_at') // newest first
                     ->get()
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
                     ->values();
@@ -1302,7 +1303,7 @@ class DashboardController extends Controller
                                 $h->sale->office->office_name  ?? '—',
                                 $h->sale->unit->unit_name      ?? '—',
                                 'CRM Rejected CV',
-                                $h->created_at->format('d M Y h:i A'),
+                                $h->updated_at->format('d M Y h:i A'),
                             ];
                         }
                         continue;
@@ -1326,8 +1327,8 @@ class DashboardController extends Controller
                     // ── Gate 3: crm_request must be newer than last cv_sent CrmNote
                     if (
                         !$pairCrmNote ||
-                        !Carbon::parse($pairHistory['crm_request']->created_at)
-                            ->gt($pairCrmNote->created_at)
+                        !Carbon::parse($pairHistory['crm_request']->updated_at)
+                            ->gt($pairCrmNote->updated_at)
                     ) {
                         continue;
                     }
@@ -1346,7 +1347,7 @@ class DashboardController extends Controller
                             $h->sale->office->office_name  ?? '—',
                             $h->sale->unit->unit_name      ?? '—',
                             'CRM Request',
-                            $h->created_at->format('d M Y h:i A'),
+                            $h->updated_at->format('d M Y h:i A'),
                         ];
                         continue;
                     }
@@ -1383,7 +1384,7 @@ class DashboardController extends Controller
                         $h->sale->office->office_name  ?? '—',
                         $h->sale->unit->unit_name      ?? '—',
                         ucwords(str_replace('_', ' ', $h->sub_stage)),
-                        $h->created_at->format('d M Y h:i A'),
+                        $h->updated_at->format('d M Y h:i A'),
                     ];
                 }
 
