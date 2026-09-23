@@ -1146,11 +1146,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <small class="text-muted d-block">${src.name}</small>
-                                        <span class="fw-bold fs-5">${src.total}</span>
-                                    </div>
-                                `).join('')}
+                                                    <div class="col-md-3 col-6 mb-2">
+                                                        <small class="text-muted d-block">${src.name}</small>
+                                                        <span class="fw-bold fs-5">${src.total}</span>
+                                                    </div>
+                                                `).join('')}
                             </div>
                         `;
                 } else {
@@ -1417,7 +1417,8 @@
                         CRM_dispute: 'shield-warning-line-duotone',
                         CRM_paid: 'wallet-line-duotone',
                         applicants_created: 'user-line-duotone',
-                        applicants_updated: 'user-line-duotone'
+                        applicants_updated: 'user-line-duotone',
+                        cvs_cleared_reverted: 'restart-line-duotone',
                     };
 
                     const prevIcons = {
@@ -1426,13 +1427,18 @@
                         paid: 'wallet-line-duotone'
                     };
 
+                    const labelOverrides = {
+                        cvs_cleared_reverted: 'Cleared Reverted'
+                    };
+
                     const CARD_COL = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
                     // ── Unified card renderer ─────────────────────────────────────
                     function renderStatBlock(data, icons, badgeClass) {
                         let html = `<div class="row g-3">`;
                         Object.entries(data).forEach(([key, value]) => {
-                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const label = labelOverrides[key] ||
+                                key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
                             html += `
                                 <div class="${CARD_COL}">
@@ -1489,7 +1495,7 @@
                             (parseInt(qs.cvs_rejected) || 0) +
                             (parseInt(qs.cvs_opened) || 0);
 
-                        var remain_in_requested = (cvs_processed-qs.cvs_requested);
+                        var remain_in_requested = (qs.cvs_requested - cvs_processed);
 
                         // Show as processed/requested
                         qs.cvs_requested = `${remain_in_requested}/${parseInt(qs.cvs_requested) || 0}`;
@@ -1675,10 +1681,10 @@
                                 </thead>
                                 <tbody>
                                     ${response.rows.map(row => `
-                                                                            <tr>
-                                                                                ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
-                                                                            </tr>
-                                                                        `).join('')}
+                                                                                            <tr>
+                                                                                                ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
+                                                                                            </tr>
+                                                                                        `).join('')}
                                 </tbody>
                             </table>
                         `;
