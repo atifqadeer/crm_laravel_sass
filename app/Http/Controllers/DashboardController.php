@@ -299,7 +299,6 @@ class DashboardController extends Controller
             $quality_stats['cvs_cleared']   = 0;
             $quality_stats['cvs_rejected']  = 0;
             $quality_stats['cvs_opened']    = 0;
-            $quality_stats['cvs_cleared_reverted'] = 0;
 
             $crm_stats = array_fill_keys([
                 'CRM_sent_cvs',
@@ -466,18 +465,11 @@ class DashboardController extends Controller
             } else {
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
-                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->get()
                     ->unique(fn($x) => $x->applicant_id . '-' . $x->sale_id)
                     ->values();
 
-                $revertedKeys = $this->clearedRevertedNotes($user_id, $startDate, $endDate)
-                    ->map(fn($n) => $n->applicant_id . '-' . $n->sale_id)
-                    ->flip();
-
-                $quality_stats['cvs_cleared_reverted'] = $revertedKeys->count();
-
-                // reverted pairs must not be counted as "requested"
                 $quality_stats['cvs_requested'] = $cvNotes->count();
 
                 if ($cvNotes->isNotEmpty()) {
@@ -492,8 +484,6 @@ class DashboardController extends Controller
                             'quality_cleared',
                             'quality_cvs_hold',
                             'quality_reject',
-                            'quality_cvs',
-                            'crm_save',
                             'crm_reject',
                             'crm_request',
                             'crm_request_confirm',
@@ -509,7 +499,6 @@ class DashboardController extends Controller
                             'crm_request_reject',
                             'crm_declined',
                         ])
-                        ->whereBetween('updated_at', [$startDate, $endDate])
                         ->orderBy('id') // ascending -> chronological order per pair
                         ->get()
                         // only keep rows whose (applicant_id, sale_id) is a REAL pair from cvNotes
@@ -520,22 +509,17 @@ class DashboardController extends Controller
                         ->where('moved_tab_to', 'cv_sent')
                         ->whereIn('applicant_id', $applicantIds)
                         ->whereIn('sale_id', $saleIds)
-                        ->whereBetween('updated_at', [$startDate, $endDate])
+                        ->whereBetween('created_at', [$startDate, $endDate])
                         ->latest('id')
                         ->get()
                         ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
 
                     foreach ($cvNotes as $pair) {
                         $pairKey = $pair->applicant_id . '-' . $pair->sale_id;
-                        /**create a pair key from the cv notes applicant id and sale id */
 
-                        /** events for this pair, already chronological (ascending id) */
+                        // events for this pair, already chronological (ascending id)
                         $pairEvents  = collect($histories->get($pairKey, []));
-
-                        /** create pair hisotory from the pair events by sub stage of history */
                         $pairHistory = $pairEvents->keyBy('sub_stage');
-
-                        /** create the pair by crm notes */
                         $pairCrmNote = collect($crmNotes->get($pairKey, []))->first();
 
                         /*
@@ -544,35 +528,22 @@ class DashboardController extends Controller
                         |--------------------------------------------------------------------------
                         */
                         $latestQualityEvent = $pairEvents
-                            ->whereIn('sub_stage', ['quality_cvs', 'quality_cleared', 'quality_reject', 'quality_cvs_hold'])
+                            ->whereIn('sub_stage', ['quality_cleared', 'quality_reject', 'quality_cvs_hold'])
                             ->last();
 
                         if ($latestQualityEvent) {
                             switch ($latestQualityEvent->sub_stage) {
                                 case 'quality_cleared':
                                     $quality_stats['cvs_cleared']++;
+                                    $crm_stats['CRM_sent_cvs']++;
                                     break;
-
                                 case 'quality_reject':
                                     $quality_stats['cvs_rejected']++;
                                     break;
-
                                 case 'quality_cvs_hold':
                                     $quality_stats['cvs_opened']++;
                                     break;
                             }
-                        }
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | CRM SENT CVS — this is a CRM event, not a quality outcome.
-                        |--------------------------------------------------------------------------
-                        */
-                        if (
-                            isset($pairHistory['crm_save']) &&
-                            $pairHistory['crm_save']->status == 1
-                        ) {
-                            $crm_stats['CRM_sent_cvs']++;
                         }
 
                         /*
@@ -599,8 +570,8 @@ class DashboardController extends Controller
 
                         if (
                             !$pairCrmNote ||
-                            !Carbon::parse($pairHistory['crm_request']->updated_at)
-                                ->gt($pairCrmNote->updated_at)
+                            !Carbon::parse($pairHistory['crm_request']->created_at)
+                                ->gt($pairCrmNote->created_at)
                         ) {
                             continue;
                         }
@@ -654,7 +625,7 @@ class DashboardController extends Controller
 
                 $prevCvNotes = CVNote::query()
                     ->where('user_id', $user_id)
-                    ->whereDate('updated_at', '<', $startDate)
+                    ->whereDate('created_at', '<', $startDate)
                     ->whereBetween('updated_at', [$startDate, $endDate])
                     ->get()
                     ->unique(fn($x) => $x->applicant_id . '-' . $x->sale_id)
@@ -874,8 +845,8 @@ class DashboardController extends Controller
                 $cvNotes = CVNote::query()
                     ->with(['applicant', 'sale.jobCategory', 'sale.jobTitle', 'sale.office', 'sale.unit'])
                     ->where('user_id', $user_id)
-                    ->whereBetween('updated_at', [$startDate, $endDate])
-                    ->latest('updated_at')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->latest('created_at')
                     ->get()
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
                     ->values();
@@ -886,28 +857,14 @@ class DashboardController extends Controller
                     $applicantIds = $cvNotes->pluck('applicant_id')->unique()->values()->all();
                     $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
 
-                    $qualityStages = ['quality_cvs', 'quality_cleared', 'quality_reject', 'quality_cvs_hold'];
-
-                    // a pair is "active" if it moved forward AFTER the quality decision
-                    $crmActiveStages = [
-                        'crm_request',
-                        'crm_request_confirm',
-                        'crm_reebok',
-                        'crm_interview_attended',
-                        'crm_interview_not_attended',
-                        'crm_start_date',
-                        'crm_start_date_back',
-                        'crm_start_date_hold',
-                        'crm_invoice',
-                        'crm_dispute',
-                        'crm_paid',
-                        'crm_declined',
-                        'quality_cvs',
-                    ];
-
-                    $pairEventsByKey = History::query()
+                    // ONE query, ONE date definition, no whereBetween on the outcome —
+                    // an outcome resolved after the report window still counts as the
+                    // real outcome. This replaces the old cleared(updated_at) vs
+                    // rejected(created_at) vs opened(updated_at) mismatch, which is
+                    // what let pairs get dropped or miscategorized.
+                    $qualityEvents = History::query()
                         ->with($saleWith)
-                        ->whereIn('sub_stage', array_merge($qualityStages, $crmActiveStages))
+                        ->whereIn('sub_stage', ['quality_cleared', 'quality_reject', 'quality_cvs_hold'])
                         ->whereIn('applicant_id', $applicantIds)
                         ->whereIn('sale_id', $saleIds)
                         ->orderBy('id') // chronological per pair
@@ -921,25 +878,15 @@ class DashboardController extends Controller
                     ][$stat_key];
 
                     foreach ($cvNotes as $cv) {
-                        $pairKey    = $cv->applicant_id . '-' . $cv->sale_id;
-                        $pairEvents = collect($pairEventsByKey->get($pairKey, []));
+                        $pairKey = $cv->applicant_id . '-' . $cv->sale_id;
 
-                        $latest = $pairEvents->whereIn('sub_stage', $qualityStages)->last();
-                        if (!$latest) {
-                            continue;
-                        }
+                        // Take the LATEST quality event for this pair — not "first cleared
+                        // query that matches", not date-column-dependent — so a pair that
+                        // cycled hold -> reject -> cleared is reported as cleared, matching
+                        // the fixed counter logic exactly.
+                        $latest = collect($qualityEvents->get($pairKey, []))->last();
 
-                        $isActive = $pairEvents
-                            ->whereIn('sub_stage', $crmActiveStages)
-                            ->contains(fn($e) => $e->id > $latest->id);
-
-                        // an active pair that was quality_reject is reported as opened,
-                        // not rejected — mirrors the counter in getUserStatistics()
-                        $bucket = ($latest->sub_stage === 'quality_reject' && $isActive)
-                            ? 'quality_cvs_hold'
-                            : $latest->sub_stage;
-
-                        if ($bucket !== $wantSubStage) {
+                        if (!$latest || $latest->sub_stage !== $wantSubStage) {
                             continue;
                         }
 
@@ -952,213 +899,212 @@ class DashboardController extends Controller
                             $latest->sale->sale_postcode           ?? '—',
                             $latest->sale->office->office_name     ?? '—',
                             $latest->sale->unit->unit_name         ?? '—',
-                            $latest->updated_at->format('d M Y h:i A'),
+                            $latest->created_at->format('d M Y h:i A'),
                         ];
                     }
                 }
-                // } elseif (str_starts_with($stat_key, 'CRM_')) {
+            } elseif (str_starts_with($stat_key, 'CRM_')) {
 
-                //     $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
 
-                //     $cvNotes = CVNote::query()
-                //         ->where('user_id', $user_id)
-                //         ->whereBetween('created_at', [$startDate, $endDate])
-                //         ->select('applicant_id', 'sale_id')
-                //         ->latest('created_at')
-                //         ->get()
-                //         ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
-                //         ->values();
+                $cvNotes = CVNote::query()
+                    ->where('user_id', $user_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->select('applicant_id', 'sale_id')
+                    ->latest('created_at')
+                    ->get()
+                    ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
+                    ->values();
 
-                //     if ($cvNotes->isEmpty()) {
-                //         return response()->json([
-                //             'stat_key' => $stat_key,
-                //             'columns'  => $columns,
-                //             'rows'     => [],
-                //             'total'    => 0,
-                //         ]);
-                //     }
+                if ($cvNotes->isEmpty()) {
+                    return response()->json([
+                        'stat_key' => $stat_key,
+                        'columns'  => $columns,
+                        'rows'     => [],
+                        'total'    => 0,
+                    ]);
+                }
 
-                //     $applicantIds = $cvNotes->pluck('applicant_id')->unique()->values()->all();
-                //     $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
+                $applicantIds = $cvNotes->pluck('applicant_id')->unique()->values()->all();
+                $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
 
-                //     // No whereBetween(created_at) here — same reasoning as above: the CV
-                //     $allHistory = History::query()
-                //         ->whereIn('sub_stage', [
-                //             'quality_cleared',
-                //             'quality_cvs_hold',
-                //             'quality_reject',
-                //             'quality_cvs',
-                //             'crm_reject',
-                //             'crm_request',
-                //             'crm_request_confirm',
-                //             'crm_reebok',
-                //             'crm_interview_attended',
-                //             'crm_interview_not_attended',
-                //             'crm_start_date',
-                //             'crm_start_date_back',
-                //             'crm_start_date_hold',
-                //             'crm_invoice',
-                //             'crm_dispute',
-                //             'crm_paid',
-                //             'crm_request_reject',
-                //             'crm_declined',
-                //         ])
-                //         ->whereIn('applicant_id', $applicantIds)
-                //         ->whereIn('sale_id', $saleIds)
-                //         ->with($saleWith)
-                //         ->orderBy('id')
-                //         ->get()
-                //         ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
+                // No whereBetween(created_at) here — same reasoning as above: the CV
+                $allHistory = History::query()
+                    ->whereIn('sub_stage', [
+                        'quality_cleared',
+                        'quality_cvs_hold',
+                        'quality_reject',
+                        'crm_reject',
+                        'crm_request',
+                        'crm_request_confirm',
+                        'crm_reebok',
+                        'crm_interview_attended',
+                        'crm_interview_not_attended',
+                        'crm_start_date',
+                        'crm_start_date_back',
+                        'crm_start_date_hold',
+                        'crm_invoice',
+                        'crm_dispute',
+                        'crm_paid',
+                        'crm_request_reject',
+                        'crm_declined',
+                    ])
+                    ->whereIn('applicant_id', $applicantIds)
+                    ->whereIn('sale_id', $saleIds)
+                    ->with($saleWith)
+                    ->orderBy('id')
+                    ->get()
+                    ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
 
-                //     $allCrmNotes = CrmNote::query()
-                //         ->where('moved_tab_to', 'cv_sent')
-                //         ->whereIn('applicant_id', $applicantIds)
-                //         ->whereIn('sale_id', $saleIds)
-                //         ->whereBetween('created_at', [$startDate, $endDate])
-                //         ->orderByDesc('id')
-                //         ->get()
-                //         ->groupBy(fn($n) => $n->applicant_id . '-' . $n->sale_id);
+                $allCrmNotes = CrmNote::query()
+                    ->where('moved_tab_to', 'cv_sent')
+                    ->whereIn('applicant_id', $applicantIds)
+                    ->whereIn('sale_id', $saleIds)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->orderByDesc('id')
+                    ->get()
+                    ->groupBy(fn($n) => $n->applicant_id . '-' . $n->sale_id);
 
-                //     $downstreamMap = [
-                //         'CRM_rejected_by_request' => 'crm_request_reject',
-                //         'CRM_confirmation'        => 'crm_request_confirm',
-                //         'CRM_rebook'              => 'crm_reebok',
-                //         'CRM_attended'            => 'crm_interview_attended',
-                //         'CRM_not_attended'        => 'crm_interview_not_attended',
-                //         'CRM_start_date'          => ['crm_start_date', 'crm_start_date_back'],
-                //         'CRM_start_date_hold'     => 'crm_start_date_hold',
-                //         'CRM_declined'            => 'crm_declined',
-                //         'CRM_invoice'             => 'crm_invoice',
-                //         'CRM_dispute'             => 'crm_dispute',
-                //         'CRM_paid'                => 'crm_paid',
-                //     ];
+                $downstreamMap = [
+                    'CRM_rejected_by_request' => 'crm_request_reject',
+                    'CRM_confirmation'        => 'crm_request_confirm',
+                    'CRM_rebook'              => 'crm_reebok',
+                    'CRM_attended'            => 'crm_interview_attended',
+                    'CRM_not_attended'        => 'crm_interview_not_attended',
+                    'CRM_start_date'          => ['crm_start_date', 'crm_start_date_back'],
+                    'CRM_start_date_hold'     => 'crm_start_date_hold',
+                    'CRM_declined'            => 'crm_declined',
+                    'CRM_invoice'             => 'crm_invoice',
+                    'CRM_dispute'             => 'crm_dispute',
+                    'CRM_paid'                => 'crm_paid',
+                ];
 
-                //     foreach ($cvNotes as $cv) {
-                //         $pairKey     = $cv->applicant_id . '-' . $cv->sale_id;
-                //         $pairEvents  = collect($allHistory->get($pairKey, [])); // chronological
-                //         $pairHistory = $pairEvents->keyBy('sub_stage');
-                //         $pairCrmNote = $allCrmNotes->get($pairKey, collect())->first();
+                foreach ($cvNotes as $cv) {
+                    $pairKey     = $cv->applicant_id . '-' . $cv->sale_id;
+                    $pairEvents  = collect($allHistory->get($pairKey, [])); // chronological
+                    $pairHistory = $pairEvents->keyBy('sub_stage');
+                    $pairCrmNote = $allCrmNotes->get($pairKey, collect())->first();
 
-                //         // ── CRM_sent_cvs ──────────────────────────────────────────────
-                //         // FIX: was referencing the removed $pairCleared variable (undefined
-                //         // var bug). Now derives "cleared" the same way as cvs_cleared above:
-                //         // latest quality event for this pair must be quality_cleared.
-                //         if ($stat_key === 'CRM_sent_cvs') {
-                //             $latestQuality = $pairEvents
-                //                 ->whereIn('sub_stage', ['quality_cleared', 'quality_reject', 'quality_cvs_hold'])
-                //                 ->last();
+                    // ── CRM_sent_cvs ──────────────────────────────────────────────
+                    // FIX: was referencing the removed $pairCleared variable (undefined
+                    // var bug). Now derives "cleared" the same way as cvs_cleared above:
+                    // latest quality event for this pair must be quality_cleared.
+                    if ($stat_key === 'CRM_sent_cvs') {
+                        $latestQuality = $pairEvents
+                            ->whereIn('sub_stage', ['quality_cleared', 'quality_reject', 'quality_cvs_hold'])
+                            ->last();
 
-                //             if (!$latestQuality || $latestQuality->sub_stage !== 'quality_cleared') {
-                //                 continue;
-                //             }
+                        if (!$latestQuality || $latestQuality->sub_stage !== 'quality_cleared') {
+                            continue;
+                        }
 
-                //             $rows[] = [
-                //                 count($rows) + 1,
-                //                 $latestQuality->applicant->applicant_name     ?? '—',
-                //                 $latestQuality->applicant->applicant_postcode ?? '—',
-                //                 $latestQuality->sale->jobCategory->name       ?? '—',
-                //                 $latestQuality->sale->jobTitle->name          ?? '—',
-                //                 $latestQuality->sale->sale_postcode           ?? '—',
-                //                 $latestQuality->sale->office->office_name     ?? '—',
-                //                 $latestQuality->sale->unit->unit_name         ?? '—',
-                //                 'CRM Sent CVs',
-                //                 $latestQuality->created_at->format('d M Y h:i A'),
-                //             ];
-                //             continue;
-                //         }
+                        $rows[] = [
+                            count($rows) + 1,
+                            $latestQuality->applicant->applicant_name     ?? '—',
+                            $latestQuality->applicant->applicant_postcode ?? '—',
+                            $latestQuality->sale->jobCategory->name       ?? '—',
+                            $latestQuality->sale->jobTitle->name          ?? '—',
+                            $latestQuality->sale->sale_postcode           ?? '—',
+                            $latestQuality->sale->office->office_name     ?? '—',
+                            $latestQuality->sale->unit->unit_name         ?? '—',
+                            'CRM Sent CVs',
+                            $latestQuality->created_at->format('d M Y h:i A'),
+                        ];
+                        continue;
+                    }
 
-                //         // ── CRM_rejected_cv ───────────────────────────────────────────
-                //         if ($stat_key === 'CRM_rejected_cv') {
-                //             if (
-                //                 isset($pairHistory['crm_reject']) &&
-                //                 $pairHistory['crm_reject']->status == 1
-                //             ) {
-                //                 $h      = $pairHistory['crm_reject'];
-                //                 $rows[] = [
-                //                     count($rows) + 1,
-                //                     $h->applicant->applicant_name  ?? '—',
-                //                     $h->applicant->applicant_postcode ?? '—',
-                //                     $h->sale->jobCategory->name    ?? '—',
-                //                     $h->sale->jobTitle->name       ?? '—',
-                //                     $h->sale->sale_postcode        ?? '—',
-                //                     $h->sale->office->office_name  ?? '—',
-                //                     $h->sale->unit->unit_name      ?? '—',
-                //                     'CRM Rejected CV',
-                //                     $h->created_at->format('d M Y h:i A'),
-                //                 ];
-                //             }
-                //             continue;
-                //         }
+                    // ── CRM_rejected_cv ───────────────────────────────────────────
+                    if ($stat_key === 'CRM_rejected_cv') {
+                        if (
+                            isset($pairHistory['crm_reject']) &&
+                            $pairHistory['crm_reject']->status == 1
+                        ) {
+                            $h      = $pairHistory['crm_reject'];
+                            $rows[] = [
+                                count($rows) + 1,
+                                $h->applicant->applicant_name  ?? '—',
+                                $h->applicant->applicant_postcode ?? '—',
+                                $h->sale->jobCategory->name    ?? '—',
+                                $h->sale->jobTitle->name       ?? '—',
+                                $h->sale->sale_postcode        ?? '—',
+                                $h->sale->office->office_name  ?? '—',
+                                $h->sale->unit->unit_name      ?? '—',
+                                'CRM Rejected CV',
+                                $h->created_at->format('d M Y h:i A'),
+                            ];
+                        }
+                        continue;
+                    }
 
-                //         // ── Gate 1: crm_reject guard ──────────────────────────────────
-                //         if (
-                //             isset($pairHistory['crm_reject']) &&
-                //             $pairHistory['crm_reject']->status == 1
-                //         ) {
-                //             continue;
-                //         }
+                    // ── Gate 1: crm_reject guard ──────────────────────────────────
+                    if (
+                        isset($pairHistory['crm_reject']) &&
+                        $pairHistory['crm_reject']->status == 1
+                    ) {
+                        continue;
+                    }
 
-                //         // ── Gate 2: crm_request must exist ───────────────────────────
-                //         if (!isset($pairHistory['crm_request'])) {
-                //             continue;
-                //         }
+                    // ── Gate 2: crm_request must exist ───────────────────────────
+                    if (!isset($pairHistory['crm_request'])) {
+                        continue;
+                    }
 
-                //         // ── Gate 3: crm_request must be newer than last cv_sent CrmNote
-                //         if (
-                //             !$pairCrmNote ||
-                //             !Carbon::parse($pairHistory['crm_request']->created_at)
-                //                 ->gt($pairCrmNote->created_at)
-                //         ) {
-                //             continue;
-                //         }
+                    // ── Gate 3: crm_request must be newer than last cv_sent CrmNote
+                    if (
+                        !$pairCrmNote ||
+                        !Carbon::parse($pairHistory['crm_request']->created_at)
+                            ->gt($pairCrmNote->created_at)
+                    ) {
+                        continue;
+                    }
 
-                //         if ($stat_key === 'CRM_request') {
-                //             $h      = $pairHistory['crm_request'];
-                //             $rows[] = [
-                //                 count($rows) + 1,
-                //                 $h->applicant->applicant_name  ?? '—',
-                //                 $h->applicant->applicant_postcode ?? '—',
-                //                 $h->sale->jobCategory->name    ?? '—',
-                //                 $h->sale->jobTitle->name       ?? '—',
-                //                 $h->sale->sale_postcode        ?? '—',
-                //                 $h->sale->office->office_name  ?? '—',
-                //                 $h->sale->unit->unit_name      ?? '—',
-                //                 'CRM Request',
-                //                 $h->created_at->format('d M Y h:i A'),
-                //             ];
-                //             continue;
-                //         }
+                    if ($stat_key === 'CRM_request') {
+                        $h      = $pairHistory['crm_request'];
+                        $rows[] = [
+                            count($rows) + 1,
+                            $h->applicant->applicant_name  ?? '—',
+                            $h->applicant->applicant_postcode ?? '—',
+                            $h->sale->jobCategory->name    ?? '—',
+                            $h->sale->jobTitle->name       ?? '—',
+                            $h->sale->sale_postcode        ?? '—',
+                            $h->sale->office->office_name  ?? '—',
+                            $h->sale->unit->unit_name      ?? '—',
+                            'CRM Request',
+                            $h->created_at->format('d M Y h:i A'),
+                        ];
+                        continue;
+                    }
 
-                //         $target = $downstreamMap[$stat_key] ?? null;
-                //         if (!$target) continue;
+                    $target = $downstreamMap[$stat_key] ?? null;
+                    if (!$target) continue;
 
-                //         if (is_array($target)) {
-                //             $h = null;
-                //             foreach ($target as $t) {
-                //                 if (isset($pairHistory[$t])) {
-                //                     $h = $pairHistory[$t];
-                //                     break;
-                //                 }
-                //             }
-                //         } else {
-                //             $h = $pairHistory[$target] ?? null;
-                //         }
+                    if (is_array($target)) {
+                        $h = null;
+                        foreach ($target as $t) {
+                            if (isset($pairHistory[$t])) {
+                                $h = $pairHistory[$t];
+                                break;
+                            }
+                        }
+                    } else {
+                        $h = $pairHistory[$target] ?? null;
+                    }
 
-                //         if (!$h) continue;
+                    if (!$h) continue;
 
-                //         $rows[] = [
-                //             count($rows) + 1,
-                //             $h->applicant->applicant_name  ?? '—',
-                //             $h->applicant->applicant_postcode ?? '—',
-                //             $h->sale->jobCategory->name    ?? '—',
-                //             $h->sale->jobTitle->name       ?? '—',
-                //             $h->sale->sale_postcode        ?? '—',
-                //             $h->sale->office->office_name  ?? '—',
-                //             $h->sale->unit->unit_name      ?? '—',
-                //             ucwords(str_replace('_', ' ', $h->sub_stage)),
-                //             $h->created_at->format('d M Y h:i A'),
-                //         ];
-                //     }
+                    $rows[] = [
+                        count($rows) + 1,
+                        $h->applicant->applicant_name  ?? '—',
+                        $h->applicant->applicant_postcode ?? '—',
+                        $h->sale->jobCategory->name    ?? '—',
+                        $h->sale->jobTitle->name       ?? '—',
+                        $h->sale->sale_postcode        ?? '—',
+                        $h->sale->office->office_name  ?? '—',
+                        $h->sale->unit->unit_name      ?? '—',
+                        ucwords(str_replace('_', ' ', $h->sub_stage)),
+                        $h->created_at->format('d M Y h:i A'),
+                    ];
+                }
             } elseif (str_starts_with($stat_key, 'CRM_')) {
 
                 $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Stage', 'Date'];
@@ -1166,9 +1112,9 @@ class DashboardController extends Controller
                 // ── Step 1: same cv_notes base as counter ─────────────────────────
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
-                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('applicant_id', 'sale_id')
-                    ->latest('updated_at') // newest first
+                    ->latest('created_at') // newest first
                     ->get()
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
                     ->values();
@@ -1192,7 +1138,6 @@ class DashboardController extends Controller
                         'quality_cleared',
                         'quality_cvs_hold',
                         'quality_reject',
-                        'quality_cvs',
                         'crm_save',
                         'crm_reject',
                         'crm_request',
@@ -1211,7 +1156,7 @@ class DashboardController extends Controller
                     ])
                     ->whereIn('applicant_id', $applicantIds)
                     ->whereIn('sale_id', $saleIds)
-                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->with($saleWith)
                     ->get()
                     ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
@@ -1232,7 +1177,7 @@ class DashboardController extends Controller
                     ->where('moved_tab_to', 'cv_sent')
                     ->whereIn('applicant_id', $applicantIds)
                     ->whereIn('sale_id', $saleIds)
-                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->orderByDesc('id')
                     ->get()
                     ->groupBy(fn($n) => $n->applicant_id . '-' . $n->sale_id);
@@ -1303,7 +1248,7 @@ class DashboardController extends Controller
                                 $h->sale->office->office_name  ?? '—',
                                 $h->sale->unit->unit_name      ?? '—',
                                 'CRM Rejected CV',
-                                $h->updated_at->format('d M Y h:i A'),
+                                $h->created_at->format('d M Y h:i A'),
                             ];
                         }
                         continue;
@@ -1327,8 +1272,8 @@ class DashboardController extends Controller
                     // ── Gate 3: crm_request must be newer than last cv_sent CrmNote
                     if (
                         !$pairCrmNote ||
-                        !Carbon::parse($pairHistory['crm_request']->updated_at)
-                            ->gt($pairCrmNote->updated_at)
+                        !Carbon::parse($pairHistory['crm_request']->created_at)
+                            ->gt($pairCrmNote->created_at)
                     ) {
                         continue;
                     }
@@ -1347,7 +1292,7 @@ class DashboardController extends Controller
                             $h->sale->office->office_name  ?? '—',
                             $h->sale->unit->unit_name      ?? '—',
                             'CRM Request',
-                            $h->updated_at->format('d M Y h:i A'),
+                            $h->created_at->format('d M Y h:i A'),
                         ];
                         continue;
                     }
@@ -1384,7 +1329,7 @@ class DashboardController extends Controller
                         $h->sale->office->office_name  ?? '—',
                         $h->sale->unit->unit_name      ?? '—',
                         ucwords(str_replace('_', ' ', $h->sub_stage)),
-                        $h->updated_at->format('d M Y h:i A'),
+                        $h->created_at->format('d M Y h:i A'),
                     ];
                 }
 
@@ -1480,46 +1425,6 @@ class DashboardController extends Controller
                 // CVs created BEFORE the range but whose history falls WITHIN it.
                 // unique() on pairs + first() mirrors the counter's keyBy() dedupe.
                 // ════════════════════════════════════════════════════════════════════════
-            } elseif ($stat_key === 'cvs_cleared_reverted') {
-
-                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Reverted Date'];
-
-                $notes = $this->clearedRevertedNotes($user_id, $startDate, $endDate);
-
-                if ($notes->isNotEmpty()) {
-                    $cvNotesByPair = CVNote::query()
-                        ->with(['applicant', 'sale.jobCategory', 'sale.jobTitle', 'sale.office', 'sale.unit'])
-                        ->where('user_id', $user_id)
-                        ->whereIn('applicant_id', $notes->pluck('applicant_id')->unique()->all())
-                        ->whereIn('sale_id', $notes->pluck('sale_id')->unique()->all())
-                        ->latest('created_at')
-                        ->get()
-                        ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
-                        ->keyBy(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id);
-
-                    foreach ($notes as $note) {
-                        $cv = $cvNotesByPair->get($note->applicant_id . '-' . $note->sale_id);
-                        if (!$cv || !$note->updated_at) {
-                            continue;
-                        }
-
-                        $revertedAt = $note->updated_at instanceof \Carbon\Carbon
-                            ? $note->updated_at
-                            : \Carbon\Carbon::parse($note->updated_at);
-
-                        $rows[] = [
-                            count($rows) + 1,
-                            $cv->applicant->applicant_name     ?? '—',
-                            $cv->applicant->applicant_postcode ?? '—',
-                            $cv->sale->jobCategory->name       ?? '—',
-                            $cv->sale->jobTitle->name          ?? '—',
-                            $cv->sale->sale_postcode           ?? '—',
-                            $cv->sale->office->office_name     ?? '—',
-                            $cv->sale->unit->unit_name         ?? '—',
-                            $revertedAt->format('d M Y h:i A'), // quality_notes.updated_at is the reverted date
-                        ];
-                    }
-                }
             } elseif (in_array($stat_key, ['start_date', 'invoice', 'paid'])) {
 
                 $subStageMap = [
@@ -1575,32 +1480,6 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
-    }
-    /**
-     * Cleared quality notes that were reverted (status = 0),
-     * limited to pairs this user sent as CVs, dated by updated_at.
-     * One row per applicant/sale pair.
-     */
-    private function clearedRevertedNotes(int $user_id, Carbon $startDate, Carbon $endDate)
-    {
-        $qTable = (new QualityNotes)->getTable();
-        $cTable = (new CVNote)->getTable();
-
-        return QualityNotes::query()
-            ->where('moved_tab_to', 'cleared')
-            ->where('status', 0)
-            ->whereBetween('updated_at', [$startDate, $endDate])
-            ->whereExists(function ($q) use ($qTable, $cTable, $user_id) {
-                $q->select(DB::raw(1))
-                    ->from($cTable)
-                    ->whereColumn("$cTable.applicant_id", "$qTable.applicant_id")
-                    ->whereColumn("$cTable.sale_id", "$qTable.sale_id")
-                    ->where("$cTable.user_id", $user_id);
-            })
-            ->orderByDesc('updated_at')
-            ->get()
-            ->unique(fn($n) => $n->applicant_id . '-' . $n->sale_id)
-            ->values();
     }
     private function processCrmStats($history, array &$crm_stats, $applicant_id, $sale_id, string $start_date, string $end_date): void
     {
