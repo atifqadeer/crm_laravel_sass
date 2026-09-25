@@ -467,7 +467,7 @@ class DashboardController extends Controller
             } else {
                 $cvNotes = CVNote::query()
                     ->where('user_id', $user_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereBetween('updated_at', [$startDate, $endDate])
                     ->get()
                     ->unique(fn($x) => $x->applicant_id . '-' . $x->sale_id)
                     ->values();
@@ -523,7 +523,7 @@ class DashboardController extends Controller
                         ->where('moved_tab_to', 'cv_sent')
                         ->whereIn('applicant_id', $applicantIds)
                         ->whereIn('sale_id', $saleIds)
-                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->whereBetween('updated_at', [$startDate, $endDate])
                         ->latest('id')
                         ->get()
                         ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
@@ -860,8 +860,8 @@ class DashboardController extends Controller
                 $cvNotes = CVNote::query()
                     ->with(['applicant', 'sale.jobCategory', 'sale.jobTitle', 'sale.office', 'sale.unit'])
                     ->where('user_id', $user_id)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->latest('created_at')
+                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->latest('updated_at')
                     ->get()
                     ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
                     ->values();
@@ -914,7 +914,7 @@ class DashboardController extends Controller
                             $latest->sale->sale_postcode           ?? '—',
                             $latest->sale->office->office_name     ?? '—',
                             $latest->sale->unit->unit_name         ?? '—',
-                            $latest->created_at->format('d M Y h:i A'),
+                            $latest->updated_at->format('d M Y h:i A'),
                         ];
                     }
                 }
