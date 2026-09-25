@@ -299,6 +299,7 @@ class DashboardController extends Controller
             $quality_stats['cvs_cleared']   = 0;
             $quality_stats['cvs_rejected']  = 0;
             $quality_stats['cvs_opened']    = 0;
+            $quality_stats['cvs_cleared_reverted'] = 0;
 
             $crm_stats = array_fill_keys([
                 'CRM_sent_cvs',
@@ -514,6 +515,15 @@ class DashboardController extends Controller
                         ->get()
                         ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
 
+                    $clearedRevertedNotes = QualityNotes::query()
+                        ->where('moved_tab_to', 'cleared')
+                        ->where('status', 0)
+                        ->whereIn('applicant_id', $applicantIds)
+                        ->whereIn('sale_id', $saleIds)
+                        ->whereBetween('updated_at', [$startDate, $endDate])
+                        ->get()
+                        ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
+
                     foreach ($cvNotes as $pair) {
                         $pairKey = $pair->applicant_id . '-' . $pair->sale_id;
 
@@ -522,27 +532,35 @@ class DashboardController extends Controller
                         $pairHistory = $pairEvents->keyBy('sub_stage');
                         $pairCrmNote = collect($crmNotes->get($pairKey, []))->first();
 
+
                         /*
                         |--------------------------------------------------------------------------
                         | QUALITY OUTCOME — use the LATEST quality event, not isset() priority
                         |--------------------------------------------------------------------------
                         */
-                        $latestQualityEvent = $pairEvents
-                            ->whereIn('sub_stage', ['quality_cleared', 'quality_reject', 'quality_cvs_hold'])
-                            ->last();
+                        $qualitySubStages = ['quality_cleared', 'quality_reject', 'quality_cvs', 'quality_cvs_hold'];
+
+                        $pairQualityEvents = $pairEvents
+                            ->whereIn('sub_stage', $qualitySubStages)
+                            ->values(); // already chronological ascending, since $histories was ordered by id
+
+                        $latestQualityEvent = $pairQualityEvents->last();
+
+                        $wasClearedBefore = $pairQualityEvents
+                            ->slice(0, -1) // every event except the current/latest one
+                            ->contains(fn($e) => $e->sub_stage === 'quality_cleared');
 
                         if ($latestQualityEvent) {
-                            switch ($latestQualityEvent->sub_stage) {
-                                case 'quality_cleared':
-                                    $quality_stats['cvs_cleared']++;
-                                    $crm_stats['CRM_sent_cvs']++;
-                                    break;
-                                case 'quality_reject':
-                                    $quality_stats['cvs_rejected']++;
-                                    break;
-                                case 'quality_cvs_hold':
-                                    $quality_stats['cvs_opened']++;
-                                    break;
+                            if ($latestQualityEvent->sub_stage === 'quality_cleared') {
+                                $quality_stats['cvs_cleared']++;
+                                $crm_stats['CRM_sent_cvs']++;
+                            } elseif ($wasClearedBefore) {
+                                // current state is reject or cvs/hold, but it WAS cleared at some point
+                                $quality_stats['cvs_cleared_reverted']++;
+                            } elseif ($latestQualityEvent->sub_stage === 'quality_reject') {
+                                $quality_stats['cvs_rejected']++;
+                            } elseif (in_array($latestQualityEvent->sub_stage, ['quality_cvs', 'quality_cvs_hold'])) {
+                                $quality_stats['cvs_opened']++;
                             }
                         }
 
@@ -1378,6 +1396,65 @@ class DashboardController extends Controller
                         $phone,
                         $audit->created_at->format('d M Y h:i A'),
                     ];
+                }
+            } elseif ($stat_key === 'cvs_cleared_reverted') {
+
+                $cvNotes = CVNote::query()
+                    ->where('user_id', $user_id)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->select('applicant_id', 'sale_id')
+                    ->get()
+                    ->unique(fn($cv) => $cv->applicant_id . '-' . $cv->sale_id)
+                    ->values();
+
+                $columns = ['#', 'Applicant', 'PostCode', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Date'];
+
+                if ($cvNotes->isNotEmpty()) {
+                    $applicantIds = $cvNotes->pluck('applicant_id')->unique()->values()->all();
+                    $saleIds      = $cvNotes->pluck('sale_id')->unique()->values()->all();
+
+                    $qualitySubStages = ['quality_cleared', 'quality_reject', 'quality_cvs', 'quality_cvs_hold'];
+
+                    $qualityEvents = History::query()
+                        ->with($saleWith)
+                        ->whereIn('sub_stage', $qualitySubStages)
+                        ->whereIn('applicant_id', $applicantIds)
+                        ->whereIn('sale_id', $saleIds)
+                        ->orderBy('id') // chronological per pair
+                        ->get()
+                        ->groupBy(fn($h) => $h->applicant_id . '-' . $h->sale_id);
+
+                    foreach ($cvNotes as $cv) {
+                        $pairKey = $cv->applicant_id . '-' . $cv->sale_id;
+
+                        $pairQualityEvents = collect($qualityEvents->get($pairKey, []))->values();
+                        $latestQualityEvent = $pairQualityEvents->last();
+
+                        if (!$latestQualityEvent || $latestQualityEvent->sub_stage === 'quality_cleared') {
+                            continue; // still cleared, or no quality history at all
+                        }
+
+                        $wasClearedBefore = $pairQualityEvents
+                            ->slice(0, -1)
+                            ->contains(fn($e) => $e->sub_stage === 'quality_cleared');
+
+                        if (!$wasClearedBefore) {
+                            continue; // it reached reject/cvs, but was never cleared first
+                        }
+
+                        // Show the moment it left the cleared state — the current row's created_at
+                        $rows[] = [
+                            count($rows) + 1,
+                            $latestQualityEvent->applicant->applicant_name     ?? '—',
+                            $latestQualityEvent->applicant->applicant_postcode ?? '—',
+                            $latestQualityEvent->sale->jobCategory->name       ?? '—',
+                            $latestQualityEvent->sale->jobTitle->name          ?? '—',
+                            $latestQualityEvent->sale->sale_postcode           ?? '—',
+                            $latestQualityEvent->sale->office->office_name     ?? '—',
+                            $latestQualityEvent->sale->unit->unit_name         ?? '—',
+                            $latestQualityEvent->created_at->format('d M Y h:i A'),
+                        ];
+                    }
                 }
             } elseif ($stat_key === 'applicants_updated') {
 
