@@ -474,18 +474,22 @@ class DashboardController extends Controller
 
                 $quality_stats['cvs_requested'] = $cvNotes->count();
 
+                $clearedRevertedCvs = ClearedRevertCv::query()
+                    ->where('user_id', $user_id)
+                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->get()
+                    ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
+
+                if ($clearedRevertedCvs->isNotEmpty()) {
+                    $quality_stats['cvs_cleared_reverted'] += $clearedRevertedCvs->count();
+                }
+
                 if ($cvNotes->isNotEmpty()) {
                     $pairs = $cvNotes->map(fn($x) => [$x->applicant_id, $x->sale_id]);
                     $applicantIds = $pairs->pluck(0)->unique()->values();
                     $saleIds      = $pairs->pluck(1)->unique()->values();
 
-                    $clearedRevertedCvs = ClearedRevertCv::query()
-                        ->where('user_id', $user_id)
-                        ->whereIn('applicant_id', $applicantIds)
-                        ->whereIn('sale_id', $saleIds)
-                        ->whereBetween('updated_at', [$startDate, $endDate])
-                        ->get()
-                        ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
+
 
                     $histories = History::query()
                         ->whereIn('applicant_id', $applicantIds)
@@ -556,9 +560,7 @@ class DashboardController extends Controller
                             }
                         }
 
-                        if ($clearedRevertedCvs->has($pairKey)) {
-                            $quality_stats['cvs_cleared_reverted'] += $clearedRevertedCvs->get($pairKey)->count();
-                        }
+
                         /*
                         |--------------------------------------------------------------------------
                         | CRM REJECTED
@@ -1450,7 +1452,7 @@ class DashboardController extends Controller
                     ->leftJoin('offices as o', 'o.id', '=', 's.office_id')
                     ->leftJoin('units as u', 'u.id', '=', 's.unit_id')
                     ->where('crc.user_id', $user_id)
-                    ->whereBetween('crc.created_at', [$startDate, $endDate])
+                    ->whereBetween('crc.updated_at', [$startDate, $endDate])
                     ->select([
                         'a.applicant_name',
                         'a.applicant_postcode',
@@ -1459,9 +1461,9 @@ class DashboardController extends Controller
                         's.sale_postcode',
                         'o.office_name',
                         'u.unit_name',
-                        'crc.created_at',
+                        'crc.updated_at',
                     ])
-                    ->orderByDesc('crc.created_at')
+                    ->orderByDesc('crc.updated_at')
                     ->get();
 
                 foreach ($reverted as $i => $r) {
@@ -1474,7 +1476,7 @@ class DashboardController extends Controller
                         $r->sale_postcode     ?? '—',
                         $r->office_name       ?? '—',
                         $r->unit_name         ?? '—',
-                        Carbon::parse($r->created_at)->format('d M Y h:i A'),
+                        Carbon::parse($r->updated_at)->format('d M Y h:i A'),
                     ];
                 }
             } elseif (in_array($stat_key, ['start_date', 'invoice', 'paid'])) {
