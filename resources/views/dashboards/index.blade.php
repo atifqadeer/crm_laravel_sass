@@ -1146,11 +1146,11 @@
                     jobSourceHtml += `
                             <div class="row text-center">
                                 ${resp.job_sources.map(src => `
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <small class="text-muted d-block">${src.name}</small>
-                                        <span class="fw-bold fs-5">${src.total}</span>
-                                    </div>
-                                `).join('')}
+                                                    <div class="col-md-3 col-6 mb-2">
+                                                        <small class="text-muted d-block">${src.name}</small>
+                                                        <span class="fw-bold fs-5">${src.total}</span>
+                                                    </div>
+                                                `).join('')}
                             </div>
                         `;
                 } else {
@@ -1402,6 +1402,7 @@
                         cvs_requested: 'file-send-broken',
                         cvs_cleared: 'shield-check-line-duotone',
                         cvs_rejected: 'shield-cross-line-duotone',
+                        cvs_opened: 'file-search-line-duotone',
                         CRM_sent_cvs: 'plain-line-duotone',
                         CRM_rejected_cv: 'adhesive-plaster-line-duotone',
                         CRM_request: 'question-circle-line-duotone',
@@ -1417,13 +1418,18 @@
                         CRM_dispute: 'shield-warning-line-duotone',
                         CRM_paid: 'wallet-line-duotone',
                         applicants_created: 'user-line-duotone',
-                        applicants_updated: 'user-line-duotone'
+                        applicants_updated: 'user-line-duotone',
+                        cvs_cleared_reverted: 'restart-line-duotone',
                     };
 
                     const prevIcons = {
                         start_date: 'calendar-line-duotone',
                         invoice: 'file-text-line-duotone',
                         paid: 'wallet-line-duotone'
+                    };
+
+                    const labelOverrides = {
+                        cvs_cleared_reverted: 'Cleared Reverted'
                     };
 
                     const CARD_COL = 'col-12 col-sm-6 col-md-4 col-lg-3';
@@ -1489,7 +1495,7 @@
                             (parseInt(qs.cvs_rejected) || 0) +
                             (parseInt(qs.cvs_opened) || 0);
 
-                        var remain_in_requested = (cvs_processed-qs.cvs_requested);
+                        var remain_in_requested = (cvs_processed - qs.cvs_requested);
 
                         // Show as processed/requested
                         qs.cvs_requested = `${remain_in_requested}/${parseInt(qs.cvs_requested) || 0}`;
@@ -1675,10 +1681,10 @@
                                 </thead>
                                 <tbody>
                                     ${response.rows.map(row => `
-                                                                            <tr>
-                                                                                ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
-                                                                            </tr>
-                                                                        `).join('')}
+                                                                                            <tr>
+                                                                                                ${row.map(cell => `<td>${cell ?? '—'}</td>`).join('')}
+                                                                                            </tr>
+                                                                                        `).join('')}
                                 </tbody>
                             </table>
                         `;

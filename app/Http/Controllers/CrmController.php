@@ -25,6 +25,7 @@ use Horsefly\JobTitle;
 use Horsefly\SentEmail;
 use Horsefly\RevertStage;
 use Horsefly\ModuleNote;
+use Horsefly\ClearedRevertCv;
 
 use App\Support\DialLink;
 
@@ -9079,17 +9080,16 @@ class CrmController extends Controller
                 "status" => 1
             ])->update(["status" => 0]);
 
-            DB::table((new QualityNotes)->getTable())
-                ->where([
-                    'applicant_id' => $applicant_id,
-                    'sale_id' => $sale_id,
-                    'moved_tab_to' => 'cleared',
-                    'status' => 1,
-                ])
-                ->update([
-                    'status' => 0,
-                    'updated_at' => DB::raw('updated_at'),
-                ]);
+            QualityNotes::where([
+                'applicant_id' => $applicant_id,
+                'sale_id' => $sale_id,
+                'moved_tab_to' => 'cleared',
+                'status' => 1,
+            ])->delete();
+            // ->update([
+            //     'status' => 0,
+            //     'updated_at' => DB::raw('updated_at'),
+            // ]);
 
             $quality_notes = new QualityNotes();
             $quality_notes->applicant_id = $applicant_id;
@@ -9102,6 +9102,25 @@ class CrmController extends Controller
             /** Update UID */
             $quality_notes->quality_notes_uid = md5((string) $quality_notes->id);
             $quality_notes->save();
+
+            $cvNoteToRevert = CVNote::where([
+                'sale_id'       => $sale_id,
+                'applicant_id'  => $applicant_id,
+                'status'        => 1,
+            ])->first();
+
+            if ($cvNoteToRevert) {
+                ClearedRevertCv::create([
+                    'cv_note_id'          => $cvNoteToRevert->id,
+                    'applicant_id'        => $applicant_id,
+                    'sale_id'             => $sale_id,
+                    'user_id'             => $cvNoteToRevert->user_id,
+                    'reverted_by'         => $user_id,
+                    'details'             => $details,
+                    'created_at'  => $cvNoteToRevert->created_at,
+                    'updated_at'  => $cvNoteToRevert->updated_at,
+                ]);
+            }
 
             CVNote::where([
                 'sale_id' => $sale_id,
