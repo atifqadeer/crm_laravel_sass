@@ -738,6 +738,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
             })
             ->where('applicants.status', 1)
             ->whereNull('applicants.deleted_at')
+            ->where('applicants.is_blocked', 0)
             ->where('applicants.is_in_nurse_home', 0)
             ->whereNotNull('applicants.lat')
             ->whereNotNull('applicants.lng')
