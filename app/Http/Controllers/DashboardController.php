@@ -1476,7 +1476,7 @@ class DashboardController extends Controller
                         $r->sale_postcode     ?? '—',
                         $r->office_name       ?? '—',
                         $r->unit_name         ?? '—',
-                        Carbon::parse($r->updated_at)->format('d M Y h:i A'),
+                        Carbon::parse($r->created_at)->format('d M Y h:i A'),
                     ];
                 }
             } elseif (in_array($stat_key, ['start_date', 'invoice', 'paid'])) {
