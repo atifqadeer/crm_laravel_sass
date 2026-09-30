@@ -329,7 +329,7 @@
                                         </div>
                                     </div>
                                     @canany(['applicant-export-from-sale-page'])
-                                        <div class="dropdown d-inline">
+                                        <div class="dropdown d-inline" id="exportDropdown">
                                             <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                                 id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
@@ -729,6 +729,15 @@
                     currentApplicantStatusFilter = '';
                 }
 
+                // Hide the Export dropdown when "Blocked" is selected
+                const isBlocked = currentApplicantStatusFilter === 'blocked';
+                $('#exportDropdown')
+                    .removeClass('show')
+                    .toggleClass('d-none', isBlocked);
+
+                // Also close the inner menu in case it was open
+                $('#exportDropdown .dropdown-menu').removeClass('show');
+
                 const formattedText = $(this).text().replace(/\s+/g, ' ').trim();
                 $('#showFilterApplicantStatus').html(formattedText);
                 table.ajax.reload();
@@ -796,9 +805,9 @@
                 const filterClass = $(this).data('target');
                 const excludeAttr = $(this).data('exclude');
                 $(filterClass).not(excludeAttr).prop('checked', false);
-                
-                    refreshSourceFilterUi();
-                
+
+                refreshSourceFilterUi();
+
                 table.ajax.reload();
             });
 
