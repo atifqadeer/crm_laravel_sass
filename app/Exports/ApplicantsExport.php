@@ -281,6 +281,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         ])
                         ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
                         ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                        ->where('applicants.is_blocked', 0)
                         ->whereNull('applicants.deleted_at'),
                     $sourceIds
                 );
@@ -315,6 +316,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
                                 ->orWhere('applicants.lng', '0')
                                 ->orWhere('applicants.lng', 0);
                         })
+                        ->where('applicants.is_blocked', 0)
                         ->whereNull('applicants.deleted_at'),
                     $sourceIds
                 );
@@ -349,7 +351,8 @@ class ApplicantsExport implements FromCollection, WithHeadings
                         ->leftJoinSub($latestNotes, 'latest_applicant_notes', function ($join) {
                             $join->on('applicants.id', '=', 'latest_applicant_notes.applicant_id');
                         })
-                        ->whereNull('applicants.deleted_at'),
+                        ->whereNull('applicants.deleted_at')
+                        ->where('applicants.is_blocked', 0),
                     $sourceIds
                 );
 
