@@ -476,7 +476,7 @@ class DashboardController extends Controller
 
                 $clearedRevertedCvs = ClearedRevertCv::query()
                     ->where('user_id', $user_id)
-                    ->whereBetween('updated_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->get()
                     ->groupBy(fn($x) => $x->applicant_id . '-' . $x->sale_id);
 
@@ -1452,7 +1452,7 @@ class DashboardController extends Controller
                     ->leftJoin('offices as o', 'o.id', '=', 's.office_id')
                     ->leftJoin('units as u', 'u.id', '=', 's.unit_id')
                     ->where('crc.user_id', $user_id)
-                    ->whereBetween('crc.updated_at', [$startDate, $endDate])
+                    ->whereBetween('crc.created_at', [$startDate, $endDate])
                     ->select([
                         'a.applicant_name',
                         'a.applicant_postcode',
@@ -1461,9 +1461,9 @@ class DashboardController extends Controller
                         's.sale_postcode',
                         'o.office_name',
                         'u.unit_name',
-                        'crc.updated_at',
+                        'crc.created_at',
                     ])
-                    ->orderByDesc('crc.updated_at')
+                    ->orderByDesc('crc.created_at')
                     ->get();
 
                 foreach ($reverted as $i => $r) {
