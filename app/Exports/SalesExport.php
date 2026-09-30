@@ -81,6 +81,7 @@ class SalesExport implements FromCollection, WithHeadings
                         'sales.created_at',
                     ])
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
                     ->whereNull('applicants.deleted_at')
 
                     // ✅ Latest crm_notes per applicant/sale for rejected CVs
@@ -181,6 +182,7 @@ class SalesExport implements FromCollection, WithHeadings
                     'sales.created_at',
                 ])
                 ->where('applicants.status', 1)
+                ->where('applicants.is_blocked', 0)
                 ->whereNull('applicants.deleted_at')
 
                 // joinSub to get latest crm_notes with "declined"
@@ -270,6 +272,7 @@ class SalesExport implements FromCollection, WithHeadings
                         'sales.created_at'
                     ])
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
                     ->distinct('applicants.id')
                     ->join('crm_notes', function ($join) {
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id')
@@ -329,6 +332,7 @@ class SalesExport implements FromCollection, WithHeadings
                         'sales.created_at'
                     ])
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
                     ->distinct('applicants.id')
                     ->join('crm_notes', function ($join) {
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id')
@@ -387,6 +391,7 @@ class SalesExport implements FromCollection, WithHeadings
                         'sales.created_at'
                     ])
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
                     ->distinct('applicants.id')
                     ->join('crm_notes', function ($join) {
                         $join->on('applicants.id', '=', 'crm_notes.applicant_id')
@@ -479,6 +484,7 @@ class SalesExport implements FromCollection, WithHeadings
                             ->on('sales.id', '=', 'latest_cv.sale_id');
                     })
                     ->where('applicants.status', 1)
+                    ->where('applicants.is_blocked', 0)
                     ->distinct()
                     ->tap(function ($query) {
                         $this->excludeHiddenSaleSources($query);
