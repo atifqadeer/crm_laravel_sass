@@ -761,8 +761,13 @@ class QualityController extends Controller
         $id = 'qua-' . $applicant->id . "-" . $applicant->cvnote_sale_id;
         $copyId = "copy-quality-resources-notes-" . $applicant->id . "-" . $applicant->cvnote_sale_id;
 
-        // 1. Convert HTML to readable plain text for copying
-        $plainText = strip_tags($fullHtml); // remove all HTML
+        // 1. Preserve line breaks from Summernote before removing its markup
+        $withBreaks = preg_replace(
+            '/<(\/?(p|div|li|br|ul|ol|tr|td|table|h[1-6]))[^>]*>/i',
+            "\n",
+            (string) $fullHtml
+        );
+        $plainText = strip_tags($withBreaks);
         $plainText = html_entity_decode($plainText); // decode &nbsp; &amp; etc
         $plainText = preg_replace("/[\r\n]+/", "\n", $plainText); // normalize newlines
         $plainText = trim($plainText);
