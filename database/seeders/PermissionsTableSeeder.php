@@ -471,6 +471,7 @@ class PermissionsTableSeeder extends Seeder
 
             // Administrator Sub Modules Settings Permissions
             'administrator-setting-index',
+            'administrator-sale-requirements-index',
 
             //settings Permissions
             'show-private-data',

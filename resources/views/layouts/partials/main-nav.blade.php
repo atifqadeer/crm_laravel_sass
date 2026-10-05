@@ -414,7 +414,7 @@
             @canany(['administrator-user-index', 'administrator-role-index', 'administrator-permission-index',
                 'administrator-ip-address-index', 'administrator-job-category-index', 'administrator-job-title-index',
                 'administrator-job-source-index', 'administrator-email-template-index', 'administrator-sms-template-index',
-                'administrator-setting-index'])
+                'administrator-setting-index', 'administrator-sale-requirements-index'])
                 <li class="menu-title">Administrator</li>
                 @canany(['administrator-user-index'])
                     <!-- users Menu -->
@@ -542,6 +542,19 @@
                             <span class="nav-text">Settings</span>
                         </a>
                     </li>
+                    <!-- end settings Menu -->
+                @endcanany
+                @canany(['administrator-sale-requirements-index'])
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('sale-requirements.index') }}">
+                            <span class="nav-icon">
+                                <i class="ri-checkbox-multiple-line"></i>
+                            </span>
+                            <span class="nav-text">Sale Requirements</span>
+                        </a>
+                    </li>
+                @endcanany
+                @canany(['administrator-import-data-index'])
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('import.index') }}">
                             <span class="nav-icon">
@@ -550,7 +563,6 @@
                             <span class="nav-text">Import</span>
                         </a>
                     </li>
-                    <!-- end settings Menu -->
                 @endcanany
             @endcanany
         </ul>

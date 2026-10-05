@@ -2,10 +2,10 @@
 
 @section('css')
     @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+    @include('sales.partials.sale-form-assets')
 @endsection
 
 @section('content')
-
     <div class="row">
         <div class="col-xl-12 col-lg-12">
             <form id="editSaleForm" action="{{ route('sales.update') }}" method="POST" class="needs-validation" novalidate
@@ -13,20 +13,26 @@
                 @csrf
                 <input type="hidden" name="redirect_url" value="{{ $redirect_url }}">
                 <input type="hidden" name="sale_id" value="{{ $sale->id }}">
-                <div class="card">
+
+                {{-- Job details --}}
+                <div class="card sale-section">
                     <div class="card-header">
-                        <h4 class="card-title">Sale Information</h4>
+                        <span class="sale-section-icon"><iconify-icon icon="solar:case-round-bold-duotone"></iconify-icon></span>
+                        <div>
+                            <h4 class="card-title mb-0">Job Details</h4>
+                            <p class="text-muted fs-13 mb-0">What role is being recruited for and where it came from.</p>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="job_category" class="form-label">Job Category</label>
+                                    <label for="job_category" class="form-label">Job Category <span class="text-danger">*</span></label>
                                     <select class="form-select" id="job_category" name="job_category_id" required>
                                         <option value="">Choose a Job Category</option>
                                         @foreach ($jobCategories as $category)
                                             <option value="{{ $category->id }}"
-                                                {{ old('job_category_id', $sale->job_category_id == $category->id ? 'selected' : '') }}>
+                                                @selected(old('job_category_id', $sale->job_category_id) == $category->id)>
                                                 {{ $category->name }}
                                             </option>
                                         @endforeach
@@ -36,37 +42,32 @@
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="job_type" class="form-label">Job Type</label>
+                                    <label for="job_type" class="form-label">Job Type <span class="text-danger">*</span></label>
                                     <select class="form-select" id="job_type" name="job_type" required>
                                         <option value="">Choose a Job Type</option>
-                                        <option value="specialist"
-                                            {{ old('job_type', $sale->job_type == 'specialist' ? 'selected' : '') }}>
-                                            Specialist</option>
-                                        <option value="regular"
-                                            {{ old('job_type', $sale->job_type == 'regular' ? 'selected' : '') }}>Regular
-                                        </option>
+                                        <option value="specialist" @selected(old('job_type', $sale->job_type) == 'specialist')>Specialist</option>
+                                        <option value="regular" @selected(old('job_type', $sale->job_type) == 'regular')>Regular</option>
                                     </select>
                                     <div class="invalid-feedback">Please select a job type</div>
                                 </div>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="job_title" class="form-label">Job Title</label>
+                                    <label for="job_title" class="form-label">Job Title <span class="text-danger">*</span></label>
                                     <select id="job_title" name="job_title_id" class="form-select">
                                         <option value="">Choose a Job Title</option>
                                     </select>
-
                                     <div class="invalid-feedback">Please select a job title</div>
                                 </div>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="job_source_id" class="form-label">Job Source</label>
+                                    <label for="job_source_id" class="form-label">Job Source <span class="text-danger">*</span></label>
                                     <select class="form-select" id="job_source_id" name="job_source_id">
                                         <option value="">Choose a Job Source</option>
                                         @forelse($jobSources as $source)
                                             <option value="{{ $source->id }}"
-                                                {{ old('job_source_id', $sale->job_source_id == $source->id ? 'selected' : '') }}>
+                                                @selected(old('job_source_id', $sale->job_source_id) == $source->id)>
                                                 {{ $source->name }}
                                             </option>
                                         @empty
@@ -76,14 +77,29 @@
                                     <div class="invalid-feedback">Please select a job source</div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Location & position --}}
+                <div class="card sale-section">
+                    <div class="card-header">
+                        <span class="sale-section-icon"><iconify-icon icon="solar:map-point-bold-duotone"></iconify-icon></span>
+                        <div>
+                            <h4 class="card-title mb-0">Location & Position</h4>
+                            <p class="text-muted fs-13 mb-0">Where the role is based, the contract type and pay.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
                             <div class="col-lg-4 col-md-4 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="office_id" class="form-label">Head Office</label>
+                                    <label for="office_id" class="form-label">Head Office <span class="text-danger">*</span></label>
                                     <select class="form-select" id="office_id" name="office_id" required>
                                         <option value="">Choose a Head Office</option>
                                         @foreach ($offices as $office)
                                             <option value="{{ $office->id }}"
-                                                {{ old('office_id', $sale->office_id == $office->id ? 'selected' : '') }}>
+                                                @selected(old('office_id', $sale->office_id) == $office->id)>
                                                 {{ $office->office_name }}
                                             </option>
                                         @endforeach
@@ -93,7 +109,7 @@
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="unit_id" class="form-label">Units</label>
+                                    <label for="unit_id" class="form-label">Unit <span class="text-danger">*</span></label>
                                     <select class="form-select" id="unit_id" name="unit_id" required>
                                         <option value="">Choose a Unit</option>
                                     </select>
@@ -102,98 +118,94 @@
                             </div>
                             <div class="col-lg-4 col-md-4 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="sale_postcode" class="form-label">PostCode</label>
-                                    <input type="text" id="sale_postcode" class="form-control"
-                                        value="{{ old('sale_postcode', $sale->sale_postcode) }}" name="sale_postcode"
-                                        placeholder="Enter PostCode" required minlength="2" maxlength="8">
-                                    <div class="invalid-feedback">Please provide a postcode</div>
+                                    <label for="sale_postcode" class="form-label">Postcode <span class="text-danger">*</span></label>
+                                    <div class="input-group has-validation">
+                                        <span class="input-group-text"><iconify-icon icon="solar:map-point-linear"></iconify-icon></span>
+                                        <input type="text" id="sale_postcode" class="form-control"
+                                            value="{{ old('sale_postcode', $sale->sale_postcode) }}" name="sale_postcode"
+                                            placeholder="e.g. SW1A 1AA" required minlength="2" maxlength="8">
+                                        <div class="invalid-feedback">Please provide a postcode</div>
+                                    </div>
                                 </div>
                             </div>
-                            @if ($sale->status == 4 || $sale->status == 5)
-                                @php $colClass = 'col-lg-3 col-md-3 col-sm-12'; @endphp
-                            @else
-                                @php $colClass = 'col-lg-4 col-md-4 col-sm-12'; @endphp
-                            @endif
-                            <div class="{{ $colClass }}">
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="cv_limit" class="form-label">CV Limit</label>
-                                    <input type="number" id="cv_limit" class="form-control" name="cv_limit"
-                                        value="{{ old('cv_limit', $sale->cv_limit) }}" placeholder="Enter Limit" required>
-                                    <div class="invalid-feedback">Please provide cv limit</div>
-                                </div>
-                            </div>
-                            <div class="{{ $colClass }}">
-                                <div class="mb-3">
-                                    <label for="position_type" class="form-label">Position Type</label>
+                                    <label for="position_type" class="form-label">Position Type <span class="text-danger">*</span></label>
                                     <select class="form-select" id="position_type" name="position_type" required>
                                         <option value="">Choose a Type</option>
-                                        <option value="full time"
-                                            {{ old('position_type', $sale->position_type == 'full time' ? 'selected' : '') }}>
-                                            Full Time</option>
-                                        <option value="part time"
-                                            {{ old('position_type', $sale->position_type == 'part time' ? 'selected' : '') }}>
-                                            Part Time</option>
+                                        <option value="full time" @selected(old('position_type', $sale->position_type) == 'full time')>Full Time</option>
+                                        <option value="part time" @selected(old('position_type', $sale->position_type) == 'part time')>Part Time</option>
                                     </select>
                                     <div class="invalid-feedback">Please select a position type</div>
                                 </div>
                             </div>
-                            <div class="{{ $colClass }}">
+                            <div class="col-lg-6 col-md-12 col-sm-12">
+                                @include('sales.partials.salary-field', ['value' => old('salary', $sale->salary)])
+                            </div>
+                            <div class="col-lg-3 col-md-6 col-sm-12">
                                 <div class="mb-3">
-                                    <label for="salary" class="form-label">Salary</label>
-                                    <input type="text" id="salary" class="form-control" name="salary"
-                                        value="{{ old('salary', $sale->salary) }}" placeholder="Enter Salary" required>
-                                    <div class="invalid-feedback">Please provide salary</div>
+                                    <label for="cv_limit" class="form-label">CV Limit <span class="text-danger">*</span></label>
+                                    <div class="input-group has-validation">
+                                        <span class="input-group-text"><iconify-icon icon="solar:document-text-linear"></iconify-icon></span>
+                                        <input type="number" id="cv_limit" class="form-control" name="cv_limit" min="1"
+                                            value="{{ old('cv_limit', $sale->cv_limit) }}" placeholder="e.g. 5" required>
+                                        <div class="invalid-feedback">Please provide cv limit</div>
+                                    </div>
                                 </div>
                             </div>
                             @if ($sale->status == 4)
-                                <div class="col-lg-3 col-md-3 col-sm-12">
+                                <div class="col-lg-3 col-md-6 col-sm-12">
                                     <div class="mb-3">
                                         <label for="status" class="form-label">Status</label>
                                         <select class="form-select" id="status" name="status">
                                             <option value="">Choose Status</option>
-                                            <option value="1"
-                                                {{ old('status', $sale->status == '1' ? 'selected' : '') }}>Open
-                                            </option>
-                                            <option value="4"
-                                                {{ old('status', $sale->status == '4' ? 'selected' : '') }}>Scrapped
-                                            </option>
+                                            <option value="1" @selected(old('status', $sale->status) == '1')>Open</option>
+                                            <option value="4" @selected(old('status', $sale->status) == '4')>Scrapped</option>
                                         </select>
                                         <div class="invalid-feedback">Please select type</div>
                                     </div>
                                 </div>
                             @endif
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="timing" class="form-label">Timing</label>
-                                    <textarea class="form-control summernotee" id="timing" name="timing" rows="3" placeholder="Enter Timing"
-                                        required>{!! old('timing', $sale->timing) !!}</textarea>
-                                    <div class="invalid-feedback">Please provide timing</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Requirements: timing, experience, benefits, qualification --}}
+                <div class="card sale-section">
+                    <div class="card-header">
+                        <span class="sale-section-icon"><iconify-icon icon="solar:checklist-minimalistic-bold-duotone"></iconify-icon></span>
+                        <div>
+                            <h4 class="card-title mb-0">Requirements & Benefits</h4>
+                            <p class="text-muted fs-13 mb-0">Tap to select. Each section is saved as one clean sentence
+                                that starts with its prefix, ready for the job portal.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            @foreach ($requirementFields as $key => $field)
+                                <div class="col-xl-6">
+                                    @include('sales.partials.requirement-picker', [
+                                        'key' => $key,
+                                        'field' => $field,
+                                        'value' => old($key, $sale->{$key}),
+                                    ])
                                 </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="experience" class="form-label">Experience</label>
-                                    <textarea class="form-control summernotee" id="experience" name="experience" rows="3"
-                                        placeholder="Enter Experience">{!! old('experience', $sale->experience) !!}</textarea>
-                                    <div class="invalid-feedback">Please provide experience</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="benefits" class="form-label">Benefits</label>
-                                    <textarea class="form-control summernotee" id="benefits" name="benefits" rows="3"
-                                        placeholder="Enter Benefits" required>{!! old('benefits', $sale->benefits) !!}</textarea>
-                                    <div class="invalid-feedback">Please provide benefits</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="mb-3">
-                                    <label for="qualification" class="form-label">Qualification</label>
-                                    <textarea class="form-control summernotee" id="qualification" name="qualification" rows="3"
-                                        placeholder="Enter Qualification" required>{!! old('qualification', $sale->qualification) !!}</textarea>
-                                    <div class="invalid-feedback">Please provide qualification</div>
-                                </div>
-                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Description & notes --}}
+                <div class="card sale-section">
+                    <div class="card-header">
+                        <span class="sale-section-icon"><iconify-icon icon="solar:notes-bold-duotone"></iconify-icon></span>
+                        <div>
+                            <h4 class="card-title mb-0">Description & Notes</h4>
+                            <p class="text-muted fs-13 mb-0">Full job description for candidates and a note about this update.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
                             <div class="col-lg-12">
                                 <div class="mb-3">
                                     <label for="job_description" class="form-label">Job Description</label>
@@ -202,114 +214,107 @@
                                 </div>
                             </div>
                             <div class="col-lg-12">
-                                <div class="mb-3">
-                                    <label for="sale_notes" class="form-label">Notes</label>
-                                    <textarea class="form-control" id="sale_notes" name="sale_notes" rows="7" placeholder="Enter Notes" required>{{ old('sale_notes') }}</textarea>
+                                <div class="mb-0">
+                                    <label for="sale_notes" class="form-label">Notes <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="sale_notes" name="sale_notes" rows="4" placeholder="What changed in this update?" required>{{ old('sale_notes') }}</textarea>
                                     <div class="invalid-feedback">Please provide notes</div>
                                 </div>
                             </div>
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">Upload Documents</h4>
-                                </div>
+                        </div>
+                    </div>
+                </div>
 
-                                <!-- Dropzone -->
-                                <div id="salesAttachmentDropzone" class="dropzone dz-clickable">
-                                    <div class="dz-message needsclick">
-                                        <i class="h1 ri-upload-cloud-2-line"></i>
-                                        <h3>Drop files here or click to upload.</h3>
-                                        <span class="text-muted fs-13">
-                                            Allowed file types: docx, doc, pdf, txt (Max 10MB)
-                                        </span>
+                {{-- Documents --}}
+                <div class="card sale-section">
+                    <div class="card-header">
+                        <span class="sale-section-icon"><iconify-icon icon="solar:upload-square-bold-duotone"></iconify-icon></span>
+                        <div>
+                            <h4 class="card-title mb-0">Documents</h4>
+                            <p class="text-muted fs-13 mb-0">Upload new supporting files or remove existing ones.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Dropzone -->
+                        <div id="salesAttachmentDropzone" class="dropzone dz-clickable">
+                            <div class="dz-message needsclick">
+                                <i class="h1 ri-upload-cloud-2-line"></i>
+                                <h3>Drop files here or click to upload.</h3>
+                                <span class="text-muted fs-13">
+                                    Allowed file types: docx, doc, pdf, txt (Max 10MB)
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Hidden preview template -->
+                        <div id="dz-preview-template" style="display:none;">
+                            <li class="mt-2 dz-preview dz-file-preview">
+                                <div class="border rounded">
+                                    <div class="d-flex p-2">
+                                        <div class="flex-shrink-0 me-3">
+                                            <div
+                                                class="avatar-sm bg-light rounded d-flex align-items-center justify-content-center">
+                                                <div data-dz-thumbnail class="dz-iconify">
+                                                    <iconify-icon icon="solar:file-bold"
+                                                        class="fs-32 text-secondary"></iconify-icon>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="pt-1">
+                                                <h5 class="fs-14 mb-1" data-dz-name></h5>
+                                                <p class="fs-13 text-muted mb-0" data-dz-size></p>
+                                                <strong class="error text-danger" data-dz-errormessage></strong>
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0 ms-3">
+                                            <button data-dz-remove class="btn btn-sm btn-transparent text-danger"
+                                                title="Remove file">
+                                                <iconify-icon icon="solar:trash-bin-minimalistic-bold"
+                                                    class="text-danger fs-24"></iconify-icon>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <!-- Hidden preview template -->
-                                <div id="dz-preview-template" style="display:none;">
-                                    <li class="mt-2 dz-preview dz-file-preview">
-                                        <div class="border rounded">
-                                            <div class="d-flex p-2">
-                                                <div class="flex-shrink-0 me-3">
-                                                    <div
-                                                        class="avatar-sm bg-light rounded d-flex align-items-center justify-content-center">
-                                                        <div data-dz-thumbnail class="dz-iconify">
-                                                            <iconify-icon icon="solar:file-bold"
-                                                                class="fs-32 text-secondary"></iconify-icon>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <div class="pt-1">
-                                                        <h5 class="fs-14 mb-1" data-dz-name></h5>
-                                                        <p class="fs-13 text-muted mb-0" data-dz-size></p>
-                                                        <strong class="error text-danger" data-dz-errormessage></strong>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-shrink-0 ms-3">
-                                                    <button data-dz-remove class="btn btn-sm btn-transparent text-danger"
-                                                        title="Remove file">
-                                                        <iconify-icon icon="solar:trash-bin-minimalistic-bold"
-                                                            class="text-danger fs-24"></iconify-icon>
-                                                    </button>
-                                                </div>
-
-                                            </div>
-                                        </div>
-                                    </li>
-                                </div>
-
-                                <ul class="list-unstyled mb-0" id="dropzone-preview"></ul>
-
-                            </div>
-                            <div class="col-lg-12">
-                                <div class="mb-3">
-                                    <!-- <div class="form-group">
-                                                    <label for="attachment">Attachment</label>
-                                                    <input type="file" class="form-control" name="attachments[]" id="attachment"
-                                                        multiple>
-                                                    <small class="text-muted">Allowed file types: docx, doc, csv, pdf (Max 5MB)</small>
-                                                </div> -->
-                                    @if ($sale->documents->isNotEmpty())
-                                        <div class="col-lg-12">
-                                            <div class="mt-3">
-                                                <label for="sale_documents" class="form-label">Already Attached
-                                                    Files</label>
-                                                <ul class="list-group">
-                                                    @foreach ($sale->documents as $document)
-                                                        <li
-                                                            class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <a href="{{ asset($document->document_path) }}"
-                                                                target="_blank">{{ $document->document_name }}</a>
-                                                            <div>
-                                                                <span
-                                                                    class="badge bg-info rounded-pill">{{ $document->created_at->format('d M Y') }}</span>
-                                                                <button type="button" data-bs-toggle="tooltip"
-                                                                    data-bs-placement="top" data-bs-title="Delete File"
-                                                                    class="btn bg-transparent btn-sm ms-2 remove-document-btn"
-                                                                    data-document-id="{{ $document->id }}">
-                                                                    <iconify-icon icon="solar:trash-bin-trash-bold"
-                                                                        class="align-middle fs-24 text-danger"></iconify-icon>
-                                                                </button>
-                                                            </div>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
+                            </li>
                         </div>
-                        <div class="mb-3 rounded">
-                            <div class="row justify-content-end g-2">
-                                <div class="col-lg-2">
-                                    <a href="{{ route($redirect_url) }}" class="btn btn-dark w-100">Cancel</a>
-                                </div>
-                                <div class="col-lg-2">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        Update</button>
-                                </div>
+
+                        <ul class="list-unstyled mb-0" id="dropzone-preview"></ul>
+
+                        @if ($sale->documents->isNotEmpty())
+                            <div class="mt-3">
+                                <label class="form-label">Already attached files</label>
+                                <ul class="list-group">
+                                    @foreach ($sale->documents as $document)
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <a href="{{ asset($document->document_path) }}" target="_blank">
+                                                <iconify-icon icon="solar:file-text-linear" class="align-middle me-1"></iconify-icon>{{ $document->document_name }}
+                                            </a>
+                                            <div>
+                                                <span class="badge bg-info rounded-pill">{{ $document->created_at->format('d M Y') }}</span>
+                                                <button type="button" data-bs-toggle="tooltip" data-bs-placement="top"
+                                                    data-bs-title="Delete File" class="btn bg-transparent btn-sm ms-2 remove-document-btn"
+                                                    data-document-id="{{ $document->id }}">
+                                                    <iconify-icon icon="solar:trash-bin-trash-bold"
+                                                        class="align-middle fs-24 text-danger"></iconify-icon>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Actions --}}
+                <div class="card sale-form-actions">
+                    <div class="card-body py-2">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <span class="text-muted fs-13"><span class="text-danger">*</span> Required fields</span>
+                            <div class="d-flex gap-2">
+                                <a href="{{ route($redirect_url) }}" class="btn btn-light px-4">Cancel</a>
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <iconify-icon icon="solar:diskette-linear" class="align-middle me-1"></iconify-icon>Update Sale</button>
                             </div>
                         </div>
                     </div>
@@ -317,7 +322,6 @@
             </form>
         </div>
     </div>
-
 @endsection
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -349,8 +353,8 @@
 
     <script>
         $(document).ready(function() {
-            // Initialize Select2 on all select elements
-            $('select.form-select').select2({
+            // Initialize Select2 on all select elements (the salary period stays a native dropdown)
+            $('select.form-select').not('.salary-period').select2({
                 placeholder: function() {
                     return $(this).data('placeholder') || 'Choose an option';
                 },
@@ -358,18 +362,6 @@
                 width: '100%'
             });
 
-            $('.summernotee').summernote({
-                height: 100,
-                toolbar: [
-                    ['style', ['bold', 'italic', 'underline', 'clear']],
-                    ['font', ['strikethrough', 'superscript', 'subscript']],
-                    ['fontsize', ['fontsize']],
-                    ['color', []],
-                    ['para', ['ul', 'ol', 'paragraph']],
-                    ['insert', []],
-                    ['view', []]
-                ]
-            });
             $('.summernote').summernote({
                 height: 200,
                 toolbar: [
@@ -403,8 +395,28 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Handle form submission
             const form = document.getElementById('editSaleForm');
+
+            SaleRequirements.init();
+            SalaryField.init();
+
+            const submitLabel = form.querySelector('button[type="submit"]').innerHTML;
+
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
+
+                if (!SalaryField.validate()) {
+                    document.getElementById('salaryPicker').scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                    toastr.error('Please provide the salary amount.');
+                    return;
+                }
+
+                if (!SaleRequirements.validate()) {
+                    toastr.error('Please complete the requirements & benefits section.');
+                    return;
+                }
 
                 const submitBtn = form.querySelector('button[type="submit"]');
                 submitBtn.disabled = true;
@@ -439,7 +451,7 @@
                         } else {
                             // Handle validation errors
                             submitBtn.disabled = false;
-                            submitBtn.innerHTML = 'Update';
+                            submitBtn.innerHTML = submitLabel;
 
                             if (data.errors) {
                                 // Clear previous errors
@@ -468,7 +480,7 @@
                     })
                     .catch(error => {
                         submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Update';
+                        submitBtn.innerHTML = submitLabel;
                         toastr.error('An unexpected error occurred. Please try again.');
                         console.error('Error:', error);
                     });

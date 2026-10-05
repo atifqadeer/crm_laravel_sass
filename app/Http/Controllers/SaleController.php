@@ -17,6 +17,7 @@ use Horsefly\Setting;
 use Horsefly\JobTitle;
 use Horsefly\JobSource;
 use Horsefly\SaleDocument;
+use Horsefly\SaleRequirementField;
 use Horsefly\ModuleNote;
 
 use App\Observers\ActionObserver;
@@ -623,7 +624,9 @@ class SaleController extends Controller
 
         $jobSources = $query->orderBy('name', 'asc')->get();
 
-        return view('sales.create', compact('offices', 'units', 'jobCategories', 'jobTitles', 'jobSources'));
+        $requirementFields = SaleRequirementField::forForm();
+
+        return view('sales.create', compact('offices', 'units', 'jobCategories', 'jobTitles', 'jobSources', 'requirementFields'));
     }
     public function store(Request $request)
     {
@@ -884,7 +887,9 @@ class SaleController extends Controller
 
         $redirect_url = $request->input('redirect_url', 'sales.list');
 
-        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url', 'jobSources'));
+        $requirementFields = SaleRequirementField::forForm();
+
+        return view('sales.edit', compact('sale', 'offices', 'jobCategories', 'jobTitles', 'redirect_url', 'jobSources', 'requirementFields'));
     }
     public function update(Request $request)
     {

@@ -12,6 +12,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SaleRequirementController;
 use App\Http\Controllers\IPAddressController;
 use App\Http\Controllers\CrmController;
 use App\Http\Controllers\ResourceController;
@@ -457,6 +458,21 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     });
     Route::get('ipaddressExport', [IPAddressController::class, 'export'])->name('ipaddressExport');
     Route::get('getIPs', [IPAddressController::class, 'getIPs'])->name('getIPs');
+
+    /** Sale requirement pickers (timing, experience, benefits, qualification) */
+    Route::group(['prefix' => 'sale-requirements'], function () {
+        Route::get('', [SaleRequirementController::class, 'index'])->name('sale-requirements.index');
+        Route::put('fields/{field}', [SaleRequirementController::class, 'updateField'])->name('sale-requirements.fields.update');
+        Route::post('fields/{field}/restore', [SaleRequirementController::class, 'restoreField'])->name('sale-requirements.fields.restore');
+        Route::post('fields/{field}/reorder', [SaleRequirementController::class, 'reorder'])->name('sale-requirements.fields.reorder');
+        Route::post('fields/{field}/groups', [SaleRequirementController::class, 'storeGroup'])->name('sale-requirements.groups.store');
+        Route::put('groups/{group}', [SaleRequirementController::class, 'updateGroup'])->name('sale-requirements.groups.update');
+        Route::delete('groups/{group}', [SaleRequirementController::class, 'destroyGroup'])->name('sale-requirements.groups.destroy');
+        Route::post('groups/{group}/options', [SaleRequirementController::class, 'storeOption'])->name('sale-requirements.options.store');
+        Route::put('options/{option}', [SaleRequirementController::class, 'updateOption'])->name('sale-requirements.options.update');
+        Route::patch('options/{option}/toggle', [SaleRequirementController::class, 'toggleOption'])->name('sale-requirements.options.toggle');
+        Route::delete('options/{option}', [SaleRequirementController::class, 'destroyOption'])->name('sale-requirements.options.destroy');
+    });
 
     Route::get('settings', [SettingController::class, 'index'])->name('settings.list');
     Route::get('getSettings', [SettingController::class, 'getSettings'])->name('settings.get');
