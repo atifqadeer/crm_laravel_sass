@@ -2798,7 +2798,7 @@ class DashboardController extends Controller
     public function statisticsReportIndex(Request $request)
     {
         $status = $request->input('status');
-        $category = $request->input('category'); // nurses / non_nurses
+        $categoryTitle = $request->input('category'); // nurses / non_nurses
         $type = $request->input('type');         // regular / specialist
         $range = $request->input('range');
         $date_range = $request->input('date_range');
@@ -2808,12 +2808,45 @@ class DashboardController extends Controller
         $formatted_startDate = Carbon::parse($startDate)->format('d M Y');
         $formatted_endDate = Carbon::parse($endDate)->format('d M Y');
 
-        $jobTitles = JobTitle::where('is_active', 1)->orderBy('name')->get();
+        if ($categoryTitle == 'nurses') {
+            $jobCategoryID = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->pluck('id')->toArray();
+        } else {
+            $jobCategoryID = JobCategory::whereRaw('LOWER(name) != ?', ['nurse'])->pluck('id')->toArray();
+        }
+
+        $jobTitles = JobTitle::whereIn('job_category_id', $jobCategoryID)->where('type', $type)->where('is_active', 1)->orderBy('name', 'asc')->get();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
 
         return view('dashboards.statistics_applicants_list', compact(
+            'categoryTitle',
+            'jobSources',
             'jobTitles',
             'status',
-            'category',
             'type',
             'range',
             'date_range',
@@ -2826,6 +2859,8 @@ class DashboardController extends Controller
         $range = $request->input('range', ''); // Default is empty (no filter)
         $dateRange = $request->input('date_range', ''); // Default is empty (no filter)
         $category = $request->input('category', ''); // Default is empty (no filter)
+        $titleFilter = $request->input('title_filter', []);
+        $sourceFilter = $request->input('source_filter', []);
         $status = $request->input('status', ''); // Default is empty (no filter)
         $type = $request->input('type', ''); // Default is empty (no filter)
 
@@ -2834,25 +2869,41 @@ class DashboardController extends Controller
 
         $nurseCategory = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
 
+        $titleFilter = array_values(array_filter((array) $titleFilter, fn($v) => $v !== '' && $v !== null));
+        $sourceFilter = array_values(array_filter((array) $sourceFilter, fn($v) => $v !== '' && $v !== null));
+
         if (!$nurseCategory) {
             return response()->json(['error' => 'Nurse category not found']);
         }
 
+        $config = $this->getStatusConfig($status) ?? ['history' => ['quality_cleared']];
+        $isRevertStatus = isset($config['revert']);
+
+        // One row per applicant: the latest matching event in the range, which also
+        // gives the sale. Same stages/active flags as the dashboard counts.
+        $eventTable = $isRevertStatus ? 'revert_stages' : 'history';
+        $latestEvent = DB::table($eventTable)
+            ->select('applicant_id', DB::raw('MAX(id) as event_id'))
+            ->whereIn($isRevertStatus ? 'stage' : 'sub_stage', $isRevertStatus ? $config['revert'] : $config['history'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->when(!$isRevertStatus && isset($config['history_active']), fn($q) => $q->where('status', $config['history_active']))
+            ->groupBy('applicant_id');
+
         $query = Applicant::query()
+            ->joinSub($latestEvent, 'latest_event', 'latest_event.applicant_id', '=', 'applicants.id')
+            ->join($eventTable . ' as ev', 'ev.id', '=', 'latest_event.event_id')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
             ->with(['jobTitle', 'jobCategory', 'jobSource']);
 
         // Filter by category
-        if ($category === 'nurses' && $nurseCategory) {
+        if ($category === 'nurses') {
             $query->where('applicants.job_category_id', $nurseCategory->id);
         } elseif ($category === 'non_nurses') {
             $query->where(function ($q) use ($nurseCategory) {
-                if ($nurseCategory) {
-                    $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
-                        ->orWhereNull('applicants.job_category_id');
-                }
+                $q->where('applicants.job_category_id', '!=', $nurseCategory->id)
+                    ->orWhereNull('applicants.job_category_id');
             });
         }
 
@@ -2860,7 +2911,15 @@ class DashboardController extends Controller
             $query->where('applicants.job_type', $type);
         }
 
-        $applicantSelect = [
+        if (!empty($titleFilter)) {
+            $query->whereIn('applicants.job_title_id', $titleFilter);
+        }
+
+        if (!empty($sourceFilter)) {
+            $query->whereIn('applicants.job_source_id', $sourceFilter);
+        }
+
+        $query->select([
             'applicants.id',
             'applicants.applicant_name',
             'applicants.applicant_email',
@@ -2871,6 +2930,8 @@ class DashboardController extends Controller
             'applicants.applicant_postcode',
             'applicants.applicant_experience',
             'applicants.is_blocked',
+            'applicants.lat',
+            'applicants.lng',
             'applicants.job_category_id',
             'applicants.job_title_id',
             'applicants.job_source_id',
@@ -2882,127 +2943,150 @@ class DashboardController extends Controller
             'job_titles.name as job_title_name',
             'job_categories.name as job_category_name',
             'job_sources.name as job_source_name',
-        ];
-
-        $isRevertStatus = in_array($status, ['crm_revert', 'quality_revert'], true);
+        ]);
 
         if ($isRevertStatus) {
-            // Chart / modal counts come from revert_stages, not history.
-            $revertStages = [$status];
-
-            $latestRevert = DB::table('revert_stages')
-                ->select('applicant_id', 'sale_id', 'user_id', 'notes', 'created_at', 'id', 'stage')
-                ->whereIn('stage', $revertStages)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('id', function ($sub) use ($revertStages, $startDate, $endDate) {
-                    $sub->select(DB::raw('MAX(id)'))
-                        ->from('revert_stages')
-                        ->whereIn('stage', $revertStages)
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->groupBy('applicant_id');
-                });
-
-            $query->whereExists(function ($q) use ($revertStages, $startDate, $endDate) {
-                $q->selectRaw(1)
-                    ->from('revert_stages')
-                    ->whereColumn('revert_stages.applicant_id', 'applicants.id')
-                    ->whereIn('revert_stages.stage', $revertStages)
-                    ->whereBetween('revert_stages.created_at', [$startDate, $endDate]);
-            })
-                ->leftJoinSub($latestRevert, 'revert_notes', function ($join) {
-                    $join->on('applicants.id', '=', 'revert_notes.applicant_id');
-                })
-                ->leftJoin('users', 'revert_notes.user_id', '=', 'users.id')
-                ->select(array_merge($applicantSelect, [
-                    'revert_notes.notes as notes_detail',
-                    'revert_notes.created_at as notes_created_at',
-                    'users.name as user_name',
-                ]));
+            $notesColumn = 'ev.notes';
+            $dateColumn = 'ev.created_at';
+            $query->leftJoin('users', 'ev.user_id', '=', 'users.id')
+                ->addSelect(['ev.notes as notes_detail', 'users.name as user_name', 'ev.created_at as notes_created_at']);
         } else {
-            $latestCv = DB::table('cv_notes')
-                ->select('applicant_id', 'sale_id', 'user_id', 'created_at', 'id')
-                ->whereIn('id', function ($sub) {
-                    $sub->select(DB::raw('MAX(id)'))
-                        ->from('cv_notes')
-                        ->groupBy('applicant_id', 'sale_id');
-                });
-
             $crmNoteMap = [
                 'crm_sent_cvs' => ['cv_sent', 'cv_sent_saved'],
-                'crm_open_cvs' => 'quality_cvs_hold',
-                'crm_rejected' => 'crm_reject',
-                'crm_requested' => 'crm_request',
-                'crm_request_rejected' => 'crm_request_reject',
-                'crm_confirmed' => 'crm_request_confirm',
-                'crm_rebook' => 'crm_rebook',
-                'crm_prestart_attended' => 'crm_interview_attended',
-                'crm_declined' => 'crm_declined',
-                'crm_not_attended' => 'crm_interview_not_attended',
+                'crm_open_cvs' => ['quality_cvs_hold'],
+                'crm_rejected' => ['crm_reject'],
+                'crm_requested' => ['crm_request'],
+                'crm_request_rejected' => ['crm_request_reject'],
+                'crm_confirmed' => ['crm_request_confirm'],
+                'crm_rebook' => ['crm_rebook'],
+                'crm_prestart_attended' => ['crm_interview_attended'],
+                'crm_declined' => ['crm_declined'],
+                'crm_not_attended' => ['crm_interview_not_attended'],
                 'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
-                'crm_start_date_hold' => 'crm_start_date_hold',
-                'crm_invoiced' => 'crm_invoice',
-                'crm_disputed' => 'crm_dispute',
-                'crm_paid' => 'crm_paid',
+                'crm_start_date_hold' => ['crm_start_date_hold'],
+                'crm_invoiced' => ['crm_invoice'],
+                'crm_disputed' => ['crm_dispute'],
+                'crm_paid' => ['crm_paid'],
             ];
-
             $crmSubStages = $crmNoteMap[$status] ?? ['cv_sent', 'cv_sent_saved'];
 
-            $map = [
-                'crm_sent_cvs' => 'quality_cleared',
-                'crm_open_cvs' => 'quality_cvs_hold',
-                'crm_rejected' => 'crm_reject',
-                'crm_requested' => 'crm_request',
-                'crm_request_rejected' => 'crm_request_reject',
-                'crm_confirmed' => 'crm_request_confirm',
-                'crm_rebook' => 'crm_rebook',
-                'crm_prestart_attended' => 'crm_interview_attended',
-                'crm_declined' => 'crm_declined',
-                'crm_not_attended' => 'crm_interview_not_attended',
-                'crm_date_started' => ['crm_start_date', 'crm_start_date_back'],
-                'crm_start_date_hold' => 'crm_start_date_hold',
-                'crm_invoiced' => 'crm_invoice',
-                'crm_disputed' => 'crm_dispute',
-                'crm_paid' => 'crm_paid',
-            ];
+            // Latest CRM note for the same applicant + sale as the event. Correlated
+            // per row (uses the applicant_id index) instead of grouping the whole table.
+            $latestCrmId = DB::table('crm_notes as cn')
+                ->selectRaw('MAX(cn.id)')
+                ->whereColumn('cn.applicant_id', 'ev.applicant_id')
+                ->whereColumn('cn.sale_id', 'ev.sale_id')
+                ->whereIn('cn.moved_tab_to', $crmSubStages)
+                ->whereBetween('cn.created_at', [$startDate, $endDate]);
 
-            $subStages = $map[$status] ?? 'quality_cleared';
+            // Agent who sent the CV for that sale
+            $latestCvId = DB::table('cv_notes as cvn')
+                ->selectRaw('MAX(cvn.id)')
+                ->whereColumn('cvn.applicant_id', 'ev.applicant_id')
+                ->whereColumn('cvn.sale_id', 'ev.sale_id');
 
-            $latestCrm = DB::table('crm_notes')
-                ->select('applicant_id', 'sale_id', 'details', 'created_at', 'id', 'moved_tab_to')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('id', function ($sub) use ($startDate, $endDate) {
-                    $sub->select(DB::raw('MAX(id)'))
-                        ->from('crm_notes')
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->groupBy('applicant_id', 'sale_id');
-                });
-
-            $query->whereExists(function ($q) use ($subStages, $startDate, $endDate) {
-                $q->selectRaw(1)
-                    ->from('history')
-                    ->whereColumn('history.applicant_id', 'applicants.id')
-                    ->whereIn('history.sub_stage', (array) $subStages)
-                    ->whereBetween('history.created_at', [$startDate, $endDate]);
+            $notesColumn = 'crm_notes.details';
+            // Date = CRM note time; falls back to the stage event when no note exists
+            $dateColumn = 'COALESCE(crm_notes.created_at, ev.created_at)';
+            $query->leftJoin('crm_notes', function ($join) use ($latestCrmId) {
+                $join->whereRaw('crm_notes.id = (' . $latestCrmId->toSql() . ')', $latestCrmId->getBindings());
             })
-                ->leftJoinSub($latestCrm, 'crm_notes', function ($join) use ($crmSubStages) {
-                    $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                        ->whereIn('crm_notes.moved_tab_to', (array) $crmSubStages);
+                ->leftJoin('cv_notes', function ($join) use ($latestCvId) {
+                    $join->whereRaw('cv_notes.id = (' . $latestCvId->toSql() . ')', $latestCvId->getBindings());
                 })
-                ->leftJoinSub($latestCv, 'cv_notes', function ($join) {
-                    $join->on('crm_notes.applicant_id', '=', 'cv_notes.applicant_id')
-                        ->on('crm_notes.sale_id', '=', 'cv_notes.sale_id');
-                })
-                ->leftJoin('users', 'cv_notes.user_id', '=', 'users.id')
-                ->select(array_merge($applicantSelect, [
-                    'crm_notes.details as notes_detail',
-                    'crm_notes.created_at as notes_created_at',
-                    'users.name as user_name',
-                ]));
+                ->leftJoin('users', DB::raw('COALESCE(cv_notes.user_id, ev.user_id)'), '=', 'users.id')
+                ->addSelect(['crm_notes.details as notes_detail', 'users.name as user_name', DB::raw($dateColumn . ' as notes_created_at')]);
         }
 
+        $query->leftJoin('sales', 'ev.sale_id', '=', 'sales.id')
+            ->leftJoin('offices as sale_offices', 'sales.office_id', '=', 'sale_offices.id')
+            ->leftJoin('units as sale_units', 'sales.unit_id', '=', 'sale_units.id')
+            ->leftJoin('job_titles as sale_job_titles', 'sales.job_title_id', '=', 'sale_job_titles.id')
+            ->leftJoin('job_sources as sale_job_sources', 'sales.job_source_id', '=', 'sale_job_sources.id')
+            ->leftJoin('job_categories as sale_job_categories', 'sales.job_category_id', '=', 'sale_job_categories.id')
+            ->addSelect([
+                'sales.id as sale_id',
+                'sale_job_titles.name as sale_job_title',
+                'sale_offices.office_name as office_name',
+                'sale_units.unit_name as unit_name',
+                'sales.sale_postcode as sale_postcode',
+                'sale_job_sources.name as sale_source_name',
+                'sale_job_categories.name as sale_category_name',
+                'sales.position_type as sale_position_type',
+                'sales.job_type as sale_job_type',
+                'sales.timing as sale_timing',
+                'sales.status as sale_status',
+                'sales.is_on_hold as sale_is_on_hold',
+                'sales.created_at as sale_posted_date',
+                'sales.experience as sale_experience',
+                'sales.salary as sale_salary',
+                'sales.qualification as sale_qualification',
+                'sales.benefits as sale_benefits',
+            ]);
+
+        // Global search is applied in ->filter() below so DataTables does not try
+        // to search computed columns (show_created_at, notes_details, ...) as SQL.
+        $applySearch = function ($query) use ($request, $notesColumn) {
+            $searchTerm = strtolower(trim((string) $request->input('search.value', '')));
+            if ($searchTerm === '') {
+                return;
+            }
+            $likeSearchTerm = '%' . $searchTerm . '%';
+            $digits = preg_replace('/[^0-9]/', '', $searchTerm);
+
+            $query->where(function ($searchQuery) use ($likeSearchTerm, $notesColumn, $digits) {
+                foreach (
+                    [
+                        'applicants.applicant_name',
+                        'applicants.applicant_email',
+                        'applicants.applicant_email_secondary',
+                        'applicants.applicant_postcode',
+                        'applicants.applicant_experience',
+                        'job_titles.name',
+                        'job_categories.name',
+                        'job_sources.name',
+                        'users.name',
+                        'sales.sale_postcode',
+                        'sale_job_titles.name',
+                        'sale_offices.office_name',
+                        'sale_units.unit_name',
+                        'sale_job_sources.name',
+                        $notesColumn,
+                    ] as $column
+                ) {
+                    $searchQuery->orWhereRaw("LOWER(COALESCE({$column}, '')) LIKE ?", [$likeSearchTerm]);
+                }
+
+                if (strlen($digits) >= 3) {
+                    foreach (['applicants.applicant_phone', 'applicants.applicant_phone_secondary', 'applicants.applicant_landline'] as $column) {
+                        $searchQuery->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(COALESCE({$column}, ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?", ['%' . $digits . '%']);
+                    }
+                }
+            });
+        };
+
         if ($request->ajax()) {
+            $jobTitleNamesById = JobTitle::pluck('name', 'id');
+            $jobCategoryNamesById = JobCategory::pluck('name', 'id');
+
+            // Copy icon handled by the global .copy-postcode listener in footer-scripts
+            $copyPostcodeBtn = function (?string $postcode): string {
+                $postcode = strtoupper(trim((string) $postcode));
+                if ($postcode === '') {
+                    return '';
+                }
+
+                return '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1 copy-postcode"
+                            data-postcode="' . e($postcode) . '" title="Copy Postcode">
+                            <iconify-icon icon="solar:copy-linear" class="fs-16 align-middle"></iconify-icon>
+                        </button>';
+            };
+
             return DataTables::eloquent($query)
-                ->addIndexColumn() // This will automatically add a serial number to the rows
+                ->addIndexColumn()
+                ->filter($applySearch)
+                ->orderColumn('show_created_at', $dateColumn . ' $1')
+                ->orderColumn('user_name', 'users.name $1')
                 ->addColumn('job_title', function ($applicant) {
                     return $applicant->jobTitle ? strtoupper($applicant->jobTitle->name) : '-';
                 })
@@ -3018,8 +3102,82 @@ class DashboardController extends Controller
 
                     return e($applicant->jobCategory->name) . $stype;
                 })
-                ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? $applicant->jobSource->name : '-';
+                ->addColumn('job_details', function ($applicant) {
+                    $position_type = strtoupper(str_replace('-', ' ', $applicant->sale_position_type ?? ''));
+                    $status = '-';
+                    $statusClass = 'bg-secondary';
+                    if ($applicant->sale_status == 1) {
+                        $status = 'Active';
+                        $statusClass = 'bg-success';
+                    } elseif ($applicant->sale_status == 0 && $applicant->sale_is_on_hold == 0) {
+                        $status = 'Closed';
+                        $statusClass = 'bg-danger';
+                    } elseif ($applicant->sale_status == 2) {
+                        $status = 'Pending';
+                        $statusClass = 'bg-warning text-dark';
+                    } elseif ($applicant->sale_status == 3) {
+                        $status = 'Rejected';
+                        $statusClass = 'bg-danger';
+                    }
+
+                    $sale_source_name = '';
+                    if ($applicant->sale_source_name) {
+                        $sale_source_name = '<span class="badge bg-light text-dark">' . e($applicant->sale_source_name) . '</span>';
+                    }
+
+                    $postcode = strtoupper($applicant->sale_postcode);
+                    $posted_date = Carbon::parse($applicant->sale_posted_date)->format('d M Y, h:i A');
+                    $office_name = ucwords($applicant->office_name) ?? '-';
+                    $unit_name = ucwords($applicant->unit_name) ?? '-';
+                    $jobTitle = $applicant->sale_job_title ? strtoupper($applicant->sale_job_title) : '-';
+                    $stype  = $applicant->sale_job_type && $applicant->sale_job_type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $categoryName = $applicant->sale_category_name ? strtoupper($applicant->sale_category_name) . $stype : '-';
+
+                    $jobData = [
+                        'sale_id'       => (int)$applicant->sale_id,
+                        'posted_date'   => $posted_date,
+                        'office_name'   => $office_name,
+                        'unit_name'     => $unit_name,
+                        'postcode'      => $postcode,
+                        'job_category'  => $categoryName,
+                        'job_title'     => $jobTitle,
+                        'sale_source_name' => $sale_source_name,
+                        'status'        => $status,
+                        'status_class'  => $statusClass,
+                        'timing'        => $applicant->sale_timing,
+                        'experience'    => $applicant->sale_experience,
+                        'salary'        => $applicant->sale_salary,
+                        'position'      => $position_type,
+                        'qualification' => $applicant->sale_qualification,
+                        'benefits'      => $applicant->sale_benefits,
+                    ];
+
+                    return '<a href="javascript:void(0);"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                        $jobData,
+                        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                    ) . '\'>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
+                })
+                ->editColumn('office_name', function ($applicant) {
+                    return $applicant->office_name ?: '-';
+                })
+                ->editColumn('unit_name', function ($applicant) {
+                    return $applicant->unit_name ?: '-';
+                })
+                ->editColumn('sale_postcode', function ($applicant) use ($copyPostcodeBtn) {
+                    if (!$applicant->sale_postcode) {
+                        return '-';
+                    }
+
+                    return '<span class="text-nowrap">' . e(strtoupper($applicant->sale_postcode)) . $copyPostcodeBtn($applicant->sale_postcode) . '</span>';
+                })
+                ->addColumn('sale_source_name', function ($sale) {
+                    if (!$sale->sale_source_name)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($sale->sale_source_name) . '</span>';
                 })
                 ->editColumn('user_name', function ($applicant) {
                     return $applicant->user_name ? $applicant->user_name : '-'; // Using accessor
@@ -3081,14 +3239,14 @@ class DashboardController extends Controller
                             ->orWhereRaw('LOWER(applicants.applicant_email_secondary) LIKE ?', ["%{$keyword}%"]);
                     });
                 })
-                ->editColumn('applicant_postcode', function ($applicant) {
+                ->editColumn('applicant_postcode', function ($applicant) use ($copyPostcodeBtn) {
                     if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
                         $button = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $applicant->formatted_postcode . '</a>'; // Using accessor
                     } else {
                         $button = $applicant->formatted_postcode;
                     }
-                    return $button;
+                    return '<span class="text-nowrap">' . $button . $copyPostcodeBtn($applicant->applicant_postcode) . '</span>';
                 })
                 ->addColumn('notes_details', function ($applicant) {
                     $notes_detail = strip_tags((string) ($applicant->notes_detail ?? $applicant->applicant_notes ?? ''));
@@ -3191,8 +3349,8 @@ class DashboardController extends Controller
                             ->orWhereRaw('REPLACE(REPLACE(REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", ""), "(", ""), ")", "") LIKE ?', ["%$clean%"]);
                     });
                 })
-                ->editColumn('created_at', function ($applicant) {
-                    return $applicant->formatted_created_at; // Using accessor
+                ->editColumn('show_created_at', function ($applicant) {
+                    return $applicant->notes_created_at ? Carbon::parse($applicant->notes_created_at)->format('d M Y, g:i A') : '-';
                 })
                 ->addColumn('applicant_resume', function ($applicant) {
                     $path = $applicant->applicant_cv; // e.g. uploads/cv/file.pdf
@@ -3258,7 +3416,7 @@ class DashboardController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['notes_details', 'user_name', 'created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['notes_details', 'sale_source_name', 'sale_postcode', 'user_name', 'job_details', 'show_created_at', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'job_category', 'action'])
                 ->make(true);
         }
     }

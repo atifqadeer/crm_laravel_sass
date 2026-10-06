@@ -17,7 +17,7 @@
 
         <div class="container-fluid">
 
-            @include("layouts.partials/page-title",['title' => $title,'subTitle' => $subTitle])
+            @include("layouts.partials/page-title",['title' => $title,'subTitle' => $subTitle,'titleBadge' => $titleBadge ?? null])
 
             @yield('content')
 
