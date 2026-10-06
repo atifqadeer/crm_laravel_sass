@@ -2902,7 +2902,28 @@ class ResourceController extends Controller
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
         $dateRangeFilter = $request->input('date_range_filter', ''); // Default is empty (no filter)
-        $statusFilter = $request->input('status_filter', ''); // Default is empty (no filter)
+        $statusFilter = $request->input('status_filter', 'all');
+        $allowedStatusFilters = ['', 'interested', 'not interested', 'blocked', 'have nursing home exp', 'all'];
+        $request->validate([
+            'status_filter' => ['sometimes', function ($attribute, $value, $fail) use ($allowedStatusFilters) {
+                foreach ((array) $value as $status) {
+                    if (!is_string($status) || !in_array(strtolower(trim($status)), $allowedStatusFilters, true)) {
+                        $fail('The selected status filter is invalid.');
+                        return;
+                    }
+                }
+            }],
+        ]);
+
+        $statusFilters = array_map(
+            function ($status) {
+                return strtolower(trim((string) $status));
+            },
+            (array) $statusFilter
+        );
+        if ($statusFilters === [''] || in_array('all', $statusFilters, true)) {
+            $statusFilters = [];
+        }
 
         $today = Carbon::today()->toDateString();
 
@@ -2941,6 +2962,7 @@ class ResourceController extends Controller
                 'applicants.updated_cv',
                 'applicants.is_blocked',
                 'applicants.status',
+                'applicants.have_nursing_home_experience',
                 'applicants.created_at',
                 'applicants.updated_at',
                 'applicants.is_job_within_radius',
@@ -2981,11 +3003,21 @@ class ResourceController extends Controller
                     ->orWhereDate('applicants.created_at', '=', $today);
             });
 
-        // 🔹 STATUS FILTER
-        switch ($statusFilter) {
-            case 'not interested':
-                $model->where(function ($query) {
-                    $query->where('applicants.is_temp_not_interested', 1)
+        // Apply selected statuses as alternatives while keeping them grouped with the other filters.
+        $statusPredicates = [
+            'interested' => function ($query) {
+                $query->whereNull('applicants_pivot_sales.applicant_id')
+                    ->where('applicants.is_blocked', 0)
+                    ->where('applicants.is_no_job', 0)
+                    ->where('applicants.is_temp_not_interested', 0)
+                    ->where(function ($q) {
+                        $q->where('applicants.have_nursing_home_experience', 0)
+                            ->orWhereNull('applicants.have_nursing_home_experience');
+                    });
+            },
+            'not interested' => function ($query) {
+                $query->where(function ($q) {
+                    $q->where('applicants.is_temp_not_interested', 1)
                         ->orWhereNotNull('applicants_pivot_sales.applicant_id');
                 })
                     ->where('applicants.is_blocked', 0)
@@ -2994,10 +3026,9 @@ class ResourceController extends Controller
                         $q->where('applicants.have_nursing_home_experience', 0)
                             ->orWhereNull('applicants.have_nursing_home_experience');
                     });
-                break;
-
-            case 'blocked':
-                $model->whereNull('applicants_pivot_sales.applicant_id')
+            },
+            'blocked' => function ($query) {
+                $query->whereNull('applicants_pivot_sales.applicant_id')
                     ->where('applicants.is_blocked', 1)
                     ->where('applicants.is_no_job', 0)
                     ->where('applicants.is_temp_not_interested', 0)
@@ -3005,26 +3036,23 @@ class ResourceController extends Controller
                         $q->where('applicants.have_nursing_home_experience', 0)
                             ->orWhereNull('applicants.have_nursing_home_experience');
                     });
-                break;
-
-            case 'have nursing home exp':
-                $model->whereNull('applicants_pivot_sales.applicant_id')
-                    ->where('applicants.is_blocked', 0)
-                    ->where('applicants.is_temp_not_interested', 0)
+            },
+            'have nursing home exp' => function ($query) {
+                $query->whereNull('applicants_pivot_sales.applicant_id')
+                    // ->where('applicants.is_blocked', 0)
+                    // ->where('applicants.is_temp_not_interested', 0)
                     ->where('applicants.have_nursing_home_experience', 1);
-                break;
+            },
+        ];
 
-            case 'interested':
-            default:
-                $model->whereNull('applicants_pivot_sales.applicant_id')
-                    ->where('applicants.is_blocked', 0)
-                    ->where('applicants.is_no_job', 0)
-                    ->where('applicants.is_temp_not_interested', 0)
-                    ->where(function ($q) {
-                        $q->where('applicants.have_nursing_home_experience', 0)
-                            ->orWhereNull('applicants.have_nursing_home_experience');
+        if ($statusFilters) {
+            $model->where(function ($query) use ($statusFilters, $statusPredicates) {
+                foreach ($statusFilters as $status) {
+                    $query->orWhere(function ($statusQuery) use ($status, $statusPredicates) {
+                        $statusPredicates[$status]($statusQuery);
                     });
-                break;
+                }
+            });
         }
 
         $now = Carbon::today();
@@ -3168,10 +3196,15 @@ class ResourceController extends Controller
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
                 ->addColumn('job_source', function ($applicant) {
-                    return $applicant->jobSource ? ucwords($applicant->jobSource->name) : '-';
+                    if (!$applicant->jobSource)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($applicant->jobSource->name) . '</span>';
                 })
                 ->addColumn('applicant_name', function ($applicant) {
                     return $applicant->formatted_applicant_name; // Using accessor
+                })
+                ->addColumn('nursing_home_experience', function ($applicant) {
+                    return $applicant->getRawOriginal('have_nursing_home_experience');
                 })
                 ->addColumn('applicant_postcode', function ($applicant) {
                     $status_value = 'open';
@@ -3188,14 +3221,20 @@ class ResourceController extends Controller
                         }
                     }
 
+                    $postcode = $applicant->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
                     if ($applicant->lat != null && $applicant->lng != null && $status_value == 'open' || $status_value == 'reject') {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        $button = '<a href="' . $url . '" class="active_postcode" target="_blank">' . $applicant->formatted_postcode . '</a>'; // Using accessor
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
                     } else {
-                        $button = $applicant->formatted_postcode;
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
 
-                    return $button;
                 })
                 ->addColumn('applicantEmail', function ($applicant) {
                     $email = '';
