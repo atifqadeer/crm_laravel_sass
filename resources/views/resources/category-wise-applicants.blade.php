@@ -32,17 +32,12 @@
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="statusFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All Statuses</span>
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Interested</span>
                                     </button>
                                     <div class="dropdown-menu p-2" aria-labelledby="statusFilterDropdown">
                                         <div class="form-check">
-                                            <input class="form-check-input status-filter" type="checkbox" value=""
-                                                id="all-statuses" checked>
-                                            <label class="form-check-label" for="all-statuses">All Statuses</label>
-                                        </div>
-                                        <div class="form-check">
                                             <input class="form-check-input status-filter" type="checkbox" value="interested"
-                                                id="status-interested">
+                                                id="status-interested" checked>
                                             <label class="form-check-label" for="status-interested">Interested</label>
                                         </div>
                                         <div class="form-check">
@@ -304,7 +299,7 @@
 
             // Store the current filter in a variable
             var currentTypeFilter = '';
-            var currentStatusFilters = [];
+            var currentStatusFilters = ['interested']; // default: Interested
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
             var currentDateRangeFilter = '';
@@ -506,7 +501,7 @@
                     },
                     {
                         data: 'created_at',
-                        name: 'latest_module_note.latest_note_created'
+                        name: 'latest_note_created'
                     },
                     {
                         data: 'user_name',
@@ -604,6 +599,9 @@
                         }
                     }
                 ],
+                order: [
+                    [1, 'desc']
+                ], // Date (latest note), newest first
                 rowId: function(data) {
                     return 'row_' + data
                         .id; // Assign a unique ID to each row using the 'id' field from the data

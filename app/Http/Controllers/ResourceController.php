@@ -2902,7 +2902,7 @@ class ResourceController extends Controller
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
         $dateRangeFilter = $request->input('date_range_filter', ''); // Default is empty (no filter)
-        $statusFilter = $request->input('status_filter', 'all');
+        $statusFilter = $request->input('status_filter', []);
         $allowedStatusFilters = ['', 'interested', 'not interested', 'blocked', 'have nursing home exp', 'all'];
         $request->validate([
             'status_filter' => ['sometimes', function ($attribute, $value, $fail) use ($allowedStatusFilters) {
@@ -2921,29 +2921,31 @@ class ResourceController extends Controller
             },
             (array) $statusFilter
         );
-        if ($statusFilters === [''] || in_array('all', $statusFilters, true)) {
-            $statusFilters = [];
-        }
 
         $today = Carbon::today()->toDateString();
 
-        $latestCvNotesSub = DB::table('cv_notes as c1')
-            ->select([
-                'c1.applicant_id',
-                'c1.user_id as cv_user_id',
-                'c1.status',
-                'c1.created_at',
-            ])
-            ->where('c1.status', 1)
-            ->whereRaw('c1.id = (
-                SELECT c2.id
-                FROM cv_notes c2
-                WHERE c2.applicant_id = c1.applicant_id
-                AND c2.status = 1
-                ORDER BY c2.created_at DESC, c2.id DESC
-                LIMIT 1
-            )');
+        // Per-row lookups (correlated subqueries on indexed columns) instead of joining
+        // derived tables built from the whole cv_notes / module_notes tables, which
+        // made every request (and every count) scan those tables in full.
+        $latestCvUserSub = DB::table('cv_notes as c2')
+            ->join('users as cv_users', 'cv_users.id', '=', 'c2.user_id')
+            ->select('cv_users.name')
+            ->whereColumn('c2.applicant_id', 'applicants.id')
+            ->where('c2.status', 1)
+            ->orderByDesc('c2.created_at')
+            ->orderByDesc('c2.id')
+            ->limit(1);
 
+        $activeCvNoteSub = DB::table('cv_notes as c3')
+            ->selectRaw('1')
+            ->whereColumn('c3.applicant_id', 'applicants.id')
+            ->where('c3.status', 1)
+            ->limit(1);
+
+        $latestNoteCreatedSub = DB::table('module_notes as mn')
+            ->selectRaw('MAX(mn.created_at)')
+            ->where('mn.module_noteable_type', 'Horsefly\\Applicant')
+            ->whereColumn('mn.module_noteable_id', 'applicants.id');
 
         $model = Applicant::query()
             ->with(['module_note', 'applicant_notes', 'jobTitle', 'jobCategory', 'jobSource', 'cv_notes'])
@@ -2971,42 +2973,34 @@ class ResourceController extends Controller
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
-                'applicants_pivot_sales.sale_id as pivot_sale_id',
-                'users.name as user_name',
-                'cv_notes.status as cv_note_status',
-                'latest_module_note.latest_note_created',
             ])
-            ->leftJoin('applicants_pivot_sales', 'applicants.id', '=', 'applicants_pivot_sales.applicant_id')
+            ->selectSub($latestCvUserSub, 'user_name')
+            ->selectSub($activeCvNoteSub, 'cv_note_status')
+            ->selectSub($latestNoteCreatedSub, 'latest_note_created')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->leftJoinSub($latestCvNotesSub, 'cv_notes', function ($join) {
-                $join->on('applicants.id', '=', 'cv_notes.applicant_id');
-            })
-            ->leftJoin('users', 'users.id', '=', 'cv_notes.cv_user_id') // 👈 use the new alias
-            ->leftJoin(DB::raw("(
-                    SELECT mn.module_noteable_id, mn.created_at AS latest_note_created
-                    FROM module_notes mn
-                    INNER JOIN (
-                        SELECT module_noteable_id, MAX(created_at) AS max_created
-                        FROM module_notes
-                        WHERE module_noteable_type = 'Horsefly\\\\Applicant'
-                        GROUP BY module_noteable_id
-                    ) latest ON latest.module_noteable_id = mn.module_noteable_id
-                            AND latest.max_created = mn.created_at
-                    WHERE mn.module_noteable_type = 'Horsefly\\\\Applicant'
-                ) as latest_module_note"), 'applicants.id', '=', 'latest_module_note.module_noteable_id')
             ->where('applicants.status', 1)
             ->whereNull('applicants.deleted_at')
             ->where(function ($query) use ($today) {
                 $query->where('applicants.is_job_within_radius', 1)
-                    ->orWhereDate('applicants.created_at', '=', $today);
+                    ->orWhereBetween('applicants.created_at', [
+                        Carbon::parse($today)->startOfDay(),
+                        Carbon::parse($today)->endOfDay(),
+                    ]);
             });
+
+        // Applicant is linked to a sale (was a LEFT JOIN that could duplicate rows)
+        $inPivotSales = function ($query) {
+            $query->select(DB::raw(1))
+                ->from('applicants_pivot_sales')
+                ->whereColumn('applicants_pivot_sales.applicant_id', 'applicants.id');
+        };
 
         // Apply selected statuses as alternatives while keeping them grouped with the other filters.
         $statusPredicates = [
-            'interested' => function ($query) {
-                $query->whereNull('applicants_pivot_sales.applicant_id')
+            'interested' => function ($query) use ($inPivotSales) {
+                $query->whereNotExists($inPivotSales)
                     ->where('applicants.is_blocked', 0)
                     ->where('applicants.is_no_job', 0)
                     ->where('applicants.is_temp_not_interested', 0)
@@ -3015,10 +3009,10 @@ class ResourceController extends Controller
                             ->orWhereNull('applicants.have_nursing_home_experience');
                     });
             },
-            'not interested' => function ($query) {
-                $query->where(function ($q) {
+            'not interested' => function ($query) use ($inPivotSales) {
+                $query->where(function ($q) use ($inPivotSales) {
                     $q->where('applicants.is_temp_not_interested', 1)
-                        ->orWhereNotNull('applicants_pivot_sales.applicant_id');
+                        ->orWhereExists($inPivotSales);
                 })
                     ->where('applicants.is_blocked', 0)
                     ->where('applicants.is_no_job', 0)
@@ -3027,8 +3021,8 @@ class ResourceController extends Controller
                             ->orWhereNull('applicants.have_nursing_home_experience');
                     });
             },
-            'blocked' => function ($query) {
-                $query->whereNull('applicants_pivot_sales.applicant_id')
+            'blocked' => function ($query) use ($inPivotSales) {
+                $query->whereNotExists($inPivotSales)
                     ->where('applicants.is_blocked', 1)
                     ->where('applicants.is_no_job', 0)
                     ->where('applicants.is_temp_not_interested', 0)
@@ -3037,8 +3031,8 @@ class ResourceController extends Controller
                             ->orWhereNull('applicants.have_nursing_home_experience');
                     });
             },
-            'have nursing home exp' => function ($query) {
-                $query->whereNull('applicants_pivot_sales.applicant_id')
+            'have nursing home exp' => function ($query) use ($inPivotSales) {
+                $query->whereNotExists($inPivotSales)
                     // ->where('applicants.is_blocked', 0)
                     // ->where('applicants.is_temp_not_interested', 0)
                     ->where('applicants.have_nursing_home_experience', 1);
@@ -3094,71 +3088,75 @@ class ResourceController extends Controller
                 break;
         }
 
-        // Sorting logic
-        if ($request->has('order')) {
-            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir', 'asc');
-
-            // Handle special cases first
-            if ($orderColumn === 'job_source') {
-                $model->orderBy('applicants.job_source_id', $orderDirection);
-            } elseif ($orderColumn === 'job_category') {
-                $model->orderBy('applicants.job_category_id', $orderDirection);
-            } elseif ($orderColumn === 'job_title') {
-                $model->orderBy('applicants.job_title_id', $orderDirection);
-            }
-            // Default case for valid columns
-            elseif ($orderColumn && $orderColumn !== 'checkbox') {
-                $model->orderBy($orderColumn, $orderDirection);
-            }
-            // Fallback if no valid order column is found
-            else {
-                $model->orderBy('latest_module_note.latest_note_created', 'desc');
-            }
-        } else {
-            // Default sorting when no order is specified
-            $model->orderBy('latest_module_note.latest_note_created', 'desc');
+        // Sorting is applied by DataTables (see orderColumn mappings below). When the
+        // request has no sortable column, default to the latest note first.
+        $orderIndex = $request->input('order.0.column');
+        $hasSortableOrder = $orderIndex !== null
+            && $request->input("columns.{$orderIndex}.orderable") === 'true';
+        if (!$hasSortableOrder) {
+            $model->orderByDesc('latest_note_created');
         }
 
-        if ($request->has('search.value')) {
-            $searchTerm = (string) $request->input('search.value');
-
-            if (!empty($searchTerm)) {
-                $model->where(function ($query) use ($searchTerm) {
-                    // Direct column searches
-                    $query->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
-                        ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%");
-
-                    // Relationship searches with explicit table names
-                    $query->orWhereHas('jobTitle', function ($q) use ($searchTerm) {
-                        $q->where('job_titles.name', 'LIKE', "%{$searchTerm}%");
-                    });
-
-                    $query->orWhereHas('jobCategory', function ($q) use ($searchTerm) {
-                        $q->where('job_categories.name', 'LIKE', "%{$searchTerm}%");
-                    });
-
-                    $query->orWhereHas('jobSource', function ($q) use ($searchTerm) {
-                        $q->where('job_sources.name', 'LIKE', "%{$searchTerm}%");
-                    });
-                    $query->orWhereHas('user', function ($q) use ($searchTerm) {
-                        $q->where('users.name', 'LIKE', "%{$searchTerm}%");
-                    });
-                    $query->orWhereHas('module_note', function ($q) use ($searchTerm) {
-                        $q->where('details', 'LIKE', "%{$searchTerm}%");
-                    });
-                    $query->orWhereHas('applicant_notes', function ($q) use ($searchTerm) {
-                        $q->where('details', 'LIKE', "%{$searchTerm}%");
-                    });
-                });
+        // Global search, run once inside ->filter() so DataTables does not add its own
+        // per-column LIKEs on computed columns (user_name, latest_note_created, ...).
+        $applySearch = function ($query) use ($request) {
+            $searchTerm = trim((string) $request->input('search.value', ''));
+            if ($searchTerm === '') {
+                return;
             }
-        }
+
+            $like = '%' . $searchTerm . '%';
+            $digits = preg_replace('/[^0-9]/', '', $searchTerm);
+
+            $query->where(function ($q) use ($like, $digits) {
+                foreach ([
+                    'applicants.applicant_name',
+                    'applicants.applicant_email',
+                    'applicants.applicant_email_secondary',
+                    'applicants.applicant_postcode',
+                    'applicants.applicant_phone',
+                    'applicants.applicant_phone_secondary',
+                    'applicants.applicant_landline',
+                    'applicants.applicant_experience',
+                    'job_titles.name',
+                    'job_categories.name',
+                    'job_sources.name',
+                ] as $column) {
+                    $q->orWhere($column, 'LIKE', $like);
+                }
+
+                // Phone typed with spaces/dashes, e.g. "07123 456 789"
+                if (strlen($digits) >= 4) {
+                    foreach (['applicants.applicant_phone', 'applicants.applicant_phone_secondary', 'applicants.applicant_landline'] as $column) {
+                        $q->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(COALESCE({$column}, ''), ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?", ['%' . $digits . '%']);
+                    }
+                }
+
+                // Applicant owner, or the agent shown in the "User" column (latest active CV note)
+                $q->orWhereIn('applicants.user_id', User::where('name', 'LIKE', $like)->select('id'))
+                    ->orWhereExists(function ($sub) use ($like) {
+                        $sub->select(DB::raw(1))
+                            ->from('cv_notes as sc')
+                            ->join('users as su', 'su.id', '=', 'sc.user_id')
+                            ->whereColumn('sc.applicant_id', 'applicants.id')
+                            ->where('sc.status', 1)
+                            ->where('su.name', 'LIKE', $like);
+                    })
+                    ->orWhereExists(function ($sub) use ($like) {
+                        $sub->select(DB::raw(1))
+                            ->from('module_notes as smn')
+                            ->where('smn.module_noteable_type', 'Horsefly\\Applicant')
+                            ->whereColumn('smn.module_noteable_id', 'applicants.id')
+                            ->where('smn.details', 'LIKE', $like);
+                    })
+                    ->orWhereExists(function ($sub) use ($like) {
+                        $sub->select(DB::raw(1))
+                            ->from('applicant_notes as san')
+                            ->whereColumn('san.applicant_id', 'applicants.id')
+                            ->where('san.details', 'LIKE', $like);
+                    });
+            });
+        };
 
         // Filter by type if it's not empty
         switch ($typeFilter) {
@@ -3181,6 +3179,12 @@ class ResourceController extends Controller
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
+                ->filter($applySearch)
+                ->orderColumn('latest_note_created', 'latest_note_created $1')
+                ->orderColumn('latest_module_note.latest_note_created', 'latest_note_created $1')
+                ->orderColumn('users.name', 'user_name $1')
+                ->orderColumn('applicantEmail', 'applicants.applicant_email $1')
+                ->orderColumn('applicantPhone', 'applicants.applicant_phone $1')
                 ->addColumn('checkbox', function ($applicant) {
                     return '<input type="checkbox" name="applicant_checkbox[]" class="applicant_checkbox" value="' . $applicant->id . '"/>';
                 })
