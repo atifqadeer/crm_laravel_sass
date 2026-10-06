@@ -72,6 +72,35 @@
             box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25);
         }
 
+        .job-description-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 14px;
+            background: #fff;
+            color: #0d6efd;
+            border: 1px solid #0d6efd;
+            transition: all 0.3s ease;
+        }
+
+        .job-description-btn:hover:not(:disabled) {
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+        }
+
+        .job-description-btn:disabled {
+            color: #adb5bd;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+
+        #jobDescriptionModal .job-description-content img {
+            max-width: 100%;
+            height: auto;
+        }
+
     </style>
     <div class="row">
         <div class="col-xl-3 col-lg-3">
@@ -146,6 +175,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Job Description Modal -->
+    <div class="modal fade" id="jobDescriptionModal" tabindex="-1" aria-labelledby="jobDescriptionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jobDescriptionModalLabel">Job Description</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2" id="jobDescriptionMeta"></p>
+                    <div class="job-description-content"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
@@ -175,6 +223,56 @@
     <script src="{{ asset('js/summernote-lite.min.js')}}"></script>
 
     <script>
+        // Latest search results keyed by sale id (used by the Job Description modal)
+        const saleResults = new Map();
+
+        // Render stored HTML safely: drop active elements, event handlers and javascript: links
+        function sanitizeHtml(html) {
+            const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+
+            doc.querySelectorAll('script, style, iframe, object, embed, link, meta, form, base')
+                .forEach(el => el.remove());
+
+            doc.querySelectorAll('*').forEach(el => {
+                [...el.attributes].forEach(attr => {
+                    const name = attr.name.toLowerCase();
+                    const value = attr.value.trim().toLowerCase();
+                    if (name.startsWith('on') ||
+                        (['href', 'src', 'xlink:href', 'action'].includes(name) && value.startsWith('javascript:'))) {
+                        el.removeAttribute(attr.name);
+                    }
+                });
+                if (el.tagName === 'A') {
+                    el.setAttribute('target', '_blank');
+                    el.setAttribute('rel', 'noopener noreferrer');
+                }
+            });
+
+            return doc.body.innerHTML;
+        }
+
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.job-description-btn');
+            if (!btn || btn.disabled) return;
+
+            const sale = saleResults.get(String(btn.dataset.saleId));
+            if (!sale) return;
+
+            const modalEl = document.getElementById('jobDescriptionModal');
+            const title = [sale.job_title, sale.job_category].filter(Boolean).join(' / ').toUpperCase();
+
+            modalEl.querySelector('.modal-title').textContent = 'Job Description' + (title ? ' - ' + title : '');
+            modalEl.querySelector('#jobDescriptionMeta').textContent = [
+                sale.office_name,
+                sale.unit_name,
+                sale.sale_postcode ? String(sale.sale_postcode).toUpperCase() : null,
+            ].filter(Boolean).join(' • ');
+            modalEl.querySelector('.job-description-content').innerHTML =
+                sanitizeHtml(sale.job_description) || '<p class="text-muted mb-0">No job description available.</p>';
+
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('postcodeFinderForm');
             form.addEventListener('submit', function (e) {
@@ -218,11 +316,14 @@
 
                     // Clear any existing cards (optional)
                     cardContainer.innerHTML = '';
+                    saleResults.clear();
 
                     // If the response contains coordinate results
                     if (data.data.cordinate_results && data.data.cordinate_results.length > 0) {
                         // Loop through each result and create a new card
                         data.data.cordinate_results.forEach(result => {
+                            saleResults.set(String(result.id), result);
+
                             // Create a new card element
                             const card = document.createElement('div');
                             card.classList.add('card', 'print_result');
@@ -269,6 +370,13 @@
                                                 class="route-btn ms-2 px-3" title="Get Route">
                                                     <iconify-icon icon="logos:google-maps" width="14"></iconify-icon>
                                             </a>
+
+                                            <button type="button" class="job-description-btn ms-2"
+                                                data-sale-id="${result.id}"
+                                                title="${result.job_description ? 'View Job Description' : 'No Job Description'}"
+                                                ${result.job_description ? '' : 'disabled'}>
+                                                <i class="ri-file-text-line"></i> Job Description
+                                            </button>
                                         </p>
                                     </div>
                                 </div><hr> 
