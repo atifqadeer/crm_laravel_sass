@@ -6,8 +6,12 @@
             display: none !important;
         }
 
-        table.dataTable.no-footer {
-            border-bottom: none !important;
+        /* table.dataTable.no-footer {
+                border-bottom: none !important;
+            } */
+
+        #applicants_table.table>tbody>tr:last-child>td {
+            border-bottom: 0 !important;
         }
 
         /* Nursing home experience marker on the first (checkbox) cell */
