@@ -3109,19 +3109,21 @@ class ResourceController extends Controller
             $digits = preg_replace('/[^0-9]/', '', $searchTerm);
 
             $query->where(function ($q) use ($like, $digits) {
-                foreach ([
-                    'applicants.applicant_name',
-                    'applicants.applicant_email',
-                    'applicants.applicant_email_secondary',
-                    'applicants.applicant_postcode',
-                    'applicants.applicant_phone',
-                    'applicants.applicant_phone_secondary',
-                    'applicants.applicant_landline',
-                    'applicants.applicant_experience',
-                    'job_titles.name',
-                    'job_categories.name',
-                    'job_sources.name',
-                ] as $column) {
+                foreach (
+                    [
+                        'applicants.applicant_name',
+                        'applicants.applicant_email',
+                        'applicants.applicant_email_secondary',
+                        'applicants.applicant_postcode',
+                        'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
+                        'applicants.applicant_landline',
+                        'applicants.applicant_experience',
+                        'job_titles.name',
+                        'job_categories.name',
+                        'job_sources.name',
+                    ] as $column
+                ) {
                     $q->orWhere($column, 'LIKE', $like);
                 }
 
@@ -3238,21 +3240,24 @@ class ResourceController extends Controller
                     } else {
                         return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
                     }
-
                 })
                 ->addColumn('applicantEmail', function ($applicant) {
-                    $email = '';
-                    if ($applicant->is_blocked) {
-                        $email = "<span class='badge bg-dark'>Blocked</span>";
-                    } else {
-                        $email = $applicant->applicant_email;
-
-                        if ($applicant->applicant_email_secondary) {
-                            $email .= '<br>' . $applicant->applicant_email_secondary;
-                        }
+                    // Blocked applicant + no permission
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $email; // Using accessor
+                    $email = $applicant->applicant_email_secondary
+                        ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
+                        : $applicant->applicant_email;
+
+                    // Blocked applicant + has permission
+                    if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+                    }
+
+                    // Normal applicant
+                    return $email;
                 })
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
                     $keyword = strtolower(trim($keyword));
