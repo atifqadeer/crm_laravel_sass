@@ -50,8 +50,8 @@
                                         <div class="d-flex justify-content-end px-1 mb-1" id="categoryToggleContainer">
                                             <a href="#" id="categorySelectAll"
                                                 class="text-primary small fw-semibold me-2">Select All</a>
-                                            <a href="#" id="categoryDeselectAll"
-                                                class="text-danger small fw-semibold" style="display:none">Deselect All</a>
+                                            <a href="#" id="categoryDeselectAll" class="text-danger small fw-semibold"
+                                                style="display:none">Deselect All</a>
                                         </div>
 
                                         <!-- Scrollable checkbox list -->
@@ -95,8 +95,8 @@
                                         <div class="d-flex justify-content-end px-1 mb-1" id="titleToggleContainer">
                                             <a href="#" id="titleSelectAll"
                                                 class="text-primary small fw-semibold me-2">Select All</a>
-                                            <a href="#" id="titleDeselectAll"
-                                                class="text-danger small fw-semibold" style="display:none">Deselect All</a>
+                                            <a href="#" id="titleDeselectAll" class="text-danger small fw-semibold"
+                                                style="display:none">Deselect All</a>
                                         </div>
 
                                         <!-- Scrollable checkbox list -->
@@ -130,7 +130,8 @@
                                             <a href="#" id="sourceSelectAll"
                                                 class="text-primary small fw-semibold me-2">Select All</a>
                                             <a href="#" id="sourceDeselectAll"
-                                                class="text-danger small fw-semibold" style="display:none">Deselect All</a>
+                                                class="text-danger small fw-semibold" style="display:none">Deselect
+                                                All</a>
                                         </div>
                                         <!-- Scrollable checkbox list -->
                                         <div id="sourceList">
@@ -202,11 +203,13 @@
                                     <th>Title</th>
                                     <th>Category</th>
                                     <th>PostCode</th>
-                                    <th width="15%">Phone</th>
-                                    <th>Experience</th>
-                                    <th>Source</th>
+                                    <th width="15%">Phone / Landline</th>
+                                    <th>Job Details</th>
+                                    <th>Head Office</th>
+                                    <th>Unit</th>
+                                    <th>Postcode (Sale)</th>
+                                    <th>Source (Sale)</th>
                                     <th>Notes</th>
-                                    <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -342,22 +345,32 @@
                         name: 'applicants.applicant_phone'
                     },
                     {
-                        data: 'applicant_experience',
-                        name: 'applicants.applicant_experience'
+                        data: 'job_details',
+                        name: 'job_details',
+                        orderable: false,
+                        searchable: false
                     },
                     {
-                        data: 'job_source',
-                        name: 'job_sources.name'
+                        data: 'sale_office',
+                        name: 'offices.office_name'
+                    },
+                    {
+                        data: 'sale_unit',
+                        name: 'units.unit_name'
+                    },
+                    {
+                        data: 'sale_postcode',
+                        name: 'sales.sale_postcode'
+                    },
+                    {
+                        data: 'sale_job_source',
+                        name: 'sale_job_sources.name'
                     },
                     {
                         data: 'applicant_notes',
                         name: 'applicants.applicant_notes',
                         orderable: false,
                         searchable: false
-                    },
-                    {
-                        data: 'customStatus',
-                        name: 'crm_notes.moved_tab_to'
                     },
                     {
                         data: 'action',
@@ -367,18 +380,11 @@
                     }
                 ],
                 columnDefs: [{
-                        targets: 11, // Column index for 'job_details'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12, // Column index for 'job_details'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    },
-                ],
+                    targets: [8, 11, 12, 13, 14],
+                    createdCell: function(td, cellData, rowData, row, col) {
+                        $(td).css('text-align', 'center');
+                    }
+                }, ],
                 rowId: function(data) {
                     // One row per applicant + sale (an applicant can be paid for more than one sale)
                     return 'row_' + data.id + '_' + data.sale_id;
@@ -464,6 +470,65 @@
                 },
             });
 
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('.job-details');
+                if (!link) return;
+
+                e.preventDefault();
+
+                let job;
+                try {
+                    job = JSON.parse(link.dataset.job);
+                } catch (err) {
+                    console.error('Invalid job data', err);
+                    return;
+                }
+
+                showDetailsModal(job);
+            });
+
+            function showDetailsModal(job) {
+                const modalId = `job-modal-${job.sale_id}`;
+                document.getElementById(modalId)?.remove();
+
+                document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="${modalId}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Job Details</h5>
+                                <button class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-bordered">
+                                    <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                                    <tr><th>Posted Date</th><td>${job.posted_date}</td></tr>
+                                    <tr><th>Head Office</th><td>${job.office_name}</td></tr>
+                                    <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
+                                    <tr><th>Postcode</th><td>${job.postcode}</td></tr>
+                                    <tr><th>Job Category</th><td>${job.job_category}</td></tr>
+                                    <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                                    <tr><th>Job Source</th><td>${job.sale_source_name}</td></tr>
+                                    <tr><th>Status</th><td>${job.status}</td></tr>
+                                    <tr><th>Timing</th><td>${job.timing}</td></tr>
+                                    <tr><th>Experience</th><td>${job.experience}</td></tr>
+                                    <tr><th>Salary</th><td>${job.salary}</td></tr>
+                                    <tr><th>Position</th><td>${job.position}</td></tr>
+                                    <tr><th>Qualification</th><td>${job.qualification}</td></tr>
+                                    <tr><th>Benefits</th><td>${job.benefits}</td></tr>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+                new bootstrap.Modal(document.getElementById(modalId)).show();
+            }
+
             let searchTimeout;
 
             // Search logic helper
@@ -515,7 +580,7 @@
                 toggleable: index !== 0 && index !== columnHeaders.length - 1,
                 visible: true
             }));
-            const columnsStorageKey = 'crm_paid_applicants_column_visibility_v1';
+            const columnsStorageKey = 'crm_paid_applicants_column_visibility_v2';
             let storedColumnVisibility = {};
             try {
                 storedColumnVisibility = JSON.parse(localStorage.getItem(columnsStorageKey)) || {};
@@ -611,6 +676,7 @@
                 $('#showFilterType').html(formattedText);
                 table.ajax.reload(); // Reload with updated type filter
             });
+
             function visibleFilterCheckboxes(selector) {
                 return $(selector).filter(function() {
                     return this.closest('.form-check').style.display !== 'none';
@@ -757,7 +823,8 @@
             checkboxes.forEach(function(item) {
                 const categoryId = String(item.querySelector('.title-filter').dataset.categoryId);
                 const label = item.querySelector('label').innerText.toLowerCase();
-                const matchesCategory = !selectedCategories.length || selectedCategories.includes(categoryId);
+                const matchesCategory = !selectedCategories.length || selectedCategories.includes(
+                    categoryId);
                 item.style.display = matchesCategory && label.includes(searchValue) ? '' : 'none';
             });
             updateFilterDropdownControls('#titleList .title-filter', '#titleSelectAll', '#titleDeselectAll');
