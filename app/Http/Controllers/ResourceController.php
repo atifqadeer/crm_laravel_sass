@@ -91,7 +91,33 @@ class ResourceController extends Controller
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.crm-paid-applicants', compact('jobCategories', 'jobTitles'));
+         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.crm-paid-applicants', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function noJobIndex()
     {
@@ -1856,52 +1882,118 @@ class ResourceController extends Controller
         $typeFilter = $request->input('type_filter');
         $categoryFilter = (array) $request->input('category_filter', []);
         $titleFilter = (array) $request->input('title_filter', []);
+        $sourceFilter = (array) $request->input('source_filter', []);
         $searchTerm = $request->input('search.value', '');
 
-        // Subquery: latest crm_notes per applicant (joined once)
+        // Same rules as the CRM "Paid" tab (CrmController::getCrmApplicantsAjaxRequest):
+        // latest 'paid' CRM note per applicant + sale, the sale (not deleted) with its
+        // office and unit, and an active 'crm_paid' history row for that applicant + sale.
         $latestCrmNotes = DB::table('crm_notes as cn')
-            ->select('cn.applicant_id', DB::raw('MAX(cn.id) as latest_id'))
-            ->whereIn('cn.moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'])
-            ->groupBy('cn.applicant_id');
+            ->select('cn.applicant_id', 'cn.sale_id', DB::raw('MAX(cn.id) as latest_id'))
+            ->where('cn.moved_tab_to', 'paid')
+            ->groupBy('cn.applicant_id', 'cn.sale_id');
 
         // Main query
         $query = Applicant::query()
             ->select([
-                'applicants.*',
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_email',
+                'applicants.applicant_email_secondary',
+                'applicants.applicant_postcode',
+                'applicants.applicant_phone',
+                'applicants.applicant_phone_secondary',
+                'applicants.applicant_landline',
+                'applicants.applicant_experience',
+                'applicants.job_category_id',
+                'applicants.job_title_id',
+                'applicants.job_source_id',
+                'applicants.status',
+                'applicants.is_no_job',
+                'applicants.paid_status',
+                'applicants.deleted_at',
+
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
                 'crm_notes.details',
                 'crm_notes.created_at as crm_notes_created',
                 'crm_notes.moved_tab_to',
+                'crm_notes.sale_id',
             ])
             ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
                 $join->on('applicants.id', '=', 'latest_crm.applicant_id');
             })
             ->join('crm_notes', 'crm_notes.id', '=', 'latest_crm.latest_id')
+            ->join('sales', function ($join) {
+                $join->on('crm_notes.sale_id', '=', 'sales.id')
+                    ->whereNull('sales.deleted_at');
+            })
+            ->join('offices', 'sales.office_id', '=', 'offices.id')
+            ->join('units', 'sales.unit_id', '=', 'units.id')
+            ->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('history')
+                    ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                    ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                    ->where('history.sub_stage', 'crm_paid')
+                    ->where('history.status', 1);
+            })
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-            ->where('applicants.is_no_job', false)
             ->where('applicants.status', 1)
             ->whereNull('applicants.deleted_at')
-            ->whereIn('applicants.paid_status', ['open', 'pending'])
             ->with(['cv_notes' => function ($query) {
                 $query->select('status', 'applicant_id', 'sale_id', 'user_id')
                     ->with(['user:id,name'])
                     ->latest();
             }])
-            ->distinct('applicants.id'); // Ensure no duplicates
+            ->distinct('applicants.id', 'sales.id'); // Ensure no duplicates
 
-        // Search filter
-        if ($searchTerm) {
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $query->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('sales.job_source_id', $sourceIds)
+                    ->orWhereNull('sales.job_source_id');
+            });
+        }
+
+        // Search filter (same columns as the CRM Paid tab)
+        $searchTerm = trim((string) $searchTerm);
+        if ($searchTerm !== '') {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('applicants.applicant_name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('applicants.applicant_email', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('applicants.applicant_email_secondary', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('applicants.applicant_postcode', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('applicants.applicant_phone', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('applicants.applicant_phone_secondary', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('applicants.applicant_experience', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('applicants.applicant_landline', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('crm_notes.details', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('crm_notes.moved_tab_to', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('crm_notes.created_at', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('sales.sale_postcode', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('offices.office_name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('job_titles.name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('job_categories.name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('job_sources.name', 'LIKE', "%{$searchTerm}%");
@@ -1919,6 +2011,11 @@ class ResourceController extends Controller
 
         if (!empty($titleFilter)) {
             $query->whereIn('applicants.job_title_id', $titleFilter);
+        }
+
+        // Filter by source if it's not empty
+        if ($sourceFilter) {
+            $query->whereIn('applicants.job_source_id', $sourceFilter);
         }
 
         // Sorting
@@ -1942,6 +2039,9 @@ class ResourceController extends Controller
         // Return DataTables response
         if ($request->ajax()) {
             return DataTables::of($query)
+                // Search is already applied above; stop DataTables adding its own column LIKEs on top
+                ->filter(function ($query) {
+                })
                 ->addIndexColumn()
                 ->addColumn('job_title', fn($applicant) => $applicant->job_title_name ? strtoupper($applicant->job_title_name) : '-')
                 ->addColumn('job_category', function ($applicant) {
@@ -1949,9 +2049,18 @@ class ResourceController extends Controller
                     $stype = $type === 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $applicant->job_category_name ? ucwords($applicant->job_category_name) . $stype : '-';
                 })
-                ->addColumn('job_source', fn($applicant) => $applicant->job_source_name ? ucwords($applicant->job_source_name) : '-')
+                ->addColumn('job_source', function ($applicant) {
+                    if (!$applicant->job_source_name)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($applicant->job_source_name) . '</span>';
+                })
                 ->addColumn('applicant_name', fn($applicant) => $applicant->formatted_applicant_name)
                 ->addColumn('applicant_postcode', function ($applicant) {
+                    $rawPostcode = trim((string) $applicant->applicant_postcode);
+                    if ($rawPostcode === '') {
+                        return '<div class="text-center w-100">-</div>';
+                    }
+
                     $status_value = $applicant->paid_status === 'close' ? 'paid' : 'open';
                     foreach ($applicant->cv_notes as $note) {
                         if ($note->status === 'active') {
@@ -1962,11 +2071,18 @@ class ResourceController extends Controller
                         }
                     }
 
+                    $postcode = e($applicant->formatted_postcode);
                     if ($applicant->lat && $applicant->lng && in_array($status_value, ['open', 'reject'])) {
                         $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
-                        return '<a href="' . $url . '" style="color:blue;">' . $applicant->formatted_postcode . '</a>';
+                        $postcode = '<a href="' . $url . '" style="color:blue;">' . $postcode . '</a>';
                     }
-                    return $applicant->formatted_postcode;
+
+                    $copyButton = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode"
+                                    data-postcode="' . e($rawPostcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    return '<div class="d-flex align-items-center justify-content-between">' . $postcode . $copyButton . '</div>';
                 })
                 ->addColumn('applicant_notes', function ($applicant) {
                     $notes = e(htmlspecialchars($applicant->details, ENT_QUOTES, 'UTF-8'));

@@ -401,50 +401,61 @@ class ApplicantsExport implements FromCollection, WithHeadings
                 return $this->applyApplicantListFilters($blockedQuery, false);
 
             case 'allPaid':
-                $paidTabs = ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date'];
-                $latestCrmIds = DB::table('crm_notes')
-                    ->selectRaw('MAX(id)')
-                    ->whereIn('moved_tab_to', $paidTabs)
-                    ->groupBy('applicant_id');
-                $latestCrm = DB::table('crm_notes')
-                    ->select('applicant_id', 'details', 'created_at', 'moved_tab_to')
-                    ->whereIn('moved_tab_to', $paidTabs)
-                    ->whereIn('id', $latestCrmIds);
+                $latestCrmNotes = DB::table('crm_notes as cn')
+                    ->select('cn.applicant_id', 'cn.sale_id', DB::raw('MAX(cn.id) as latest_id'))
+                    ->where('cn.moved_tab_to', 'paid')
+                    ->groupBy('cn.applicant_id', 'cn.sale_id');
 
-                $paidQuery = $this->applyHiddenSources(
-                    Applicant::query()
-                        ->select([
-                            'applicants.id',
-                            'crm_notes.created_at as crm_notes_created',
-                            'applicants.applicant_name',
-                            'applicants.applicant_email',
-                            'applicants.applicant_email_secondary',
-                            'applicants.applicant_postcode',
-                            'applicants.applicant_phone',
-                            'applicants.applicant_phone_secondary',
-                            'applicants.applicant_landline',
-                            'job_categories.name as job_category',
-                            'applicants.job_type as job_type',
-                            'job_titles.name as job_title',
-                            'job_sources.name as job_source',
-                            'crm_notes.moved_tab_to',
-                            'crm_notes.details',
-                            'applicants.applicant_experience',
-                        ])
-                        ->joinSub($latestCrm, 'crm_notes', function ($join) {
-                            $join->on('applicants.id', '=', 'crm_notes.applicant_id');
-                        })
-                        ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-                        ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
-                        ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
-                        ->where('applicants.is_no_job', 0)
-                        ->where('applicants.status', 1)
-                        ->where('applicants.is_blocked', 0)
-                        ->whereNull('applicants.deleted_at')
-                        ->whereIn('applicants.paid_status', ['open', 'pending'])
-                        ->whereIn('crm_notes.moved_tab_to', ['paid', 'dispute', 'start_date_hold', 'declined', 'start_date']),
-                    $sourceIds
-                );
+                $paidQuery = Applicant::query()
+                    ->select([
+                        'applicants.id',
+                        'crm_notes.created_at as crm_notes_created',
+                        'applicants.applicant_name',
+                        'applicants.applicant_email',
+                        'applicants.applicant_email_secondary',
+                        'applicants.applicant_postcode',
+                        'applicants.applicant_phone',
+                        'applicants.applicant_phone_secondary',
+                        'applicants.applicant_landline',
+                        'job_categories.name as job_category',
+                        'applicants.job_type as job_type',
+                        'job_titles.name as job_title',
+                        'job_sources.name as job_source',
+                        'crm_notes.moved_tab_to',
+                        'crm_notes.details',
+                        'applicants.applicant_experience',
+                        'crm_notes.sale_id',
+                    ])
+                    ->joinSub($latestCrmNotes, 'latest_crm', function ($join) {
+                        $join->on('applicants.id', '=', 'latest_crm.applicant_id');
+                    })
+                    ->join('crm_notes', 'crm_notes.id', '=', 'latest_crm.latest_id')
+                    ->join('sales', function ($join) {
+                        $join->on('crm_notes.sale_id', '=', 'sales.id')
+                            ->whereNull('sales.deleted_at');
+                    })
+                    ->join('offices', 'sales.office_id', '=', 'offices.id')
+                    ->join('units', 'sales.unit_id', '=', 'units.id')
+                    ->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('history')
+                            ->whereColumn('history.applicant_id', 'crm_notes.applicant_id')
+                            ->whereColumn('history.sale_id', 'crm_notes.sale_id')
+                            ->where('history.sub_stage', 'crm_paid')
+                            ->where('history.status', 1);
+                    })
+                    ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
+                    ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
+                    ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+                    ->where('applicants.status', 1)
+                    ->whereNull('applicants.deleted_at');
+
+                if (!empty($sourceIds)) {
+                    $paidQuery->where(function ($q) use ($sourceIds) {
+                        $q->whereNotIn('sales.job_source_id', $sourceIds)
+                            ->orWhereNull('sales.job_source_id');
+                    });
+                }
 
                 return $this->applyApplicantListFilters($paidQuery, false);
 
