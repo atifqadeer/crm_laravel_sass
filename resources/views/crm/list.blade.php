@@ -2783,9 +2783,17 @@
                 const stime = $(schedule_time).val();
 
                 // Add date validation
-                if (sdate && new Date(sdate) < new Date()) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const earliestAllowedDate = [
+                    yesterday.getFullYear(),
+                    String(yesterday.getMonth() + 1).padStart(2, '0'),
+                    String(yesterday.getDate()).padStart(2, '0')
+                ].join('-');
+
+                if (sdate && sdate < earliestAllowedDate) {
                     $(schedule_date).addClass('is-invalid');
-                    $(schedule_date).after('<div class="invalid-feedback">Date must be in the future.</div>');
+                    $(schedule_date).after('<div class="invalid-feedback">Date cannot be earlier than yesterday.</div>');
                     return;
                 }
                 if (!stime) {
