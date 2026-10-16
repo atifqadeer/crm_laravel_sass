@@ -2620,6 +2620,14 @@ class ApplicantController extends Controller
                 $applicant = Applicant::findOrFail($request->input('applicant_id'));
                 $sale = Sale::findOrFail($request->input('sale_id'));
 
+                if ($sale->status !== 1) {
+                    throw new Exception("CV can't be sent - the sale is not active.");
+                }
+
+                if ($sale->is_on_hold != 0) {
+                    throw new Exception("CV can't be sent - the sale is currently on hold.");
+                }
+
                 $jobTitle = JobTitle::find($sale->job_title_id);
 
                 // Decode related_titles safely and normalize
