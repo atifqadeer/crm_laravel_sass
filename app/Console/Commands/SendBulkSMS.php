@@ -3,11 +3,11 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
+// use Illuminate\Support\Facades\Http;
 use Horsefly\Message;
 use Illuminate\Support\Facades\Log;
 use Horsefly\Setting;
-use Illuminate\Support\Facades\DB;
+// use Illuminate\Support\Facades\DB;
 
 class SendBulkSMS extends Command
 {
@@ -21,7 +21,7 @@ class SendBulkSMS extends Command
         $smsNotification = Setting::where('key', 'sms_notifications')->first();
 
         if (!$smsNotification || $smsNotification->value != 1) {
-            Log::warning('SMS notifications disabled.');
+            // Log::warning('SMS notifications disabled.');
             $this->warn('SMS notifications disabled.');
             return 0;
         }
@@ -40,7 +40,7 @@ class SendBulkSMS extends Command
         $password  = $settings['sms_password'] ?? null;
 
         if (!$apiUrl || !$port || !$username || !$password) {
-            Log::error('Missing SMS API configuration settings.');
+            // Log::error('Missing SMS API configuration settings.');
             $this->error('Missing SMS API configuration.');
             return 1;
         }
@@ -54,7 +54,7 @@ class SendBulkSMS extends Command
             });
 
         $this->info('SMS sending complete.');
-        Log::debug('SMS Sending Command Completed');
+        // Log::debug('SMS Sending Command Completed');
 
         return 0;
     }
@@ -163,7 +163,7 @@ class SendBulkSMS extends Command
 
             $queryString .= '&message=' . $messageEncoded;
             $url = "$apiUrl?$queryString";
-            Log::info("SMS BULK SEND" . $url);
+            // Log::info("SMS BULK SEND" . $url);
 
             // Curl
             $ch = curl_init();
@@ -179,7 +179,7 @@ class SendBulkSMS extends Command
             // -------------------------
             if ($response === false || !empty($curlError)) {
                 $message->update(['is_sent' => 2]); // FAILED
-                Log::error("SMS CURL ERROR", ['error' => $curlError]);
+                // Log::error("SMS CURL ERROR", ['error' => $curlError]);
                 continue;
             }
 
@@ -189,7 +189,7 @@ class SendBulkSMS extends Command
             $data = json_decode($response, true);
 
             if (!$data || !isset($data['report'][0])) {
-                Log::error("Invalid SMS JSON", ['json' => $response]);
+                // Log::error("Invalid SMS JSON", ['json' => $response]);
                 $message->update(['is_sent' => 2]);
                 continue;
             }
@@ -215,7 +215,7 @@ class SendBulkSMS extends Command
 
                 default:
                     $finalStatus = 2;  // unknown = fail
-                    Log::warning("Unknown SMS status", ['status' => $status]);
+                    // Log::warning("Unknown SMS status", ['status' => $status]);
                     break;
             }
 

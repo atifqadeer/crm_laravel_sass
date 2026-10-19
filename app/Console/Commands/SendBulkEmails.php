@@ -27,7 +27,7 @@ class SendBulkEmails extends Command
 
             if ($unsentEmails->isEmpty()) {
                 $this->info('No unsent emails found.');
-                Log::info('No unsent emails found with status=0.');
+                // Log::info('No unsent emails found with status=0.');
                 return;
             }
 
@@ -44,7 +44,7 @@ class SendBulkEmails extends Command
                 $smtp = SmtpSetting::where('from_address', $fromAddress)->first();
 
                 if (!$smtp) {
-                    Log::warning("SMTP not found for sender: {$fromAddress}");
+                    // Log::warning("SMTP not found for sender: {$fromAddress}");
                     $this->warn("SMTP not found for sender: {$fromAddress}");
                     continue;
                 }
@@ -67,7 +67,7 @@ class SendBulkEmails extends Command
                 ]);
 
                 $this->info("Using SMTP: {$smtp->from_address} ({$smtp->host})");
-                Log::info("Processing batch for SMTP: {$smtp->from_address}");
+                // Log::info("Processing batch for SMTP: {$smtp->from_address}");
 
                 // Send in chunks to control memory + delay between chunks
                 $emails->chunk(100)->each(function ($chunk) use ($smtp, $base64Image) {
@@ -96,24 +96,24 @@ class SendBulkEmails extends Command
                             $email->update(['status' => '1']);
 
                             $this->info("Email sent to {$email->sent_to} (SMTP ID: {$smtp->id})");
-                            Log::info("Email sent to {$email->sent_to} via SMTP ID {$smtp->id}, Email ID {$email->id}");
+                            // Log::info("Email sent to {$email->sent_to} via SMTP ID {$smtp->id}, Email ID {$email->id}");
 
                         } catch (\Exception $e) {
                             $this->error("Failed: {$email->sent_to} — {$e->getMessage()}");
-                            Log::error("Failed sending Email ID {$email->id}: {$e->getMessage()}");
+                            // Log::error("Failed sending Email ID {$email->id}: {$e->getMessage()}");
                         }
                     }
 
                     $this->info('Waiting 30 seconds before next chunk...');
-                    Log::debug('Waiting 30 seconds before next chunk...');
+                    // Log::debug('Waiting 30 seconds before next chunk...');
                     sleep(30);
                 });
             }
 
             $this->info('All emails processed successfully.');
-            Log::debug('SendBulkEmails command completed.');
+            // Log::debug('SendBulkEmails command completed.');
         } else {
-            Log::info('SendBulkEmails command not completed, because Email Notifications are disabled.');
+            // Log::info('SendBulkEmails command not completed, because Email Notifications are disabled.');
             $this->warn('Email Notifications are disabled. Please contact your admin.');
             return;
         }

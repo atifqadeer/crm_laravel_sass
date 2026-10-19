@@ -63,14 +63,14 @@ class ScrapImport extends Command
                     $imported = $this->persistByKey($controller, $key, $jobs, $user);
                     $this->info("  [{$key}] Imported {$imported} new job(s) into DB.");
 
-                    Log::info('[Scraper] CLI --all import completed', [
-                        'key' => $key,
-                        'fetched' => count($jobs),
-                        'imported' => $imported,
-                    ]);
+                    // Log::info('[Scraper] CLI --all import completed', [
+                    //     'key' => $key,
+                    //     'fetched' => count($jobs),
+                    //     'imported' => $imported,
+                    // ]);
                 } catch (\Throwable $e) {
                     $this->error("  [{$key}] IMPORT FAILED: {$e->getMessage()}");
-                    Log::error('[Scraper] CLI --all import failed', ['key' => $key, 'error' => $e->getMessage()]);
+                    // Log::error('[Scraper] CLI --all import failed', ['key' => $key, 'error' => $e->getMessage()]);
                 }
             }
 
@@ -120,10 +120,10 @@ class ScrapImport extends Command
             return 0;
         } catch (\Throwable $e) {
             $this->error("Failed: {$e->getMessage()}");
-            Log::error('[Scraper] CLI import failed', [
-                'key' => $key,
-                'error' => $e->getMessage(),
-            ]);
+            // Log::error('[Scraper] CLI import failed', [
+            //     'key' => $key,
+            //     'error' => $e->getMessage(),
+            // ]);
             return 1;
         }
     }
