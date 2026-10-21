@@ -138,9 +138,13 @@ class UnitsExport implements FromCollection, WithHeadings
 
         $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
         if ($status === 'active') {
-            $query->where('units.status', 1);
+            $query->where('units.status', 1)
+                ->where('units.is_blacklist', 0);
         } elseif ($status === 'inactive') {
-            $query->where('units.status', 0);
+            $query->where('units.status', 0)
+                ->where('units.is_blacklist', 0);
+        } elseif ($status === 'blacklisted') {
+            $query->where('units.is_blacklist', 1);
         }
 
         $officeIds = $this->arrayFilter($this->filters['office_filter'] ?? null);

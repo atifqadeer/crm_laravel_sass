@@ -119,6 +119,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('store', [HeadOfficeController::class, 'store'])->name('head-offices.store');
         Route::get('{id}/edit', [HeadOfficeController::class, 'edit'])->name('head-offices.edit');
         Route::post('update', [HeadOfficeController::class, 'update'])->name('head-offices.update');
+        Route::post('{id}/toggle-blacklist', [HeadOfficeController::class, 'toggleBlacklist'])->name('head-offices.toggle-blacklist');
         Route::get('{id}', [HeadOfficeController::class, 'officeDetails'])->name('head-offices.details');
     });
     Route::get('officesExport', [HeadOfficeController::class, 'export'])->name('officesExport');
@@ -133,6 +134,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('{id}/edit', [UnitController::class, 'edit'])->name('units.edit');
         Route::post('update', [UnitController::class, 'update'])->name('units.update');
         Route::post('{id}/change-status', [UnitController::class, 'changeUnitStatus'])->name('units.change-status');
+        Route::post('{id}/toggle-blacklist', [UnitController::class, 'toggleBlacklist'])->name('units.toggle-blacklist');
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
     });
     Route::get('unitsExport', [UnitController::class, 'export'])->name('unitsExport');
@@ -145,6 +147,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('store', [SaleController::class, 'store'])->name('sales.store');
         Route::get('{id}/edit', [SaleController::class, 'edit'])->name('sales.edit');
         Route::post('update', [SaleController::class, 'update'])->name('sales.update');
+        Route::post('{id}/toggle-blacklist', [SaleController::class, 'toggleBlacklist'])->name('sales.toggle-blacklist');
         Route::get('{id}/history', [SaleController::class, 'saleHistoryIndex'])->name('sales.history');
         Route::get('direct', [SaleController::class, 'directSaleIndex'])->name('sales.direct');
         Route::get('open', [SaleController::class, 'openSaleIndex'])->name('sales.open');
@@ -503,6 +506,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('scrap/bulk-email-template', [ScrapController::class, 'getBulkEmailTemplate'])->name('scrap.bulk.email.template');
     Route::post('scrap/bulk-offices-email-template', [ScrapController::class, 'getBulkOfficesEmailTemplate'])->name('scrap.bulk.offices.email.template');
     Route::post('/send-bulk-emails-to-offices', [ScrapController::class, 'sendBulkEmailsToOffices'])->name('send.bulk.emails.to.offices');
+    Route::post('scrap/lookup/office/{id}', [ScrapController::class, 'lookupOfficeDetails'])->name('scrap.lookup.office');
+    Route::post('scrap/lookup/office/{id}/save', [ScrapController::class, 'saveOfficeLookup'])->name('scrap.lookup.office.save');
+    Route::post('scrap/lookup/unit/{id}', [ScrapController::class, 'lookupUnitDetails'])->name('scrap.lookup.unit');
+    Route::post('scrap/lookup/unit/{id}/save', [ScrapController::class, 'saveUnitLookup'])->name('scrap.lookup.unit.save');
 
 
     Route::group(['prefix' => 'freepbx-cdrs'], function () {

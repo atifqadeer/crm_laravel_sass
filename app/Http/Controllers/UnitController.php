@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use Horsefly\Unit;
 use Horsefly\Office;
+use Horsefly\Sale;
 use Horsefly\Contact;
 use Horsefly\Setting;
 use Horsefly\JobSource;
@@ -21,19 +22,23 @@ use App\Exports\UnitsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use App\Traits\HidesPrivateContacts;
+use App\Traits\RecordsBlacklistNotes;
+use App\Support\StatusBadge;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use App\Observers\ActionObserver;
 
 class UnitController extends Controller
 {
-    use Geocode, HidesPrivateContacts;
+    use Geocode, HidesPrivateContacts, RecordsBlacklistNotes;
 
     public function __construct()
     {
         $this->middleware('permission:unit-index')->only(['index', 'getUnits']);
         $this->middleware('permission:unit-create')->only(['create', 'store']);
         $this->middleware('permission:unit-edit')->only(['edit', 'update']);
+        $this->middleware('permission:unit-blacklist')->only(['toggleBlacklist']);
         $this->middleware('permission:unit-view')->only(['show', 'unitDetails']);
         $this->middleware('permission:unit-delete')->only(['destroy']);
         $this->middleware('permission:unit-export')->only(['export']);
@@ -63,7 +68,10 @@ class UnitController extends Controller
     }
     public function create()
     {
-        $offices = Office::where('status', 1)->select('id', 'office_name')->get();
+        $offices = Office::where('status', 1)
+            ->where('is_blacklist', false)
+            ->select('id', 'office_name')
+            ->get();
 
         $sourceIds = $this->hiddenPrivateSourceIds();
 
@@ -81,7 +89,7 @@ class UnitController extends Controller
     {
         // Validation
         $validator = Validator::make($request->all(), [
-            'office_id' => 'required|exists:offices,id',
+            'office_id' => ['required', Rule::exists('offices', 'id')->where('is_blacklist', false)],
             'unit_name' => 'required|string|max:255',
             'unit_postcode' => ['required', 'string', 'min:3', 'max:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d ]+$/'],
             'unit_notes' => 'required|string|max:255',
@@ -224,7 +232,7 @@ class UnitController extends Controller
     }
     public function getUnits(Request $request)
     {
-        $statusFilter = $request->input('status_filter');
+        $statusFilter = $request->input('status_filter', 'active');
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
@@ -239,9 +247,13 @@ class UnitController extends Controller
         }]);
 
         if ($statusFilter === 'active') {
-            $query->where('units.status', 1);
+            $query->where('units.status', 1)
+                ->where('units.is_blacklist', 0);
         } elseif ($statusFilter === 'inactive') {
-            $query->where('units.status', 0);
+            $query->where('units.status', 0)
+                ->where('units.is_blacklist', 0);
+        } elseif ($statusFilter === 'blacklisted') {
+            $query->where('units.is_blacklist', 1);
         }
 
         // Office filter
@@ -299,6 +311,7 @@ class UnitController extends Controller
         -------------------------------------------------*/
         return DataTables::eloquent($query)
             ->addIndexColumn()
+            ->setRowClass(fn ($u) => $u->is_blacklist ? 'table-danger blacklisted-row' : '')
 
             ->addColumn('office_name', fn($u) => $u->office?->office_name ?? '-')
             ->filterColumn('office_name', function ($query, $keyword) {
@@ -378,19 +391,13 @@ class UnitController extends Controller
                 '<a href="javascript:void(0);" onclick="addShortNotesModal(' . (int)$u->id . ')">'
                     . nl2br(e($u->unit_notes)) . '</a>'
             )
-            ->addColumn(
-                'status',
-                fn($u) =>
-                $u->status
-                    ? '<span class="badge bg-success">Active</span>'
-                    : '<span class="badge bg-danger">Inactive</span>'
-            )
+            ->addColumn('status', function ($u) {
+                return $this->unitStatusBadges($u);
+            })
             ->addColumn('action', function ($u) {
                 $postcode    = $u->formatted_postcode;
                 $office_name = $u->office?->office_name ?? '-';
-                $status      = $u->status
-                    ? '<span class="badge bg-success">Active</span>'
-                    : '<span class="badge bg-secondary">Inactive</span>';
+                $status      = $this->unitStatusBadges($u);
 
                 $html = '<div class="btn-group dropstart">
                         <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -401,7 +408,6 @@ class UnitController extends Controller
                 if (Gate::allows('unit-edit')) {
                     $html .= '<li><a class="dropdown-item" href="' . route('units.edit', ['id' => $u->id]) . '">Edit</a></li>';
                 }
-
                 if (Gate::allows('unit-view')) {
                     $html .= '<li><a class="dropdown-item"href="javascript:void(0);" onclick="showDetailsModal('
                         . (int)$u->id . ', '
@@ -410,6 +416,13 @@ class UnitController extends Controller
                         . '\'' . e($postcode) . '\', '
                         . '\'' . e($status) . '\')">View</a></li>';
                 }
+                if (Gate::allows('unit-blacklist')) {
+                    $blockLabel = $u->is_blacklist ? 'Remove from Blacklist' : 'Add to Blacklist';
+                    $blockStatus = $u->is_blacklist ? 0 : 1;
+                    $html .= '<li><a class="dropdown-item ' . ($u->is_blacklist ? 'text-success' : 'text-danger') . '" href="javascript:void(0);" onclick="toggleUnitBlacklist(' . (int)$u->id . ', ' . $blockStatus . ')">' . $blockLabel . '</a></li>';
+                }
+
+
 
                 if (Gate::allows('unit-change-status')) {
                     $html .= $u->status == 0
@@ -485,6 +498,77 @@ class UnitController extends Controller
 
         return redirect()->to(url()->previous());
     }
+
+    private function unitStatusBadges($unit): string
+    {
+        $status = $unit->status
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+
+        return StatusBadge::withBlacklist($status, (bool) $unit->is_blacklist);
+    }
+
+    public function toggleBlacklist(Request $request, $id)
+    {
+        $noteInput = $request->input('blacklist_note');
+        if (is_string($noteInput)) {
+            $request->merge(['blacklist_note' => trim($noteInput)]);
+        }
+
+        $request->validate([
+            'is_blacklist' => ['required', 'boolean'],
+            'blacklist_note' => ['required', 'string', 'max:2000'],
+        ]);
+        $targetBlacklistState = $request->boolean('is_blacklist');
+        $blacklistNote = $request->input('blacklist_note');
+        $unit = Unit::findOrFail($id);
+
+        if (!$targetBlacklistState && Office::whereKey($unit->office_id)->where('is_blacklist', true)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Remove the office from the blacklist before removing this unit.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($unit, $targetBlacklistState, $blacklistNote) {
+            $user = Auth::user();
+            $note = $blacklistNote . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+
+            $unit = Unit::whereKey($unit->id)->lockForUpdate()->firstOrFail();
+            $unit->update(['is_blacklist' => $targetBlacklistState]);
+            $this->recordUnitNote($unit, $note, $user->id);
+
+            // Blacklisting cascades to sales. Removing the unit from the blacklist
+            // does not: sales are removed manually (the sale toggle refuses while the
+            // unit is still blacklisted).
+            if (!$targetBlacklistState) {
+                return;
+            }
+
+            // Skip sales that are already blacklisted so their own notes are kept.
+            $sales = Sale::where('unit_id', $unit->id)
+                ->where('is_blacklist', false)
+                ->lockForUpdate()
+                ->get();
+
+            $observer = new ActionObserver();
+
+            foreach ($sales as $sale) {
+                $sale->update(['is_blacklist' => true]);
+                $this->recordSaleNote($sale, $note, $user->id);
+                $observer->saleBlacklistAudit($sale, true);
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'is_blacklist' => $targetBlacklistState,
+            'message' => $targetBlacklistState
+                ? 'Unit and its related sales have been added to the blacklist.'
+                : 'Unit has been removed from the blacklist. Its sales must be removed manually.',
+        ]);
+    }
+
     public function changeUnitStatus(Request $request, $id)
     {
         $request->validate([
@@ -601,6 +685,17 @@ class UnitController extends Controller
             'contact_job_source_id' => 'required|array',
             'contact_job_source_id.*' => 'required|exists:job_sources,id',
         ]);
+
+        // A unit may keep its current (blacklisted) office, but cannot be moved under a blacklisted one.
+        $validator->after(function ($validator) use ($request) {
+            $currentOfficeId = Unit::whereKey($request->input('unit_id'))->value('office_id');
+            if (
+                (string) $currentOfficeId !== (string) $request->input('office_id') &&
+                Office::whereKey($request->input('office_id'))->where('is_blacklist', true)->exists()
+            ) {
+                $validator->errors()->add('office_id', 'The selected office is blacklisted.');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([

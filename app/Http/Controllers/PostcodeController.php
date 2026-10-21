@@ -195,7 +195,10 @@ class PostcodeController extends Controller
             ->orderBy("distance")
             ->where("status", 1)
             ->whereNull("deleted_at")
-            ->where("is_on_hold", 0);
+            ->where("is_on_hold", 0)
+            // Blacklisted sales are not offered. Blacklisting an office or unit also
+            // flags its sales, so this covers blacklisted parents too.
+            ->where("is_blacklist", 0);
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
 

@@ -68,6 +68,7 @@ class PermissionsTableSeeder extends Seeder
             'office-export',
             'office-export-all',
             'office-export-emails',
+            'office-blacklist',
 
             // Unit Permissions
             'unit-index',
@@ -89,6 +90,7 @@ class PermissionsTableSeeder extends Seeder
             'unit-export-all',
             'unit-export-emails',
             'unit-change-status',
+            'unit-blacklist',
 
             // Sale Permissions
             'sale-index',
@@ -112,6 +114,7 @@ class PermissionsTableSeeder extends Seeder
             'sale-edit-job-title',
             'sale-delete',
             'sale-view',
+            'sale-blacklist',
 
             'sale-export',
             'sale-export-all',

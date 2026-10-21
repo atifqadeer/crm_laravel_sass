@@ -25,8 +25,13 @@ class Unit extends Model
         'lat',
         'lng',
         'status',
+        'is_blacklist',
         // 'created_at',
         // 'updated_at'
+    ];
+
+    protected $casts = [
+        'is_blacklist' => 'boolean',
     ];
 
     public function toSearchableArray(): array

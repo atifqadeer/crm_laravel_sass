@@ -37,8 +37,13 @@ class Sale extends Model
         'status',
         'is_on_hold',
         'is_re_open',
+        'is_blacklist',
         // 'created_at',
         // 'updated_at'
+    ];
+
+    protected $casts = [
+        'is_blacklist' => 'boolean',
     ];
 
     public function toSearchableArray(): array

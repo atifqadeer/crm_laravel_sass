@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Horsefly\Office;
+use Horsefly\Unit;
+use Horsefly\Sale;
 use Horsefly\Contact;
 use Horsefly\ModuleNote;
 use Horsefly\JobSource;
@@ -19,6 +21,8 @@ use App\Exports\HeadOfficesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use App\Traits\HidesPrivateContacts;
+use App\Traits\RecordsBlacklistNotes;
+use App\Support\StatusBadge;
 use Illuminate\Support\Facades\Gate;
 use App\Observers\ActionObserver;
 use Carbon\Carbon;
@@ -26,13 +30,14 @@ use Illuminate\Support\Facades\Cache;
 
 class HeadOfficeController extends Controller
 {
-    use Geocode, HidesPrivateContacts;
+    use Geocode, HidesPrivateContacts, RecordsBlacklistNotes;
 
     public function __construct()
     {
         $this->middleware('permission:office-index')->only(['index', 'getHeadOffices', 'getHeadOfficesOld']);
         $this->middleware('permission:office-create')->only(['create', 'store']);
         $this->middleware('permission:office-edit')->only(['edit', 'update']);
+        $this->middleware('permission:office-blacklist')->only(['toggleBlacklist']);
         $this->middleware('permission:office-view')->only(['show', 'officeDetails', 'getModuleContacts']);
         $this->middleware('permission:office-delete')->only(['destroy']);
         $this->middleware('permission:office-export')->only(['export']);
@@ -413,9 +418,13 @@ class HeadOfficeController extends Controller
 
         // Apply status filter
         if ($statusFilter === 'active') {
-            $model->where('offices.status', 1);
+            $model->where('offices.status', 1)
+                ->where('offices.is_blacklist', 0);
         } elseif ($statusFilter === 'inactive') {
-            $model->where('offices.status', 0);
+            $model->where('offices.status', 0)
+                ->where('offices.is_blacklist', 0);
+        } elseif ($statusFilter === 'blacklisted') {
+            $model->where('offices.is_blacklist', 1);
         }
 
         // Handle search input
@@ -462,6 +471,7 @@ class HeadOfficeController extends Controller
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->addIndexColumn()
+                ->setRowClass(fn ($office) => $office->is_blacklist ? 'table-danger blacklisted-row' : '')
                 ->addColumn('office_name', function ($office) {
                     return $office->formatted_office_name;
                 })
@@ -528,22 +538,29 @@ class HeadOfficeController extends Controller
                     return '<a href="javascript:void(0);" title="Add Short Note" style="color:blue" onclick="addShortNotesModal(\'' . (int)$office->id . '\')">' . $notes . '</a>';
                 })
                 ->addColumn('status', function ($office) {
-                    return $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    return $this->officeStatusBadges($office);
                 })
                 ->addColumn('action', function ($office) {
                     $postcode = $office->formatted_postcode;
-                    $status = $office->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                    $status = $this->officeStatusBadges($office);
                     $html = '<div class="btn-group dropstart">
                                 <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                                 </button>
                                 <ul class="dropdown-menu">';
-                    if (Gate::allows('office-edit')) {
-                        $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
-                    }
                     if (Gate::allows('office-view')) {
                         $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
                     }
+                    if (Gate::allows('office-edit')) {
+                        $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
+                    }
+
+                    if (Gate::allows('office-blacklist')) {
+                        $blockLabel = $office->is_blacklist ? 'Remove from Blacklist' : 'Add to Blacklist';
+                        $blockStatus = $office->is_blacklist ? 0 : 1;
+                        $html .= '<li><a class="dropdown-item ' . ($office->is_blacklist ? 'text-success' : 'text-danger') . '" href="javascript:void(0);" onclick="toggleOfficeBlacklist(' . (int)$office->id . ', ' . $blockStatus . ')">' . $blockLabel . '</a></li>';
+                    }
+
                     if (Gate::allows('office-view-notes-history') || Gate::allows('office-view-manager-details')) {
                         $html .= '<li><hr class="dropdown-divider"></li>';
                     }
@@ -602,6 +619,78 @@ class HeadOfficeController extends Controller
         $office = Office::findOrFail($id);
         return view('head-offices.details', compact('office'));
     }
+
+    private function officeStatusBadges($office): string
+    {
+        $status = $office->status
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+
+        return StatusBadge::withBlacklist($status, (bool) $office->is_blacklist);
+    }
+
+    public function toggleBlacklist(Request $request, $id)
+    {
+        $targetBlacklistState = $request->boolean('is_blacklist');
+        $noteInput = $request->input('blacklist_note');
+        if (is_string($noteInput)) {
+            $request->merge(['blacklist_note' => trim($noteInput)]);
+        }
+
+        $request->validate([
+            'is_blacklist' => ['required', 'boolean'],
+            'blacklist_note' => ['required', 'string', 'max:2000'],
+        ]);
+        $blacklistNote = $request->input('blacklist_note');
+
+        DB::transaction(function () use ($id, $targetBlacklistState, $blacklistNote) {
+            $user = Auth::user();
+            $note = $blacklistNote . ' --- By: ' . $user->name . ' Date: ' . now()->format('d-m-Y');
+
+            $office = Office::whereKey($id)->lockForUpdate()->firstOrFail();
+            $office->update(['is_blacklist' => $targetBlacklistState]);
+            $this->recordOfficeNote($office, $note, $user->id);
+
+            // Blacklisting cascades to units and sales. Removing the office from the
+            // blacklist does not: units and sales are removed manually (their own
+            // toggles refuse while the parent is still blacklisted).
+            if (!$targetBlacklistState) {
+                return;
+            }
+
+            // Skip children that are already blacklisted so their own notes are kept.
+            $units = Unit::where('office_id', $office->id)
+                ->where('is_blacklist', false)
+                ->lockForUpdate()
+                ->get();
+            $sales = Sale::where('office_id', $office->id)
+                ->where('is_blacklist', false)
+                ->lockForUpdate()
+                ->get();
+
+            $observer = new ActionObserver();
+
+            foreach ($units as $unit) {
+                $unit->update(['is_blacklist' => true]);
+                $this->recordUnitNote($unit, $note, $user->id);
+            }
+
+            foreach ($sales as $sale) {
+                $sale->update(['is_blacklist' => true]);
+                $this->recordSaleNote($sale, $note, $user->id);
+                $observer->saleBlacklistAudit($sale, true);
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'is_blacklist' => $targetBlacklistState,
+            'message' => $targetBlacklistState
+                ? 'Office, its units, and related sales have been added to the blacklist.'
+                : 'Office has been removed from the blacklist. Its units and sales must be removed manually.',
+        ]);
+    }
+
     public function edit($id, Request $request)
     {
         $office = Office::find($id);

@@ -1,4 +1,13 @@
 @extends('layouts.vertical', ['title' => 'Units List', 'subTitle' => 'Home'])
+@section('css')
+    <style>
+        /* Blacklisted rows: table-danger background plus a red bar on the left edge. */
+        tr.blacklisted-row > td:first-child {
+            box-shadow: inset 4px 0 0 var(--bs-danger),
+                inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+        }
+    </style>
+@endsection
 @section('style')
     <style>
         .dropdown-toggle::after {
@@ -80,12 +89,13 @@
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> All
+                                            <i class="ri-filter-line me-1"></i> <span id="showUnitStatusFilter">Active</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                            <a class="dropdown-item" href="#">All</a>
-                                            <a class="dropdown-item" href="#">Active</a>
-                                            <a class="dropdown-item" href="#">Inactive</a>
+                                            <a class="dropdown-item unit-status-filter" href="#">Active</a>
+                                            <a class="dropdown-item unit-status-filter" href="#">Inactive</a>
+                                            <a class="dropdown-item unit-status-filter" href="#">Blacklisted</a>
+
                                         </div>
                                     </div>
                                 @endcanany
@@ -194,6 +204,40 @@
         </div>
     </div>
 
+    <div class="modal fade" id="unitBlacklistModal" tabindex="-1" aria-labelledby="unitBlacklistModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="unitBlacklistForm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="unitBlacklistModalLabel">Update Blacklist</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="unitBlacklistAlert" class="alert alert-warning d-flex align-items-start gap-2"
+                            role="alert">
+                            <iconify-icon id="unitBlacklistAlertIcon" icon="solar:danger-triangle-bold"
+                                class="fs-20 flex-shrink-0"></iconify-icon>
+                            <div>
+                                <span id="unitBlacklistBadge" class="badge bg-warning text-dark mb-2">Blacklist</span>
+                                <div id="unitBlacklistModalMessage"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unitBlacklistNote" class="form-label">Message / reason</label>
+                            <textarea id="unitBlacklistNote" name="blacklist_note" class="form-control" rows="4" maxlength="2000"
+                                placeholder="Enter a message to record for this blacklist change" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning" id="unitBlacklistSubmit">Add to Blacklist</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
@@ -223,8 +267,9 @@
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
-        var currentFilter = '';
+        var currentFilter = 'active';
         var currentOfficeFilters = [];
+        var pendingUnitBlacklist = null;
 
         $(document).ready(function() {
             const hasViewNotePermission = @json(auth()->user()->can('unit-view-note'));
@@ -504,13 +549,14 @@
                 table.ajax.reload();
             });
 
-            // Handle filter button clicks and send filter parameters to the DataTable
-            $('.dropdown-item').not('.export-btn').on('click', function() {
-                // Get the selected filter value
+            $('.unit-status-filter').on('click', function(e) {
+                e.preventDefault();
                 currentFilter = $(this).text().toLowerCase();
-
-                // Update the DataTable request with the selected filter
-                table.ajax.reload(); // Reload the table with the new filter
+                $('#showUnitStatusFilter').text(
+                    currentFilter === 'all' ? 'All' : currentFilter.charAt(0).toUpperCase() +
+                    currentFilter.slice(1)
+                );
+                table.ajax.reload();
             });
 
             /*** Dropdown Select All Action ***/
@@ -538,6 +584,50 @@
             $(document).on('click', '.filter-dropdowns', function(e) {
                 e.stopPropagation();
             });
+
+            $('#unitBlacklistForm').on('submit', function(event) {
+                event.preventDefault();
+                if (!pendingUnitBlacklist) {
+                    return;
+                }
+
+                const {
+                    unitId,
+                    isBlacklisted
+                } = pendingUnitBlacklist;
+                const blacklistNote = $('#unitBlacklistNote').val().trim();
+                const submitButton = $('#unitBlacklistSubmit');
+                submitButton.prop('disabled', true);
+
+                const url = '{{ route('units.toggle-blacklist', ['id' => '__ID__']) }}'.replace('__ID__',
+                    unitId);
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        is_blacklist: isBlacklisted,
+                        blacklist_note: blacklistNote,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#unitBlacklistModal').modal('hide');
+                        toastr.success(response.message);
+                        $('#units_table').DataTable().ajax.reload(null, false);
+                    },
+                    error: function(xhr) {
+                        toastr.error(xhr.responseJSON?.message ||
+                            'Unable to update the unit blacklist status.');
+                    },
+                    complete: function() {
+                        submitButton.prop('disabled', false);
+                    }
+                });
+            });
+
+            $('#unitBlacklistModal').on('hidden.bs.modal', function() {
+                $('#unitBlacklistForm')[0].reset();
+                pendingUnitBlacklist = null;
+            });
         });
 
         document.getElementById('officeSearchInput').addEventListener('keyup', function() {
@@ -549,6 +639,36 @@
                 item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
+
+        function toggleUnitBlacklist(unitId, isBlacklisted) {
+            const addingToBlacklist = Number(isBlacklisted) === 1;
+            pendingUnitBlacklist = {
+                unitId,
+                isBlacklisted
+            };
+            $('#unitBlacklistModalLabel').text(addingToBlacklist ? 'Add to Blacklist' : 'Remove from Blacklist');
+            $('#unitBlacklistAlert').attr(
+                'class',
+                'alert ' + (addingToBlacklist ? 'alert-warning' : 'alert-success') + ' d-flex align-items-start gap-2'
+            );
+            $('#unitBlacklistAlertIcon')
+                .attr('icon', addingToBlacklist ? 'solar:danger-triangle-bold' : 'solar:check-circle-bold')
+                .toggleClass('text-warning', addingToBlacklist)
+                .toggleClass('text-success', !addingToBlacklist);
+            $('#unitBlacklistBadge').attr(
+                'class',
+                'badge ' + (addingToBlacklist ? 'bg-warning text-dark' : 'bg-success') + ' mb-2'
+            ).text(addingToBlacklist ? 'Adding to blacklist' : 'Removing from blacklist');
+            $('#unitBlacklistModalMessage').text(
+                addingToBlacklist ?
+                'Blacklisting this unit will also automatically blacklist all its associated sales.' :
+                'Removing this unit from the blacklist will not automatically remove its associated sales. You must remove each sale from the blacklist manually.'
+            );
+            $('#unitBlacklistSubmit')
+                .text(addingToBlacklist ? 'Add to Blacklist' : 'Remove from Blacklist')
+                .attr('class', 'btn ' + (addingToBlacklist ? 'btn-warning' : 'btn-success'));
+            $('#unitBlacklistModal').modal('show');
+        }
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');
@@ -881,7 +1001,7 @@
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
                     'Label">' +
-                    '<div class="modal-dialog modal-dialog-scrollable modal-dialog-top">' +
+                    '<div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
                     '<h5 class="modal-title" id="' + modalId + 'Label">Unit Notes History</h5>' +
@@ -1097,12 +1217,12 @@
                     if (canShowPrivateData) {
                         // Match job_sources.name LIKE %hayaibu% (e.g. "Hayaibu Talent").
                         // Do NOT use === '%hayaibu%' — % is SQL syntax, not a JS string match.
-                        var sourceName = (contact.job_source_name
-                            || (contact.job_source && contact.job_source.name)
-                            || '').toString().toLowerCase().trim();
-                        var isHayaibuSource = contact.is_hayaibu_source === true
-                            || contact.is_hayaibu_source === 1
-                            || sourceName.indexOf('hayaibu') !== -1;
+                        var sourceName = (contact.job_source_name ||
+                            (contact.job_source && contact.job_source.name) ||
+                            '').toString().toLowerCase().trim();
+                        var isHayaibuSource = contact.is_hayaibu_source === true ||
+                            contact.is_hayaibu_source === 1 ||
+                            sourceName.indexOf('hayaibu') !== -1;
 
                         // Kingsburry = non-hayaibu sources; Others = hayaibu source only.
                         if (filterType === 'kingsburry' && isHayaibuSource) {
@@ -1211,6 +1331,7 @@
                 const $text = $btn.find('.btn-text');
 
                 url.searchParams.set('status_filter', currentFilter || '');
+                url.searchParams.set('blacklist_filter', currentBlacklistFilter || '');
                 url.searchParams.set('search', ($('#customSearchInput').val() || '').trim());
                 url.searchParams.delete('office_filter[]');
                 url.searchParams.delete('office_filter');

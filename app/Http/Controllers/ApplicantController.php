@@ -2627,6 +2627,10 @@ class ApplicantController extends Controller
                 if ($sale->is_on_hold != 0) {
                     throw new Exception("CV can't be sent - the sale is currently on hold.");
                 }
+                
+                if ($sale->is_blacklisted != 0) {
+                    throw new Exception("CV can't be sent - the sale is currently blacklisted.");
+                }
 
                 $jobTitle = JobTitle::find($sale->job_title_id);
 

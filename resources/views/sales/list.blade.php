@@ -1,4 +1,13 @@
 @extends('layouts.vertical', ['title' => 'Sales List', 'subTitle' => 'Sales'])
+@section('css')
+    <style>
+        /* Blacklisted rows: table-danger background plus a red bar on the left edge. */
+        tr.blacklisted-row > td:first-child {
+            box-shadow: inset 4px 0 0 var(--bs-danger),
+                inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+        }
+    </style>
+@endsection
 @section('style')
     <style>
         .dropdown-toggle::after {
@@ -267,6 +276,7 @@
                                             <a class="dropdown-item status-filter" href="#">Pending</a>
                                             <a class="dropdown-item status-filter" href="#">Rejected</a>
                                             <a class="dropdown-item status-filter" href="#">On Hold</a>
+                                            <a class="dropdown-item status-filter" href="#">Blacklisted</a>
                                         </div>
                                     </div>
                                 @endcanany
@@ -418,6 +428,41 @@
         </div>
     </div>
 
+    <div class="modal fade" id="saleBlacklistModal" tabindex="-1" aria-labelledby="saleBlacklistModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="saleBlacklistForm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="saleBlacklistModalLabel">Update Blacklist</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="saleBlacklistAlert" class="alert alert-warning d-flex align-items-start gap-2"
+                            role="alert">
+                            <iconify-icon id="saleBlacklistAlertIcon" icon="solar:danger-triangle-bold"
+                                class="fs-20 flex-shrink-0"></iconify-icon>
+                            <div>
+                                <span id="saleBlacklistBadge" class="badge bg-warning text-dark mb-2">Blacklist</span>
+                                <div id="saleBlacklistModalMessage"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="saleBlacklistNote" class="form-label">Message / reason</label>
+                            <textarea id="saleBlacklistNote" name="blacklist_note" class="form-control" rows="4"
+                                maxlength="2000" placeholder="Enter a message to record for this blacklist change"
+                                required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning" id="saleBlacklistSubmit">Add to Blacklist</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
@@ -451,7 +496,48 @@
     <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <script>
+        var pendingSaleBlacklist = null;
+
         $(document).ready(function() {
+            $('#saleBlacklistForm').on('submit', function(event) {
+                event.preventDefault();
+                if (!pendingSaleBlacklist) {
+                    return;
+                }
+
+                const { saleId, isBlacklisted } = pendingSaleBlacklist;
+                const blacklistNote = $('#saleBlacklistNote').val().trim();
+                const submitButton = $('#saleBlacklistSubmit');
+                submitButton.prop('disabled', true);
+
+                const url = '{{ route('sales.toggle-blacklist', ['id' => '__ID__']) }}'.replace('__ID__', saleId);
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        is_blacklist: isBlacklisted,
+                        blacklist_note: blacklistNote,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#saleBlacklistModal').modal('hide');
+                        toastr.success(response.message);
+                        $('#sales_table').DataTable().ajax.reload(null, false);
+                    },
+                    error: function(xhr) {
+                        toastr.error(xhr.responseJSON?.message || 'Unable to update the sale blacklist status.');
+                    },
+                    complete: function() {
+                        submitButton.prop('disabled', false);
+                    }
+                });
+            });
+
+            $('#saleBlacklistModal').on('hidden.bs.modal', function() {
+                $('#saleBlacklistForm')[0].reset();
+                pendingSaleBlacklist = null;
+            });
+
             // Store the current filter in a variable
             var currentFilter = '';
             var currentTypeFilter = '';
@@ -958,6 +1044,7 @@
                 $('#showFilterStatus').html(formattedText);
                 table.ajax.reload(); // Reload with updated status filter
             });
+
             /*** Category filter handler ***/
             $('.category-filter').on('change', function() {
                 const id = $(this).data('category-id');
@@ -1188,6 +1275,33 @@
                 item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
+
+        function toggleSaleBlacklist(saleId, isBlacklisted) {
+            const addingToBlacklist = Number(isBlacklisted) === 1;
+            pendingSaleBlacklist = { saleId, isBlacklisted };
+            $('#saleBlacklistModalLabel').text(addingToBlacklist ? 'Add to Blacklist' : 'Remove from Blacklist');
+            $('#saleBlacklistAlert').attr(
+                'class',
+                'alert ' + (addingToBlacklist ? 'alert-warning' : 'alert-success') + ' d-flex align-items-start gap-2'
+            );
+            $('#saleBlacklistAlertIcon')
+                .attr('icon', addingToBlacklist ? 'solar:danger-triangle-bold' : 'solar:check-circle-bold')
+                .toggleClass('text-warning', addingToBlacklist)
+                .toggleClass('text-success', !addingToBlacklist);
+            $('#saleBlacklistBadge').attr(
+                'class',
+                'badge ' + (addingToBlacklist ? 'bg-warning text-dark' : 'bg-success') + ' mb-2'
+            ).text(addingToBlacklist ? 'Adding to blacklist' : 'Removing from blacklist');
+            $('#saleBlacklistModalMessage').text(
+                addingToBlacklist
+                    ? 'Add this sale to the blacklist. Enter a message or reason to save with the change.'
+                    : 'Remove this sale from the blacklist. If its unit or head office is blacklisted, they will be removed from the blacklist too, with the same message. Other sales and units under them stay blacklisted.'
+            );
+            $('#saleBlacklistSubmit')
+                .text(addingToBlacklist ? 'Add to Blacklist' : 'Remove from Blacklist')
+                .attr('class', 'btn ' + (addingToBlacklist ? 'btn-warning' : 'btn-success'));
+            $('#saleBlacklistModal').modal('show');
+        }
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');

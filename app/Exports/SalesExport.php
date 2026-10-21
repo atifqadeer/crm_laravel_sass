@@ -863,26 +863,29 @@ class SalesExport implements FromCollection, WithHeadings
         $listTypes = ['all', 'emails', 'noLatLong'];
         if (in_array($this->type, $listTypes, true)) {
             $status = strtolower(trim((string) ($this->filters['status_filter'] ?? 'open')));
-            $normalized = in_array($status, ['closed', 'pending', 'rejected', 'on hold', 'open'], true)
+            $normalized = in_array($status, ['closed', 'pending', 'rejected', 'on hold', 'open', 'blacklisted'], true)
                 ? $status
                 : 'open';
 
             switch ($normalized) {
+                case 'blacklisted':
+                    $query->where('sales.is_blacklist', 1);
+                    break;
                 case 'closed':
-                    $query->where('sales.status', 0)->where('sales.is_on_hold', 0);
+                    $query->where('sales.status', 0)->where('sales.is_blacklist', 0)->where('sales.is_on_hold', 0);
                     break;
                 case 'pending':
-                    $query->where('sales.status', 2);
+                    $query->where('sales.status', 2)->where('sales.is_blacklist', 0);
                     break;
                 case 'rejected':
-                    $query->where('sales.status', 3);
+                    $query->where('sales.status', 3)->where('sales.is_blacklist', 0);
                     break;
                 case 'on hold':
-                    $query->where('sales.is_on_hold', true);
+                    $query->where('sales.is_on_hold', true)->where('sales.is_blacklist', 0);
                     break;
                 case 'open':
                 default:
-                    $query->where('sales.status', 1)->where('sales.is_on_hold', 0);
+                    $query->where('sales.status', 1)->where('sales.is_blacklist', 0)->where('sales.is_on_hold', 0);
                     break;
             }
         }

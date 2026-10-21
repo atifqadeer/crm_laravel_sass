@@ -128,9 +128,13 @@ class HeadOfficesExport implements FromCollection, WithHeadings
 
         $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
         if ($status === 'active') {
-            $query->where('offices.status', 1);
+            $query->where('offices.status', 1)
+                ->where('offices.is_blacklist', 0);
         } elseif ($status === 'inactive') {
-            $query->where('offices.status', 0);
+            $query->where('offices.status', 0)
+                ->where('offices.is_blacklist', 0);
+        } elseif ($status === 'blacklisted') {
+            $query->where('offices.is_blacklist', 1);
         }
 
         $search = trim((string) ($this->filters['search'] ?? ''));

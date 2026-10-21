@@ -69,6 +69,24 @@ class ActionObserver
             "message" => $message,
         ]);
     }
+    public function saleBlacklistAudit($sale, bool $isBlacklisted)
+    {
+        $auth_user = Auth::user();
+
+        $d_message = $isBlacklisted ? 'blacklisted' : 'removed from blacklist';
+        $message = $isBlacklisted ? 'sale-blacklisted' : 'sale-unblacklisted';
+
+        $data['action_performed_by'] = $auth_user->name;
+        $data['changes_made'] = ['is_blacklist' => $isBlacklisted];
+        $data['message'] = 'Sale ('. $sale->sale_postcode .') '. $d_message;
+
+        // Create the audit log entry
+        $sale->audits()->create([
+            "user_id" => Auth::id(),
+            "data" => json_encode(array_merge(json_decode($sale->toJson(), true), $data)),
+            "message" => $message,
+        ]);
+    }
     public function changeCvStatus($applicant_id, $columns, $msg)
     {
         $auth_user = Auth::user();

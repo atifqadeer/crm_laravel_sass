@@ -24,6 +24,7 @@ class Office extends Model
         'office_lat',
         'office_lng',
         'status',
+        'is_blacklist',
         // 'created_at',
         // 'updated_at',
     ];
@@ -31,6 +32,10 @@ class Office extends Model
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'is_blacklist' => 'boolean',
     ];
 
     public function toSearchableArray(): array

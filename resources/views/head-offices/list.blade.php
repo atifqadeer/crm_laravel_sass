@@ -1,4 +1,13 @@
 @extends('layouts.vertical', ['title' => 'Head Office List', 'subTitle' => 'Home'])
+@section('css')
+    <style>
+        /* Blacklisted rows: table-danger background plus a red bar on the left edge. */
+        tr.blacklisted-row > td:first-child {
+            box-shadow: inset 4px 0 0 var(--bs-danger),
+                inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+        }
+    </style>
+@endsection
 @section('style')
     <style>
         .dropdown-toggle::after {
@@ -37,12 +46,12 @@
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Active</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                            <a class="dropdown-item status-filter" href="#">All</a>
                                             <a class="dropdown-item status-filter" href="#">Active</a>
                                             <a class="dropdown-item status-filter" href="#">Inactive</a>
+                                            <a class="dropdown-item status-filter" href="#">Blacklisted</a>
                                         </div>
                                     </div>
                                 @endcanany
@@ -151,6 +160,40 @@
         </div>
     </div>
 
+    <div class="modal fade" id="officeBlacklistModal" tabindex="-1" aria-labelledby="officeBlacklistModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="officeBlacklistForm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="officeBlacklistModalLabel">Update Blacklist</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="officeBlacklistAlert" class="alert alert-warning d-flex align-items-start gap-2"
+                            role="alert">
+                            <iconify-icon id="officeBlacklistAlertIcon" icon="solar:danger-triangle-bold"
+                                class="fs-20 flex-shrink-0"></iconify-icon>
+                            <div>
+                                <span id="officeBlacklistBadge" class="badge bg-warning text-dark mb-2">Blacklist</span>
+                                <div id="officeBlacklistModalMessage"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="officeBlacklistNote" class="form-label">Message / reason</label>
+                            <textarea id="officeBlacklistNote" name="blacklist_note" class="form-control" rows="4" maxlength="2000"
+                                placeholder="Enter a message to record for this blacklist change" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="officeBlacklistSubmit">Continue</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
     <script src="{{ asset('js/jquery-3.6.0.min.js') }}"></script>
@@ -180,7 +223,8 @@
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
-        var currentFilter = '';
+        var currentFilter = 'active';
+        var pendingOfficeBlacklist = null;
 
         $(document).ready(function() {
             const hasViewNotePermission = @json(auth()->user()->can('office-view-note'));
@@ -436,7 +480,82 @@
                 $('#showFilterStatus').html(formattedText);
                 table.ajax.reload(); // Reload with updated status filter
             });
+
+            $('#officeBlacklistForm').on('submit', function(event) {
+                event.preventDefault();
+                if (!pendingOfficeBlacklist) {
+                    return;
+                }
+
+                const {
+                    officeId,
+                    isBlacklisted
+                } = pendingOfficeBlacklist;
+                const blacklistNote = $('#officeBlacklistNote').val().trim();
+                const submitButton = $('#officeBlacklistSubmit');
+                submitButton.prop('disabled', true);
+
+                const url = '{{ route('head-offices.toggle-blacklist', ['id' => '__ID__']) }}'.replace(
+                    '__ID__', officeId);
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        is_blacklist: isBlacklisted,
+                        blacklist_note: blacklistNote,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        $('#officeBlacklistModal').modal('hide');
+                        toastr.success(response.message);
+                        $('#headOffice_table').DataTable().ajax.reload(null, false);
+                    },
+                    error: function(xhr) {
+                        toastr.error(xhr.responseJSON?.message ||
+                            'Unable to update the office blacklist status.');
+                    },
+                    complete: function() {
+                        submitButton.prop('disabled', false);
+                    }
+                });
+            });
+
+            $('#officeBlacklistModal').on('hidden.bs.modal', function() {
+                $('#officeBlacklistForm')[0].reset();
+                pendingOfficeBlacklist = null;
+            });
         });
+
+        function toggleOfficeBlacklist(officeId, isBlacklisted) {
+            const addingToBlacklist = Number(isBlacklisted) === 1;
+            pendingOfficeBlacklist = {
+                officeId,
+                isBlacklisted
+            };
+            $('#officeBlacklistModalLabel').text(addingToBlacklist ? 'Add to Blacklist' : 'Remove from Blacklist');
+            $('#officeBlacklistAlert').attr(
+                'class',
+                'alert ' + (addingToBlacklist ? 'alert-warning' : 'alert-success') + ' d-flex align-items-start gap-2'
+            );
+            $('#officeBlacklistAlertIcon')
+                .attr('icon', addingToBlacklist ? 'solar:danger-triangle-bold' : 'solar:check-circle-bold')
+                .toggleClass('text-warning', addingToBlacklist)
+                .toggleClass('text-success', !addingToBlacklist);
+            $('#officeBlacklistBadge').attr(
+                'class',
+                'badge ' + (addingToBlacklist ? 'bg-warning text-dark' : 'bg-success') + ' mb-2'
+            ).text(addingToBlacklist ? 'Adding to blacklist' : 'Removing from blacklist');
+            $('#officeBlacklistModalMessage').text(
+                addingToBlacklist ?
+                'Blacklisting this office will also blacklist all its units and associated sales automatically.' :
+                'Removing this office from the blacklist will not automatically remove its units or associated sales. You must remove them from the blacklist manually.'
+            );
+            $('#officeBlacklistNote').prop('required', true);
+            $('#officeBlacklistSubmit')
+                .text(addingToBlacklist ? 'Add to Blacklist' : 'Remove from Blacklist')
+                .attr('class', 'btn ' + (addingToBlacklist ? 'btn-warning' : 'btn-success'));
+            $('#officeBlacklistModal').modal('show');
+        }
 
         function goToPage(totalPages) {
             const input = document.getElementById('goToPageInput');
@@ -691,7 +810,7 @@
             if ($(`#${modalId}`).length === 0) {
                 $('body').append(`
                     <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${labelId}" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-dialog-top">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title" id="${labelId}">Head Office Notes History</h5>
