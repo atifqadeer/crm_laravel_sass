@@ -158,6 +158,37 @@ trait HidesPrivateContacts
     }
 
     /**
+     * Hide rows that belong to a sale whose office or unit notes contain a hide_private_data
+     * word (the same sales the CRM, quality and history pages hide). $saleIdColumn is the
+     * column holding the sale id, e.g. 'sales.id', 'history.sale_id' or 'audits.auditable_id'.
+     * Rows without a sale id are kept.
+     */
+    protected function excludePrivateSales($query, string $saleIdColumn)
+    {
+        $patterns = $this->privateNoteLikePatterns();
+
+        if ($patterns === []) {
+            return $query;
+        }
+
+        return $query->where(function ($outer) use ($saleIdColumn, $patterns) {
+            $outer->whereNull($saleIdColumn)
+                ->orWhereNotIn($saleIdColumn, function ($sub) use ($patterns) {
+                    $sub->select('private_sales.id')
+                        ->from('sales as private_sales')
+                        ->leftJoin('offices as private_offices', 'private_offices.id', '=', 'private_sales.office_id')
+                        ->leftJoin('units as private_units', 'private_units.id', '=', 'private_sales.unit_id')
+                        ->where(function ($match) use ($patterns) {
+                            foreach ($patterns as $like) {
+                                $match->orWhere('private_offices.office_notes', 'LIKE', $like)
+                                    ->orWhere('private_units.unit_notes', 'LIKE', $like);
+                            }
+                        });
+                });
+        });
+    }
+
+    /**
      * Hide sales whose job_source_id matches hide_private_data (same as the sales list).
      */
     protected function excludeHiddenSaleSources($query)

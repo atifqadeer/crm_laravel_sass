@@ -24,6 +24,7 @@ use Horsefly\Notification;
 use Horsefly\ClearedRevertCv;
 
 use App\Support\DialLink;
+use App\Traits\HidesPrivateContacts;
 
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
@@ -37,6 +38,8 @@ use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
+    use HidesPrivateContacts;
+
     public function __construct()
     {
         $this->middleware('permission:dashboard')->only(['index']);
@@ -123,6 +126,11 @@ class DashboardController extends Controller
                     ->orWhereNull('job_source_id');
             });
         }
+
+        // Records hidden by private notes on the list pages are left out of the counts too.
+        $this->excludePrivateNotes($officeQuery, 'offices.office_notes');
+        $this->excludePrivateNotes($unitQuery, 'units.unit_notes');
+        $this->excludePrivateSales($saleQuery, 'sales.id');
 
         $applicantsCount = $applicantQuery->count();
         $officesCount = $officeQuery->count();
@@ -1622,6 +1630,8 @@ class DashboardController extends Controller
             });
         }
 
+        $this->excludePrivateSales($dailyCountsQuery, 'sales.id');
+
         $dailyCounts = $dailyCountsQuery
             ->select(
                 DB::raw('DAYOFWEEK(created_at) as day'),
@@ -1650,6 +1660,8 @@ class DashboardController extends Controller
                     ->orWhereNull('job_source_id');
             });
         }
+
+        $this->excludePrivateSales($salesDetailsQuery, 'sales.id');
 
         $salesDetails = $salesDetailsQuery->get([
             'id',
@@ -1715,6 +1727,8 @@ class DashboardController extends Controller
                         ->orWhereNull('job_source_id');
                 });
             }
+
+            $this->excludePrivateSales($query, 'sales.id');
 
             return $query;
         };
@@ -2206,73 +2220,78 @@ class DashboardController extends Controller
             ->whereColumn('applicants_pivot_sales.updated_at', '!=', 'applicants_pivot_sales.created_at')
             ->count();
 
+        // Leave out sales (and their audits / CVs / history) under offices or units
+        // whose notes contain a private word, matching the list pages.
+        $hidePrivate = fn ($query, string $saleIdColumn) => $this->excludePrivateSales($query, $saleIdColumn);
+
         /** -------------------------
          *  SALES SECTION
          *  ------------------------*/
-        $open_sales_created = Sale::where('status', 1)
-            ->whereBetween('created_at', [$startDate, $endDate])
+        $open_sales_created = $hidePrivate(Sale::where('status', 1)
+            ->whereBetween('created_at', [$startDate, $endDate]), 'sales.id')
             ->count();
 
-        $open_sales_updated = Sale::where('status', 1)
+        $open_sales_updated = $hidePrivate(Sale::where('status', 1)
             ->where('is_re_open', 0)
             ->whereBetween('updated_at', [$startDate, $endDate])
-            ->whereColumn('updated_at', '!=', 'created_at')
+            ->whereColumn('updated_at', '!=', 'created_at'), 'sales.id')
             ->count();
 
-        $reopen_sales_updated = Sale::where('status', 1)
+        $reopen_sales_updated = $hidePrivate(Sale::where('status', 1)
             ->where('is_re_open', 1)
             ->whereBetween('updated_at', [$startDate, $endDate])
-            ->whereColumn('updated_at', '!=', 'created_at')
+            ->whereColumn('updated_at', '!=', 'created_at'), 'sales.id')
             ->count();
 
-        $close_sales_created = Audit::where('message', 'sale-closed')
+        $close_sales_created = $hidePrivate(Audit::where('message', 'sale-closed')
             ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate]), 'audits.auditable_id')
             ->count();
 
-        $close_sales_updated = Audit::where('message', 'sale-closed')
-            ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereBetween('updated_at', [$startDate, $endDate])
-            ->whereColumn('updated_at', '!=', 'created_at')
-            ->count();
-
-        $pending_sales_created = Sale::where('status', 'pending')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereColumn('updated_at', '!=', 'created_at')
-            ->count();
-
-        $pending_sales_updated = Sale::where('status', 'pending')
-            ->whereBetween('updated_at', [$startDate, $endDate])
-            ->whereColumn('updated_at', '!=', 'created_at')
-            ->count();
-
-        $rejected_sales_created = Audit::where('message', 'sale-rejected')
-            ->where('auditable_type', 'Horsefly\\Sale')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->count();
-
-        $rejected_sales_updated = Audit::where('message', 'sale-rejected')
+        $close_sales_updated = $hidePrivate(Audit::where('message', 'sale-closed')
             ->where('auditable_type', 'Horsefly\\Sale')
             ->whereBetween('updated_at', [$startDate, $endDate])
-            ->whereColumn('updated_at', '!=', 'created_at')
+            ->whereColumn('updated_at', '!=', 'created_at'), 'audits.auditable_id')
+            ->count();
+
+        $pending_sales_created = $hidePrivate(Sale::where('status', 'pending')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at'), 'sales.id')
+            ->count();
+
+        $pending_sales_updated = $hidePrivate(Sale::where('status', 'pending')
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at'), 'sales.id')
+            ->count();
+
+        $rejected_sales_created = $hidePrivate(Audit::where('message', 'sale-rejected')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereBetween('created_at', [$startDate, $endDate]), 'audits.auditable_id')
+            ->count();
+
+        $rejected_sales_updated = $hidePrivate(Audit::where('message', 'sale-rejected')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereColumn('updated_at', '!=', 'created_at'), 'audits.auditable_id')
             ->count();
 
         /** -------------------------
          *  QUALITY SECTION
          *  ------------------------*/
-        $requested_cvs = CVNote::whereBetween('created_at', [$startDate, $endDate])->count();
+        $requested_cvs = $hidePrivate(CVNote::whereBetween('created_at', [$startDate, $endDate]), 'cv_notes.sale_id')
+            ->count();
 
-        $rejected_cvs = History::where('sub_stage', 'quality_reject')
+        $rejected_cvs = $hidePrivate(History::where('sub_stage', 'quality_reject')
             ->where('status', 'active')
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate]), 'history.sale_id')
             ->count();
 
-        $cleared_cvs = History::where('sub_stage', 'quality_cleared')
-            ->whereBetween('created_at', [$startDate, $endDate])
+        $cleared_cvs = $hidePrivate(History::where('sub_stage', 'quality_cleared')
+            ->whereBetween('created_at', [$startDate, $endDate]), 'history.sale_id')
             ->count();
 
-        $open_cvs = History::where('sub_stage', 'quality_cvs_hold')
-            ->whereBetween('created_at', [$startDate, $endDate])
+        $open_cvs = $hidePrivate(History::where('sub_stage', 'quality_cvs_hold')
+            ->whereBetween('created_at', [$startDate, $endDate]), 'history.sale_id')
             ->count();
 
         /** -------------------------
@@ -2440,11 +2459,14 @@ class DashboardController extends Controller
     ) {
         $query = Applicant::query();
 
+        // Each stage row is matched only for sales that are not hidden by private
+        // office/unit notes, so the chart and its drill-down match the CRM pages.
         if ($historyStage) {
             $query->whereHas('history', function ($q) use ($historyStage, $startDate, $endDate, $historyActive) {
                 $q->whereIn('sub_stage', (array)$historyStage)
                     ->when($historyActive !== null, fn($q2) => $q2->where('status', $historyActive))
                     ->when($startDate && $endDate, fn($q2) => $q2->whereBetween('created_at', [$startDate, $endDate]));
+                $this->excludePrivateSales($q, $q->qualifyColumn('sale_id'));
             });
         }
 
@@ -2453,6 +2475,7 @@ class DashboardController extends Controller
                 $q->whereIn('stage', (array)$revertStage)
                     ->when($revertActive !== null, fn($q2) => $q2->where('status', $revertActive))
                     ->when($startDate && $endDate, fn($q2) => $q2->whereBetween('created_at', [$startDate, $endDate]));
+                $this->excludePrivateSales($q, $q->qualifyColumn('sale_id'));
             });
         }
 
@@ -2460,6 +2483,7 @@ class DashboardController extends Controller
             $query->whereHas('crmNotes', function ($q) use ($crmStage, $startDate, $endDate) {
                 $q->whereIn('moved_tab_to', (array)$crmStage)
                     ->when($startDate && $endDate, fn($q2) => $q2->whereBetween('created_at', [$startDate, $endDate]));
+                $this->excludePrivateSales($q, $q->qualifyColumn('sale_id'));
             });
         }
 
