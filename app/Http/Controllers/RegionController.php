@@ -39,6 +39,32 @@ class RegionController extends Controller
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
         $regions = Region::orderBy('name', 'asc')->get();
 
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
         return view('regions.resources', compact('jobCategories', 'jobTitles', 'regions'));
     }
     public function salesIndex()
@@ -96,6 +122,31 @@ class RegionController extends Controller
             $model->whereRaw(
                 "UPPER(TRIM(applicants.applicant_postcode)) REGEXP '^($districtRegex)[0-9]'"
             );
+        }
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
         }
 
         // Sorting logic
