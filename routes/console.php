@@ -38,3 +38,11 @@ use Illuminate\Support\Facades\Log;
                 ->onFailure(function () {
                     Log::error('Update to the job availability command failed.');
                 });
+
+    // Office/unit documents deleted 3+ days ago: remove the file and the row permanently.
+    Schedule::command('documents:purge-deleted')
+                ->hourly()
+                ->withoutOverlapping()
+                ->onFailure(function () {
+                    Log::error('Purge deleted documents command failed.');
+                });

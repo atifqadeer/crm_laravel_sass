@@ -23,6 +23,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use App\Traits\HidesPrivateContacts;
 use App\Traits\RecordsBlacklistNotes;
+use App\Traits\HandlesModuleDocuments;
+use Horsefly\UnitDocument;
 use App\Support\StatusBadge;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Carbon;
@@ -31,15 +33,15 @@ use App\Observers\ActionObserver;
 
 class UnitController extends Controller
 {
-    use Geocode, HidesPrivateContacts, RecordsBlacklistNotes;
+    use Geocode, HidesPrivateContacts, RecordsBlacklistNotes, HandlesModuleDocuments;
 
     public function __construct()
     {
         $this->middleware('permission:unit-index')->only(['index', 'getUnits']);
         $this->middleware('permission:unit-create')->only(['create', 'store']);
-        $this->middleware('permission:unit-edit')->only(['edit', 'update']);
+        $this->middleware('permission:unit-edit')->only(['edit', 'update', 'deleteDocument']);
         $this->middleware('permission:unit-blacklist')->only(['toggleBlacklist']);
-        $this->middleware('permission:unit-view')->only(['show', 'unitDetails']);
+        $this->middleware('permission:unit-view')->only(['show', 'unitDetails', 'documents']);
         $this->middleware('permission:unit-delete')->only(['destroy']);
         $this->middleware('permission:unit-export')->only(['export']);
         $this->middleware('permission:unit-add-note')->only(['storeUnitShortNotes']);
@@ -112,7 +114,7 @@ class UnitController extends Controller
 
             'contact_job_source_id' => 'required|array',
             'contact_job_source_id.*' => 'required|exists:job_sources,id',
-        ]);
+        ] + $this->documentValidationRules());
 
         if ($validator->fails()) {
             return response()->json([
@@ -123,6 +125,7 @@ class UnitController extends Controller
         }
 
         DB::beginTransaction();
+        $storedDocuments = [];
 
         try {
             // Get office data
@@ -213,6 +216,10 @@ class UnitController extends Controller
                 'module_note_uid' => md5($moduleNote->id)
             ]);
 
+            $storedDocuments = $this->storeModuleDocuments(
+                $request->file('attachments', []), UnitDocument::class, 'unit_id', $unit->id, 'unit_docs'
+            );
+
             DB::commit();
 
             return response()->json([
@@ -224,6 +231,7 @@ class UnitController extends Controller
             Log::error('Error creating unit: ' . $e->getMessage());
 
             DB::rollBack();
+            $this->discardStoredDocuments($storedDocuments);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -232,7 +240,7 @@ class UnitController extends Controller
     }
     public function getUnits(Request $request)
     {
-        $statusFilter = $request->input('status_filter', 'active');
+        $statusFilter = $request->input('status_filter', '');
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
 
         $query = Unit::query()
@@ -415,6 +423,9 @@ class UnitController extends Controller
                         . '\'' . e($u->unit_name) . '\', '
                         . '\'' . e($postcode) . '\', '
                         . '\'' . e($status) . '\')">View</a></li>';
+                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);"'
+                        . ' data-documents-url="' . e(route('units.documents', ['id' => $u->id])) . '"'
+                        . ' data-documents-title="' . e($u->unit_name) . '">Show Documents</a></li>';
                 }
                 if (Gate::allows('unit-blacklist')) {
                     $blockLabel = $u->is_blacklist ? 'Remove from Blacklist' : 'Add to Blacklist';
@@ -655,7 +666,34 @@ class UnitController extends Controller
 
         $redirect_url = $request->input('redirect_url', 'units.list');
 
+        $unit->load('documents.user:id,name');
+
         return view('units.edit', compact('offices', 'unit', 'contacts', 'redirect_url', 'jobSources'));
+    }
+
+    public function documents($id)
+    {
+        $unit = Unit::withTrashed()->findOrFail($id);
+        $documents = $unit->documents()->with('user:id,name')->get();
+
+        return response()->json([
+            'success' => true,
+            'documents' => $this->moduleDocumentsPayload($documents),
+        ]);
+    }
+
+    public function deleteDocument(Request $request, $id)
+    {
+        $request->merge(['delete_reason' => trim((string) $request->input('delete_reason'))]);
+        $request->validate(['delete_reason' => ['required', 'string', 'max:1000']]);
+
+        $document = UnitDocument::findOrFail($id);
+        $this->softDeleteModuleDocument($document, $request->input('delete_reason'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document deleted. It will be removed permanently in 3 days.',
+        ]);
     }
     public function update(Request $request)
     {
@@ -684,7 +722,7 @@ class UnitController extends Controller
 
             'contact_job_source_id' => 'required|array',
             'contact_job_source_id.*' => 'required|exists:job_sources,id',
-        ]);
+        ] + $this->documentValidationRules());
 
         // A unit may keep its current (blacklisted) office, but cannot be moved under a blacklisted one.
         $validator->after(function ($validator) use ($request) {
@@ -706,6 +744,7 @@ class UnitController extends Controller
         }
 
         DB::beginTransaction();
+        $storedDocuments = [];
         try {
             // Get office data
             $unitData = $request->only([
@@ -813,6 +852,10 @@ class UnitController extends Controller
                 $unit->contacts()->create($contactData);
             }
 
+            $storedDocuments = $this->storeModuleDocuments(
+                $request->file('attachments', []), UnitDocument::class, 'unit_id', $unit->id, 'unit_docs'
+            );
+
             DB::commit();
             return response()->json([
                 'success' => true,
@@ -822,6 +865,7 @@ class UnitController extends Controller
         } catch (\Exception $e) {
             Log::error('Error updating unit: ' . $e->getMessage());
             DB::rollBack();
+            $this->discardStoredDocuments($storedDocuments);
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while updating the unit. Please try again.'

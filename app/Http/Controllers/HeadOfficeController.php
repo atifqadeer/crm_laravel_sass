@@ -22,6 +22,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Traits\Geocode;
 use App\Traits\HidesPrivateContacts;
 use App\Traits\RecordsBlacklistNotes;
+use App\Traits\HandlesModuleDocuments;
+use Horsefly\OfficeDocument;
 use App\Support\StatusBadge;
 use Illuminate\Support\Facades\Gate;
 use App\Observers\ActionObserver;
@@ -30,15 +32,15 @@ use Illuminate\Support\Facades\Cache;
 
 class HeadOfficeController extends Controller
 {
-    use Geocode, HidesPrivateContacts, RecordsBlacklistNotes;
+    use Geocode, HidesPrivateContacts, RecordsBlacklistNotes, HandlesModuleDocuments;
 
     public function __construct()
     {
         $this->middleware('permission:office-index')->only(['index', 'getHeadOffices', 'getHeadOfficesOld']);
         $this->middleware('permission:office-create')->only(['create', 'store']);
-        $this->middleware('permission:office-edit')->only(['edit', 'update']);
+        $this->middleware('permission:office-edit')->only(['edit', 'update', 'deleteDocument']);
         $this->middleware('permission:office-blacklist')->only(['toggleBlacklist']);
-        $this->middleware('permission:office-view')->only(['show', 'officeDetails', 'getModuleContacts']);
+        $this->middleware('permission:office-view')->only(['show', 'officeDetails', 'getModuleContacts', 'documents']);
         $this->middleware('permission:office-delete')->only(['destroy']);
         $this->middleware('permission:office-export')->only(['export']);
         $this->middleware('permission:office-add-note')->only(['storeHeadOfficeShortNotes']);
@@ -109,7 +111,7 @@ class HeadOfficeController extends Controller
 
             'contact_note' => 'nullable|array',
             'contact_note.*' => 'nullable|string',
-        ]);
+        ] + $this->documentValidationRules());
 
         if ($validator->fails()) {
             return response()->json([
@@ -120,6 +122,7 @@ class HeadOfficeController extends Controller
         }
 
         DB::beginTransaction();
+        $storedDocuments = [];
 
         try {
             // Get office data
@@ -204,6 +207,10 @@ class HeadOfficeController extends Controller
                 'module_note_uid' => md5($moduleNote->id)
             ]);
 
+            $storedDocuments = $this->storeModuleDocuments(
+                $request->file('attachments', []), OfficeDocument::class, 'office_id', $office->id, 'office_docs'
+            );
+
             DB::commit();
             return response()->json([
                 'success' => true,
@@ -213,6 +220,7 @@ class HeadOfficeController extends Controller
         } catch (\Exception $e) {
             Log::error('Error creating head office: ' . $e->getMessage());
             DB::rollBack();
+            $this->discardStoredDocuments($storedDocuments);
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while creating the head office. Please try again.'
@@ -550,6 +558,9 @@ class HeadOfficeController extends Controller
                                 <ul class="dropdown-menu">';
                     if (Gate::allows('office-view')) {
                         $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="showDetailsModal(' . (int)$office->id . ',\'' . addslashes(htmlspecialchars($office->office_name)) . '\',\'' . addslashes(htmlspecialchars($postcode)) . '\',\'' . addslashes(htmlspecialchars($status)) . '\')">View</a></li>';
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);"'
+                            . ' data-documents-url="' . e(route('head-offices.documents', ['id' => $office->id])) . '"'
+                            . ' data-documents-title="' . e($office->office_name) . '">Show Documents</a></li>';
                     }
                     if (Gate::allows('office-edit')) {
                         $html .= '<li><a class="dropdown-item" href="' . route('head-offices.edit', ['id' => $office->id]) . '">Edit</a></li>';
@@ -732,7 +743,34 @@ class HeadOfficeController extends Controller
 
         $redirect_url = $request->input('redirect_url', 'head-offices.list');
 
+        $office?->load('documents.user:id,name');
+
         return view('head-offices.edit', compact('office', 'contacts', 'redirect_url'));
+    }
+
+    public function documents($id)
+    {
+        $office = Office::withTrashed()->findOrFail($id);
+        $documents = $office->documents()->with('user:id,name')->get();
+
+        return response()->json([
+            'success' => true,
+            'documents' => $this->moduleDocumentsPayload($documents),
+        ]);
+    }
+
+    public function deleteDocument(Request $request, $id)
+    {
+        $request->merge(['delete_reason' => trim((string) $request->input('delete_reason'))]);
+        $request->validate(['delete_reason' => ['required', 'string', 'max:1000']]);
+
+        $document = OfficeDocument::findOrFail($id);
+        $this->softDeleteModuleDocument($document, $request->input('delete_reason'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document deleted. It will be removed permanently in 3 days.',
+        ]);
     }
     public function update(Request $request)
     {
@@ -758,7 +796,7 @@ class HeadOfficeController extends Controller
 
             'contact_note' => 'nullable|array',
             'contact_note.*' => 'nullable|string',
-        ]);
+        ] + $this->documentValidationRules());
 
         if ($validator->fails()) {
             return response()->json([
@@ -769,6 +807,7 @@ class HeadOfficeController extends Controller
         }
 
         DB::beginTransaction();
+        $storedDocuments = [];
         try {
             // Get office data
             $officeData = $request->only([
@@ -871,6 +910,10 @@ class HeadOfficeController extends Controller
                 $office->contact()->create($contactData);
             }
 
+            $storedDocuments = $this->storeModuleDocuments(
+                $request->file('attachments', []), OfficeDocument::class, 'office_id', $office->id, 'office_docs'
+            );
+
             DB::commit();
             return response()->json([
                 'success' => true,
@@ -880,6 +923,7 @@ class HeadOfficeController extends Controller
         } catch (\Exception $e) {
             Log::error('Error updating head office: ' . $e->getMessage());
             DB::rollBack();
+            $this->discardStoredDocuments($storedDocuments);
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while updating the head office. Please try again.'

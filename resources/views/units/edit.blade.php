@@ -262,6 +262,11 @@
                                 <div class="invalid-feedback">Please provide notes</div>
                             </div>
                         </div>
+
+                        @include('partials.module-documents', [
+                            'documents' => $unit->documents,
+                            'deleteRoute' => 'units.documents.delete',
+                        ])
                     </div>
                     <div class="mb-3 rounded">
                         <div class="row justify-content-end g-2">

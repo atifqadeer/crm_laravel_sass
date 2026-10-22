@@ -220,6 +220,11 @@
                                 <div class="invalid-feedback">Please provide notes</div>
                             </div>
                         </div>
+
+                        @include('partials.module-documents', [
+                            'documents' => $office->documents,
+                            'deleteRoute' => 'head-offices.documents.delete',
+                        ])
                     </div>
                     <div class="mb-3 rounded">
                         <div class="row justify-content-end g-2">
@@ -324,16 +329,24 @@
                                 });
 
                                 // Display new errors
+                                const unmatched = [];
                                 Object.entries(data.errors).forEach(([field, messages]) => {
-                                    const input = form.querySelector(`[name="${field}"]`);
+                                    // attachments.0, attachments.1 ... all belong to the one file input.
+                                    const input = form.querySelector(`[name="${field}"]`) ||
+                                        (field.startsWith('attachments') ? form.querySelector('[name="attachments[]"]') : null);
                                     const feedback = input?.closest('.mb-3')?.querySelector(
                                         '.invalid-feedback');
 
                                     if (input && feedback) {
                                         input.classList.add('is-invalid');
-                                        feedback.textContent = messages.join(' ');
+                                        feedback.textContent = (feedback.textContent + ' ' + messages.join(' ')).trim();
+                                    } else {
+                                        unmatched.push(messages.join(' '));
                                     }
                                 });
+                                if (unmatched.length) {
+                                    toastr.error(unmatched.join('<br>'));
+                                }
                             } else {
                                 if (data.errors) {
                                     let errorMessages = Object.values(data.errors).flat().join('\n');

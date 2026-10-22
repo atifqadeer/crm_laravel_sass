@@ -175,6 +175,8 @@
 
                                 </div>
                             </div>
+
+                            @include('partials.module-documents')
                         </div>
                         <div class="mb-3 rounded">
                             <div class="row justify-content-end g-2">

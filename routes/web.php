@@ -120,6 +120,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('{id}/edit', [HeadOfficeController::class, 'edit'])->name('head-offices.edit');
         Route::post('update', [HeadOfficeController::class, 'update'])->name('head-offices.update');
         Route::post('{id}/toggle-blacklist', [HeadOfficeController::class, 'toggleBlacklist'])->name('head-offices.toggle-blacklist');
+        Route::post('documents/{id}/delete', [HeadOfficeController::class, 'deleteDocument'])->name('head-offices.documents.delete');
+        Route::get('{id}/documents', [HeadOfficeController::class, 'documents'])->name('head-offices.documents');
         Route::get('{id}', [HeadOfficeController::class, 'officeDetails'])->name('head-offices.details');
     });
     Route::get('officesExport', [HeadOfficeController::class, 'export'])->name('officesExport');
@@ -135,6 +137,8 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('update', [UnitController::class, 'update'])->name('units.update');
         Route::post('{id}/change-status', [UnitController::class, 'changeUnitStatus'])->name('units.change-status');
         Route::post('{id}/toggle-blacklist', [UnitController::class, 'toggleBlacklist'])->name('units.toggle-blacklist');
+        Route::post('documents/{id}/delete', [UnitController::class, 'deleteDocument'])->name('units.documents.delete');
+        Route::get('{id}/documents', [UnitController::class, 'documents'])->name('units.documents');
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
     });
     Route::get('unitsExport', [UnitController::class, 'export'])->name('unitsExport');

@@ -46,9 +46,10 @@
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">Active</span>
+                                            <i class="ri-filter-line me-1"></i> <span id="showFilterStatus">All</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                            <a class="dropdown-item status-filter" href="#">All</a>
                                             <a class="dropdown-item status-filter" href="#">Active</a>
                                             <a class="dropdown-item status-filter" href="#">Inactive</a>
                                             <a class="dropdown-item status-filter" href="#">Blacklisted</a>
@@ -223,7 +224,7 @@
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
-        var currentFilter = 'active';
+        var currentFilter = '';
         var pendingOfficeBlacklist = null;
 
         $(document).ready(function() {
@@ -1093,5 +1094,6 @@
             });
         });
     </script>
+    @include('partials.documents-viewer-modal')
 @endsection
 @endsection

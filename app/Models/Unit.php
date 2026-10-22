@@ -66,6 +66,10 @@ class Unit extends Model
     {
         return $this->morphMany(Contact::class, 'contactable');
     }
+    public function documents()
+    {
+        return $this->hasMany(UnitDocument::class)->latest();
+    }
     public function sales()
     {
         return $this->hasMany(Sale::class, 'unit_id');

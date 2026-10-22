@@ -89,9 +89,10 @@
                                     <div class="dropdown d-inline">
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-filter-line me-1"></i> <span id="showUnitStatusFilter">Active</span>
+                                            <i class="ri-filter-line me-1"></i> <span id="showUnitStatusFilter">All</span>
                                         </button>
                                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                            <a class="dropdown-item unit-status-filter" href="#">All</a>
                                             <a class="dropdown-item unit-status-filter" href="#">Active</a>
                                             <a class="dropdown-item unit-status-filter" href="#">Inactive</a>
                                             <a class="dropdown-item unit-status-filter" href="#">Blacklisted</a>
@@ -267,7 +268,7 @@
     <script src="{{ asset('js/summernote-lite.min.js') }}"></script>
 
     <script>
-        var currentFilter = 'active';
+        var currentFilter = '';
         var currentOfficeFilters = [];
         var pendingUnitBlacklist = null;
 
@@ -1376,5 +1377,6 @@
             });
         });
     </script>
+    @include('partials.documents-viewer-modal')
 @endsection
 @endsection
