@@ -65,7 +65,7 @@ class RegionController extends Controller
 
         $jobSources = $query->orderBy('name', 'asc')->get();
 
-        return view('regions.resources', compact('jobCategories', 'jobTitles', 'regions'));
+        return view('regions.resources', compact('jobCategories', 'jobTitles', 'regions', 'jobSources'));
     }
     public function salesIndex()
     {
@@ -76,7 +76,33 @@ class RegionController extends Controller
         $offices = $this->excludePrivateNotes($officesQuery, 'offices.office_notes')->get();
         $regions = Region::orderBy('name', 'asc')->get();
 
-        return view('regions.sales', compact('jobCategories', 'jobTitles', 'offices', 'regions'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('regions.sales', compact('jobCategories', 'jobTitles', 'offices', 'regions', 'jobSources'));
     }
     public function getApplicantsByRegions(Request $request)
     {
