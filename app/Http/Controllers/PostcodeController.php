@@ -15,11 +15,12 @@ use Horsefly\JobSource;
 use Horsefly\JobTitle;
 use Illuminate\Support\Facades\DB;
 use App\Traits\Geocode;
+use App\Traits\HidesPrivateContacts;
 use Illuminate\Support\Facades\Gate;
 
 class PostcodeController extends Controller
 {
-    use Geocode;
+    use Geocode, HidesPrivateContacts;
 
     public function __construct()
     {
@@ -225,6 +226,11 @@ class PostcodeController extends Controller
                     ->orWhereNull('job_source_id');
             });
         }
+
+        // Hide sales whose own notes, or whose office/unit notes, contain a private word
+        // (users without show-private-data).
+        $this->excludePrivateNotes($location_distance, 'sales.sale_notes');
+        $this->excludePrivateSales($location_distance, 'sales.id');
 
         if ($is_specialist) {
             $location_distance = $location_distance->where('job_type', 'specialist');
