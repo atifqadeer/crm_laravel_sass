@@ -126,6 +126,8 @@ class HeadOfficesExport implements FromCollection, WithHeadings
         $query->whereNull('offices.deleted_at')
             ->whereNotIn('offices.status', [4, 5]);
 
+        $this->excludePrivateNotes($query, 'offices.office_notes');
+
         $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
         if ($status === 'active') {
             $query->where('offices.status', 1)

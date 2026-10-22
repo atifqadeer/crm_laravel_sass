@@ -26,6 +26,9 @@ yarn-error.log
 
 # runtime data
 /public/uploads/
+/public/sale_docs/
+/public/office_docs/
+/public/unit_docs/
 /data.ms/
 /meilisearch/
 

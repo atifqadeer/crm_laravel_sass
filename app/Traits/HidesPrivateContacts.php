@@ -83,6 +83,33 @@ trait HidesPrivateContacts
     }
 
     /**
+     * Hide records whose notes column mentions a hide_private_data word (e.g. hayaibu)
+     * for users without show-private-data. Numeric values in the setting are job source
+     * ids, not words, so they are not matched against notes.
+     */
+    protected function excludePrivateNotes($query, string $notesColumn)
+    {
+        $context = $this->privateDataContext();
+
+        if ($context === null) {
+            return $query;
+        }
+
+        foreach ($context['values'] as $hideValue) {
+            if (ctype_digit((string) $hideValue)) {
+                continue;
+            }
+
+            $like = '%' . addcslashes($hideValue, '\\%_') . '%';
+            $query->where(function ($q) use ($notesColumn, $like) {
+                $q->whereNull($notesColumn)->orWhere($notesColumn, 'NOT LIKE', $like);
+            });
+        }
+
+        return $query;
+    }
+
+    /**
      * Hide sales whose job_source_id matches hide_private_data (same as the sales list).
      */
     protected function excludeHiddenSaleSources($query)

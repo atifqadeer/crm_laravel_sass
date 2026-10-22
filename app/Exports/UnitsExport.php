@@ -136,6 +136,8 @@ class UnitsExport implements FromCollection, WithHeadings
         $query->whereNull('units.deleted_at')
             ->whereNotIn('units.status', [4, 5]);
 
+        $this->excludePrivateNotes($query, 'units.unit_notes');
+
         $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
         if ($status === 'active') {
             $query->where('units.status', 1)
