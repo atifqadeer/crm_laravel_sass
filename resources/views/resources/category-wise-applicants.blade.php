@@ -7,8 +7,8 @@
         }
 
         /* table.dataTable.no-footer {
-                border-bottom: none !important;
-            } */
+                    border-bottom: none !important;
+                } */
 
         #applicants_table.table>tbody>tr:last-child>td {
             border-bottom: 0 !important;
@@ -32,6 +32,21 @@
                     <div class="row justify-content-end">
                         <div class="col-lg-12">
                             <div class="text-md-end mt-3">
+                                 <!-- Date Range filter -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-calendar-line me-1"></i> <span id="showDateRange">Last 7 Days</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dateRangeDropdown">
+                                        <a class="dropdown-item date-range-filter" href="#">Last 7 Days</a>
+                                        <a class="dropdown-item date-range-filter" href="#">Last 21 Days</a>
+                                        <a class="dropdown-item date-range-filter" href="#">Last 3 Months</a>
+                                        <a class="dropdown-item date-range-filter" href="#">Last 6 Months</a>
+                                        <a class="dropdown-item date-range-filter" href="#">Last 9 Months</a>
+                                        <a class="dropdown-item date-range-filter" href="#">Other</a>
+                                    </div>
+                                </div>
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -63,33 +78,26 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- Date Range filter -->
-                                <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
-                                        id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="ri-calendar-line me-1"></i> <span id="showDateRange">Last 7 Days</span>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="dateRangeDropdown">
-                                        <a class="dropdown-item date-range-filter" href="#">Last 7 Days</a>
-                                        <a class="dropdown-item date-range-filter" href="#">Last 21 Days</a>
-                                        <a class="dropdown-item date-range-filter" href="#">Last 3 Months</a>
-                                        <a class="dropdown-item date-range-filter" href="#">Last 6 Months</a>
-                                        <a class="dropdown-item date-range-filter" href="#">Last 9 Months</a>
-                                        <a class="dropdown-item date-range-filter" href="#">Other</a>
-                                    </div>
-                                </div>
+                               
                                 <!-- Category Filter Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
-                                            Category</span>
+                                            Categories</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
                                         <!-- Search input -->
                                         <input type="text" class="form-control mb-2" id="categorySearchInput"
                                             placeholder="Search category...">
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".category-filter">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".category-filter" style="display:none">Deselect All</a>
+                                        </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
@@ -129,17 +137,61 @@
                                         <!-- Search input -->
                                         <input type="text" class="form-control mb-2" id="titleSearchInput"
                                             placeholder="Search titles...">
+                                        <!-- Select/Deselect All (applies to the titles currently listed) -->
+                                        <div class="d-flex justify-content-end px-1 mb-1">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".title-filter">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".title-filter" style="display:none">Deselect All</a>
+                                        </div>
 
-                                        <!-- Scrollable checkbox list -->
+                                        <!-- Scrollable checkbox list: narrowed to the selected categories and type -->
                                         <div id="titleList">
                                             @foreach ($jobTitles as $title)
-                                                <div class="form-check">
+                                                <div class="form-check" data-title-category="{{ $title->job_category_id }}"
+                                                    data-title-type="{{ strtolower((string) $title->type) }}">
                                                     <input class="form-check-input title-filter" type="checkbox"
                                                         value="{{ $title->id }}" id="title_{{ $title->id }}"
-                                                        data-title-id="{{ $title->id }}"
-                                                        data-category-id="{{ $title->job_category_id }}">
+                                                        data-title-id="{{ $title->id }}">
                                                     <label class="form-check-label"
                                                         for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                            <div class="text-muted small px-1 d-none" id="titleListEmpty">
+                                                No titles for the selected category and type.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Sources Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                    </button>
+
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="sourceSearchInput"
+                                            placeholder="Search Source...">
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1" id="sourceToggleContainer">
+                                            <a href="#" id="sourceSelectAll"
+                                                class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".source-filter">Select All</a>
+                                            <a href="#" id="sourceDeselectAll"
+                                                class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".source-filter" style="display:none">Deselect All</a>
+                                        </div>
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="sourceList">
+                                            @foreach ($jobSources as $source)
+                                                <div class="form-check">
+                                                    <input class="form-check-input source-filter" type="checkbox"
+                                                        value="{{ $source->id }}" id="source_{{ $source->id }}"
+                                                        data-source-id="{{ $source->id }}">
+                                                    <label class="form-check-label"
+                                                        for="source_{{ $source->id }}">{{ ucwords($source->name) }}</label>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -172,19 +224,6 @@
                                             </span> Mark as No Nursing Home Exp</a>
                                     </div>
                                 </div>
-                                <!-- Add Updated Sales Filter Button -->
-                                {{-- <button class="btn btn-success my-1" title="Mark selected as having nursing home experience" type="button">
-                                    <span class="nav-icon">
-                                        <i class="ri-check-line fs-16"></i>
-                                    </span>
-                                    Mark as Nursing Home Exp
-                                </button>
-                                <button class="btn btn-danger my-1" title="Mark selected as having no nursing home experience" type="button">
-                                        <span class="nav-icon">
-                                        <i class="ri-close-line fs-16"></i>
-                                    </span>
-                                    Mark as No Nursing Home Exp
-                                </button> --}}
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -306,30 +345,8 @@
             var currentStatusFilters = ['interested']; // default: Interested
             var currentCategoryFilters = [];
             var currentTitleFilters = [];
+            var currentSourceFilters = [];
             var currentDateRangeFilter = '';
-
-            function updateTitleVisibility() {
-                const searchValue = $('#titleSearchInput').val().trim().toLowerCase();
-
-                $('#titleList .form-check').each(function() {
-                    const $row = $(this);
-                    const $checkbox = $row.find('.title-filter');
-                    const categoryId = String($checkbox.data('category-id'));
-                    const matchesCategory = currentCategoryFilters.length === 0 ||
-                        currentCategoryFilters.includes(categoryId);
-                    const matchesSearch = $row.find('label').text().trim().toLowerCase().includes(
-                        searchValue);
-
-                    $row.toggle(matchesCategory && matchesSearch);
-                });
-            }
-
-            function updateTitleFilterLabel() {
-                $('#showFilterTitle').text(
-                    currentTitleFilters.length ? 'Selected Titles (' + currentTitleFilters.length + ')' :
-                    'All Titles'
-                );
-            }
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -485,6 +502,8 @@
                             currentCategoryFilters; // Send the current filter value as a parameter
                         d.title_filter =
                             currentTitleFilters; // Send the current filter value as a parameter
+                        d.source_filter =
+                            currentSourceFilters; // Send the current filter value as a parameter
                         d.date_range_filter =
                             currentDateRangeFilter; // Send the current filter value as a parameter
                     },
@@ -845,50 +864,140 @@
                     .join(' ');
 
                 $('#showFilterType').html(formattedText);
+
+                // Titles follow the selected type (and categories).
+                refreshTitleOptions();
+
                 table.ajax.reload(); // Reload with updated type filter
             });
-            /*** Category filter handler ***/
-            $('.category-filter').on('change', function() {
-                currentCategoryFilters = $('.category-filter:checked')
-                    .map(function() {
-                        return String(this.value);
-                    }).get();
 
-                // Update dropdown display text
-                $('#showFilterCategory').text(currentCategoryFilters.length ?
-                    'Selected Categories (' + currentCategoryFilters.length + ')' :
-                    'All Category');
+            /*** Category / Title / Source filters ***/
+            // Ids of the checked boxes for a filter class, e.g. '.category-filter' + 'category-id'.
+            function checkedIds(selector, dataKey) {
+                return $(selector + ':checked').map(function() {
+                    return $(this).data(dataKey);
+                }).get();
+            }
 
-                // Keep title selections limited to titles belonging to the selected categories.
-                $('.title-filter').each(function() {
-                    const categoryId = String($(this).data('category-id'));
-                    if (currentCategoryFilters.length && !currentCategoryFilters.includes(
-                            categoryId)) {
-                        $(this).prop('checked', false);
+            function setFilterLabel(labelSelector, count, noun) {
+                $(labelSelector).text(count ? 'Selected ' + noun + ' (' + count + ')' : 'All ' + noun);
+            }
+
+            // Show "Select All" while some listed box is unchecked, "Deselect All" while any is checked.
+            function updateSelectToggles(target) {
+                const $visible = $(target).filter(function() {
+                    return $(this).closest('.form-check').css('display') !== 'none';
+                });
+                const $menu = $(target).first().closest('.dropdown-menu');
+                $menu.find('.filter-select-all').toggle($visible.not(':checked').length > 0);
+                $menu.find('.filter-deselect-all').toggle($(target + ':checked').length > 0);
+            }
+
+            function syncCategories() {
+                currentCategoryFilters = checkedIds('.category-filter', 'category-id');
+                setFilterLabel('#showFilterCategory', currentCategoryFilters.length, 'Categories');
+                updateSelectToggles('.category-filter');
+                refreshTitleOptions();
+            }
+
+            function syncTitles() {
+                currentTitleFilters = checkedIds('.title-filter', 'title-id');
+                setFilterLabel('#showFilterTitle', currentTitleFilters.length, 'Titles');
+                updateSelectToggles('.title-filter');
+            }
+
+            function syncSources() {
+                currentSourceFilters = checkedIds('.source-filter', 'source-id');
+                setFilterLabel('#showFilterSource', currentSourceFilters.length, 'Sources');
+                updateSelectToggles('.source-filter');
+            }
+
+            /**
+             * List only the titles that belong to the selected categories (all, if none
+             * selected) and the selected type (all, for "All Types"), also matching the
+             * title search box. Titles that drop out of the list are unchecked.
+             */
+            window.refreshTitleOptions = function() {
+                const categories = currentCategoryFilters.map(String);
+                const type = (currentTypeFilter || '').toLowerCase();
+                const search = ($('#titleSearchInput').val() || '').toLowerCase();
+                let shown = 0;
+
+                $('#titleList .form-check').each(function() {
+                    const $item = $(this);
+                    const matchesCategory = categories.length === 0 ||
+                        categories.includes(String($item.data('title-category')));
+                    const matchesType = type === '' || type === 'all types' ||
+                        String($item.data('title-type')) === type;
+                    const matchesSearch = $item.find('label').text().toLowerCase().includes(search);
+                    const available = matchesCategory && matchesType;
+
+                    if (!available) {
+                        $item.find('.title-filter').prop('checked', false);
+                    }
+
+                    $item.toggle(available && matchesSearch);
+                    if (available && matchesSearch) {
+                        shown++;
                     }
                 });
-                currentTitleFilters = $('.title-filter:checked').map(function() {
-                    return String(this.value);
-                }).get();
-                updateTitleFilterLabel();
-                updateTitleVisibility();
 
-                // Trigger DataTable reload with the selected filters
+                $('#titleListEmpty').toggleClass('d-none', shown > 0);
+                syncTitles();
+            };
+
+            $('.category-filter').on('change', function() {
+                syncCategories();
                 table.ajax.reload();
             });
-            /*** Title Filter Handler ***/
+
             $('.title-filter').on('change', function() {
-                currentTitleFilters = $('.title-filter:checked').map(function() {
-                    return String(this.value);
-                }).get();
-                updateTitleFilterLabel();
-
-                // Trigger DataTable reload with the selected filters
+                syncTitles();
                 table.ajax.reload();
             });
 
-            $('#titleSearchInput').on('input', updateTitleVisibility);
-            updateTitleVisibility();
+            $('.source-filter').on('change', function() {
+                syncSources();
+                table.ajax.reload();
+            });
+
+            // Select All / Deselect All: only the boxes currently listed (not hidden by search,
+            // category or type), then one table reload.
+            const filterSyncs = {
+                '.category-filter': syncCategories,
+                '.title-filter': syncTitles,
+                '.source-filter': syncSources,
+            };
+
+            $(document).on('click', '.filter-select-all, .filter-deselect-all', function(e) {
+                const target = $(this).data('target');
+                if (!filterSyncs[target]) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation(); // keep the dropdown open
+
+                const selectAll = $(this).hasClass('filter-select-all');
+                $(target).each(function() {
+                    if ($(this).closest('.form-check').css('display') !== 'none') {
+                        $(this).prop('checked', selectAll);
+                    }
+                });
+
+                filterSyncs[target]();
+                table.ajax.reload();
+            });
+
+            $('#titleSearchInput').on('input', refreshTitleOptions);
+
+            $('#sourceSearchInput').on('keyup', function() {
+                const searchValue = this.value.toLowerCase();
+                $('#sourceList .form-check').each(function() {
+                    $(this).toggle($(this).find('label').text().toLowerCase().includes(searchValue));
+                });
+                updateSelectToggles('.source-filter');
+            });
         });
 
         document.getElementById('categorySearchInput').addEventListener('keyup', function() {

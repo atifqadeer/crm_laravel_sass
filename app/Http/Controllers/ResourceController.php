@@ -70,28 +70,132 @@ class ResourceController extends Controller
         )->get();
         $users = User::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.direct', compact('jobCategories', 'jobTitles', 'offices', 'users'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.direct', compact('jobCategories', 'jobTitles', 'offices', 'users', 'jobSources'));
     }
     public function indirectIndex()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.indirect', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.indirect', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function blockedApplicantsIndex()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.blocked-applicants', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.blocked-applicants', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function rejectedApplicantsIndex()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.rejected-applicants', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.rejected-applicants', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function crmPaidIndex()
     {
@@ -131,27 +235,107 @@ class ResourceController extends Controller
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.no-job-applicants', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.no-job-applicants', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function notInterestedIndex()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.not-interested-applicants', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.not-interested-applicants', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
     public function categoryWiseApplicantIndex()
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('resources.category-wise-applicants', compact('jobCategories', 'jobTitles'));
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $query = JobSource::where('is_active', 1);
+
+        if (count($sourceIds) > 0) {
+            $query->whereNotIn('id', $sourceIds);
+        }
+
+        $jobSources = $query->orderBy('name', 'asc')->get();
+
+        return view('resources.category-wise-applicants', compact('jobCategories', 'jobTitles', 'jobSources'));
     }
+    /** ajax functions */
     public function getResourcesDirectSales(Request $request)
     {
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
         $titleFilter = $request->input('title_filter', ''); // Default is empty (no filter)
+        $sourceFilter = $request->input('source_filter', ''); // Default is empty (no filter)
         $limitCountFilter = $request->input('cv_limit_filter', ''); // Default is empty (no filter)
         $officeFilter = $request->input('office_filter', ''); // Default is empty (no filter)
         $filterBySaleDate = $request->input('date_range_filter', ''); // Default is empty (no filter)
@@ -163,9 +347,11 @@ class ResourceController extends Controller
                 'job_categories.name as job_category_name',
                 'offices.office_name as office_name',
                 'units.unit_name as unit_name',
+                'job_sources.name as job_source_name',
             ])
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_sources', 'sales.job_source_id', '=', 'job_sources.id')
             ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
             ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
             ->with(['jobTitle', 'jobCategory', 'unit', 'office', 'user'])
@@ -265,6 +451,11 @@ class ResourceController extends Controller
             $model->whereIn('sales.job_title_id', $titleFilter);
         }
 
+        // Filter by job source if it's not empty
+        if ($sourceFilter) {
+            $model->whereIn('sales.job_source_id', (array) $sourceFilter);
+        }
+
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
 
@@ -348,14 +539,40 @@ class ResourceController extends Controller
                     $stype  = $type && $type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
                     return $sale->jobCategory ? ucwords($sale->jobCategory->name) . $stype : '-';
                 })
+                ->addColumn('job_source', function ($sale) {
+                    return $sale->job_source_name
+                        ? '<span class="badge bg-light text-dark">' . e(ucwords($sale->job_source_name)) . '</span>'
+                        : '-';
+                })
                 ->addColumn('sale_postcode', function ($sale) {
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                            data-postcode="' . e($sale->formatted_postcode) . '" title="Copy Postcode">
+                            <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                        </button>';
+
                     if ($sale->lat != null && $sale->lng != null) {
                         $url = url('/sales/fetch-applicants-by-radius/' . $sale->id . '/15');
-                        $button = '<a href="' . $url . '" class="active_postcode" target="_blank">' . $sale->formatted_postcode . '</a>'; // Using accessor
+                        $button = '<a target="_blank" href="' . $url . '" class="active_postcode">' . $sale->formatted_postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $button . $copyBtn . '</div>';
                     } else {
-                        $button = $sale->formatted_postcode;
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $sale->formatted_postcode . '</span>' . $copyBtn . '</div>';
                     }
-                    return $button;
+                })
+                ->addColumn('position_type', function ($sale) {
+                    // Imported/scraped sales may use "Full-Time", "full_time", etc.
+                    $position = trim(preg_replace('/[\s_-]+/', ' ', strtolower((string) $sale->position_type)));
+
+                    if ($position === '') {
+                        return '-';
+                    }
+
+                    $badge = match ($position) {
+                        'full time' => 'bg-primary',
+                        'part time' => 'bg-info',
+                        default => 'bg-secondary',
+                    };
+
+                    return "<span class='badge w-100 {$badge}'>" . e(ucwords($position)) . '</span>';
                 })
                 ->addColumn('created_at', function ($sale) {
                     return $sale->formatted_created_at; // Using accessor
@@ -545,7 +762,7 @@ class ResourceController extends Controller
 
                     return '<div class="btn-group dropstart">' . $action . '</div>';
                 })
-                ->rawColumns(['sale_notes', 'experience', 'salary', 'qualification', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
+                ->rawColumns(['sale_notes', 'position_type', 'job_source', 'experience', 'salary', 'qualification', 'sale_postcode', 'job_title', 'cv_limit', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
     }
@@ -557,11 +774,19 @@ class ResourceController extends Controller
             'category_filter.*' => 'exists:job_categories,id',
             'status_filter' => 'nullable|in:all,interested,not interested',
             'date_range_filter' => 'nullable|string',
+            'source_filter' => 'nullable|array',
+            'source_filter.*' => 'exists:job_sources,id',
+            'title_filter' => 'nullable|array',
+            'title_filter.*' => 'exists:job_titles,id',
+            'type_filter' => 'nullable|string',
         ]);
 
         // --- Extract filters ---
         $filterByUpdatedSale = $request->updated_sales_filter ?? false;
         $categoryFilter = $validated['category_filter'] ?? [];
+        $sourceFilter = $validated['source_filter'] ?? [];
+        $titleFilter = $validated['title_filter'] ?? [];
+        $typeFilter = strtolower(trim((string) ($validated['type_filter'] ?? '')));
         $status = $validated['status_filter'] ?? 'all';
         $dateRange = $validated['date_range_filter']
             ?? Carbon::today()->format('Y-m-d') . '|' . Carbon::today()->format('Y-m-d');
@@ -720,6 +945,11 @@ class ResourceController extends Controller
 
         // --- Filters ---
         $query->when($categoryFilter, fn($q) => $q->whereIn('applicants.job_category_id', $categoryFilter))
+            ->when($titleFilter, fn($q) => $q->whereIn('applicants.job_title_id', $titleFilter))
+            ->when(
+                in_array($typeFilter, ['specialist', 'regular'], true),
+                fn($q) => $q->where('applicants.job_type', $typeFilter)
+            )
             ->when(
                 $status !== 'all',
                 fn($q) =>
@@ -744,6 +974,11 @@ class ResourceController extends Controller
             });
         });
 
+        // Filter by source if it's not empty
+        if ($sourceFilter) {
+            $query->whereIn('applicants.job_source_id', $sourceFilter);
+        }
+
         // --- Sorting ---
         $query->when(
             isset($sortableColumns[$orderColumn]),
@@ -758,16 +993,32 @@ class ResourceController extends Controller
                 ->with('total_sale_count', $salesData->count())
                 ->addColumn('updated_at', fn($applicant) => Carbon::parse($applicant->updated_at)->format('d M Y, h:i A'))
                 ->addColumn('applicant_name', fn($applicant) => e(ucwords(strtolower($applicant->applicant_name ?? '-'))))
-                ->addColumn('applicant_postcode', function ($applicant) {
-                    $statusValue = $this->getApplicantStatus($applicant);
-                    $postcode = e(strtoupper($applicant->applicant_postcode ?? '-'));
-                    return in_array($statusValue, ['open', 'reject'])
-                        ? '<a href="' . route('applicants.available_job', $applicant->id) . '" class="active_postcode" target="_blank">' . $postcode . '</a>'
-                        : $postcode;
+                ->editColumn('applicant_postcode', function ($applicant) {
+                    $rawPostcode = trim($applicant->applicant_postcode);
+                    if (empty($rawPostcode))
+                        return '<div class="text-center w-100">-</div>';
+
+                    $postcode = $applicant->formatted_postcode;
+                    $copyBtn = '<button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 copy-postcode" 
+                                    data-postcode="' . e($applicant->applicant_postcode) . '" title="Copy Postcode">
+                                    <iconify-icon icon="solar:copy-linear" class="fs-18"></iconify-icon>
+                                </button>';
+
+                    if ($applicant->lat != null && $applicant->lng != null && !$applicant->is_blocked) {
+                        $url = route('applicants.available_job', ['id' => $applicant->id, 'radius' => 15]);
+                        $link = '<a href="' . $url . '" target="_blank" class="active_postcode">' . $postcode . '</a>';
+                        return '<div class="d-flex align-items-center justify-content-between">' . $link . $copyBtn . '</div>';
+                    } else {
+                        return '<div class="d-flex align-items-center justify-content-between"><span>' . $postcode . '</span>' . $copyBtn . '</div>';
+                    }
                 })
                 ->addColumn('job_title', fn($applicant) => e($applicant->job_title_name ?? '-'))
                 ->addColumn('job_category', fn($applicant) => $applicant->job_category_name ? strtoupper($applicant->job_category_name) . ($applicant->job_type === 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '') : '-')
-                ->addColumn('job_source', fn($applicant) => strtoupper($applicant->job_source_name ?? '-'))
+                ->addColumn('job_source', function ($applicant) {
+                    if (!$applicant->job_source_name)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($applicant->job_source_name) . '</span>';
+                })
                 ->addColumn('applicantPhone', function ($applicant) {
 
                     if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
@@ -891,19 +1142,23 @@ class ResourceController extends Controller
                                 <iconify-icon icon="solar:download-square-bold" class="text-grey fs-28"></iconify-icon>
                             </button>';
                 })
-                ->editColumn('applicantEmail', function ($applicant) {
-                    $email = '';
-                    if ($applicant->is_blocked) {
-                        $email = "<span class='badge bg-dark'>Blocked</span>";
-                    } else {
-                        $email = $applicant->applicant_email;
-
-                        if ($applicant->applicant_email_secondary) {
-                            $email .= '<br>' . $applicant->applicant_email_secondary;
-                        }
+                ->addColumn('applicantEmail', function ($applicant) {
+                    // Blocked applicant + no permission
+                    if ($applicant->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                        return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    return $email; // Using accessor
+                    $email = $applicant->applicant_email_secondary
+                        ? $applicant->applicant_email . '<br>' . $applicant->applicant_email_secondary
+                        : $applicant->applicant_email;
+
+                    // Blocked applicant + has permission
+                    if ($applicant->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                        return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
+                    }
+
+                    // Normal applicant
+                    return $email;
                 })
                 // In your DataTable or controller
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
@@ -929,7 +1184,8 @@ class ResourceController extends Controller
                         $applicant->status == 0 => '<span class="badge bg-secondary">Inactive</span>',
                         default => '',
                     };
-                    return '<div class="btn-group dropstart">
+                    $html = '';
+                    $html = '<div class="btn-group dropstart">
                             <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <iconify-icon icon="solar:menu-dots-square-outline" class="align-middle fs-24 text-dark"></iconify-icon>
                             </button>
@@ -947,13 +1203,33 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($applicant->job_source_name ?? '-')) . '\',
                                     \'' . addslashes(htmlspecialchars($applicant->module_notes_created ? Carbon::parse($applicant->module_notes_created)->format('d M Y, h:i A') : 'N/A')) . '\',
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
-                                )">View</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
+                                )">View</a></li>';
+                    if (Gate::allows('applicant-upload-resume')) {
+                        $html .= '<li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerFileInput(' . (int) $applicant->id . ')">Upload Applicant Resume</a>
+                                        <!-- Hidden File Input -->
+                                        <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="uploadFile()">
+                                    </li>';
+                    }
+                    if (Gate::allows('applicant-upload-crm-resume')) {
+                        $html .= '<li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="triggerCrmFileInput(' . (int) $applicant->id . ')">Upload CRM Resume</a>
+                                        <!-- Hidden File Input -->
+                                        <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
+                                    </li>';
+                    }
+
+                    $html .= '<li><hr class="dropdown-divider"></li>';
+                    if (Gate::allows('applicant-view-history')) {
+                        $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int) $applicant->id]) . '">View History</a></li>';
+                    }
+                    $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . $applicant->id . ')">Notes History</a></li>
                             </ul>
                         </div>';
+
+                    return $html;
                 })
-                ->rawColumns(['applicant_postcode', 'applicant_resume', 'applicantEmail', 'applicantPhone', 'crm_resume', 'applicant_notes', 'customStatus', 'job_category', 'applicant_experience', 'action'])
+                ->rawColumns(['applicant_postcode', 'job_source', 'applicant_resume', 'applicantEmail', 'applicantPhone', 'crm_resume', 'applicant_notes', 'customStatus', 'job_category', 'applicant_experience', 'action'])
                 ->make(true);
         }
 
@@ -1519,7 +1795,7 @@ class ResourceController extends Controller
                 )
                 ->where('crm_notes.applicant_id', '=', $applicant_id)
                 // Leave out notes for sales hidden by private office/unit notes.
-                ->tap(fn ($query) => $this->excludePrivateSales($query, 'crm_notes.sale_id'))
+                ->tap(fn($query) => $this->excludePrivateSales($query, 'crm_notes.sale_id'))
                 ->latest('created_at')
                 ->get();
 
@@ -2204,7 +2480,7 @@ class ResourceController extends Controller
                 })
                 ->addColumn('job_details', function ($applicant) use ($jobTitleNamesById, $jobCategoryNamesById) {
                     $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
-                     $status = '';
+                    $status = '';
                     if ($applicant->sale_status == 1) {
                         $status = '<span class="badge bg-success">Active</span>';
                     } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
@@ -3593,6 +3869,12 @@ class ResourceController extends Controller
             $model->whereIn('applicants.job_title_id', $titleFilter);
         }
 
+        // Filter by job source if it's not empty
+        $sourceFilter = array_filter((array) $request->input('source_filter', []), fn($id) => $id !== '' && $id !== null);
+        if ($sourceFilter) {
+            $model->whereIn('applicants.job_source_id', $sourceFilter);
+        }
+
         if ($request->ajax()) {
             return DataTables::eloquent($model)
                 ->filter($applySearch)
@@ -3933,7 +4215,7 @@ class ResourceController extends Controller
                                     \'' . addslashes(htmlspecialchars($job_source)) . '\',
                                     \'' . addslashes(htmlspecialchars($posted_date)) . '\',
                                     \'' . addslashes(htmlspecialchars($status)) . '\'
-                                )">View Details</a>
+                                )">View</a>
                             </li>';
                     }
                     if (Gate::allows('resource-category-upload-applicant-resume')) {
@@ -3949,12 +4231,15 @@ class ResourceController extends Controller
                                     <input type="file" id="crmfileInput" style="display:none" accept=".pdf,.doc,.docx" onchange="crmuploadFile()">
                                 </li>';
                     }
-                    if (Gate::allows('resource-category-view-notes-history')) {
-                        $html .= '<li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>
-                                </ul>
-                            </div>';
+                    $html .= '<li><hr class="dropdown-divider"></li>';
+                    if (Gate::allows('applicant-view-history')) {
+                        $html .= '<li><a class="dropdown-item" target="_blank" href="' . route('applicants.history', ['id' => (int) $applicant->id]) . '">View History</a></li>';
                     }
+                    if (Gate::allows('resource-category-view-notes-history')) {
+                        $html .= '<li><a class="dropdown-item" href="javascript:void(0);" onclick="viewNotesHistory(' . (int)$applicant->id . ')">Notes History</a></li>';
+                    }
+                    $html .= '</ul>
+                            </div>';
                     return $html;
                 })
                 // ->setRowClass(function ($applicant) {

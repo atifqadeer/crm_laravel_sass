@@ -117,7 +117,7 @@
                                         <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                             id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
-                                                Category</span>
+                                                Categories</span>
                                         </button>
 
                                         <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
@@ -1068,7 +1068,7 @@
                 const checked = $('.category-filter:checked').not('[data-category-id=""]').length;
 
                 $('#showFilterCategory').text(checked > 0 ? `Selected Category (${checked})` :
-                    'All Category');
+                    'All Categories');
 
                 const container = $('#categoryToggleContainer');
                 container.find('.filter-select-all').toggle(checked < total);

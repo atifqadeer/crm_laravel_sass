@@ -1,163 +1,200 @@
 @extends('layouts.vertical', ['title' => 'Direct Sales List', 'subTitle' => 'Sales'])
 @section('style')
-<style>
-    .dropdown-toggle::after {
-        display: none !important;
-    }
-    table.dataTable.no-footer {
-        border-bottom: none !important;
-    }
-</style>
+    <style>
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+    </style>
 @endsection
 @section('content')
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header border-0">
-                <div class="row justify-content-between">
-                    <div class="col-lg-12">
-                        <div class="text-md-end mt-3">
-                            <!-- Date Range filter -->
-                            <div class="d-inline">
-                                <input type="text" id="dateRangePicker" class="form-control d-inline-block" style="width: 220px; display: inline-block;" placeholder="Select date range" readonly />
-                                <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange" title="Clear Date Range">
-                                    <i class="ri-close-line"></i>
-                                </button>
-                            </div>
-                            <!-- user Filter Dropdown -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header border-0">
+                    <div class="row justify-content-between">
+                        <div class="col-lg-12">
+                            <div class="text-md-end mt-3">
+                                <!-- Date Range filter -->
+                                <div class="d-inline">
+                                    <input type="text" id="dateRangePicker" class="form-control d-inline-block"
+                                        style="width: 220px; display: inline-block;" placeholder="Select date range"
+                                        readonly />
+                                    <button class="btn btn-outline-primary my-1" type="button" id="clearDateRange"
+                                        title="Clear Date Range">
+                                        <i class="ri-close-line"></i>
+                                    </button>
+                                </div>
+                                <!-- user Filter Dropdown -->
 
-                          
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                    <a class="dropdown-item user-filter" href="#">All Users</a>
-                                    @foreach($users as $user)
-                                        <a class="dropdown-item user-filter" href="#" data-user-id="{{ $user->id }}">{{ ucwords($user->name) }}</a>
-                                    @endforeach
+
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterUser">All Users</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
+                                        <a class="dropdown-item user-filter" href="#">All Users</a>
+                                        @foreach ($users as $user)
+                                            <a class="dropdown-item user-filter" href="#"
+                                                data-user-id="{{ $user->id }}">{{ ucwords($user->name) }}</a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <!-- head office Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head
+                                            Office</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton6">
+                                        <a class="dropdown-item office-filter" href="#">All Head Office</a>
+                                        @foreach ($offices as $office)
+                                            <a class="dropdown-item office-filter" href="#"
+                                                data-office-id="{{ $office->id }}">{{ ucwords($office->office_name) }}</a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <!-- Category Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
+                                            Category</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                        <a class="dropdown-item category-filter" href="#">All Category</a>
+                                        @foreach ($jobCategories as $category)
+                                            <a class="dropdown-item category-filter" href="#"
+                                                data-category-id="{{ $category->id }}">{{ ucwords($category->name) }}</a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <!-- Type Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
+                                        <a class="dropdown-item type-filter" href="#">All Types</a>
+                                        <a class="dropdown-item type-filter" href="#">Specialist</a>
+                                        <a class="dropdown-item type-filter" href="#">Regular</a>
+                                    </div>
+                                </div>
+                                <!-- Title Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
+                                        <a class="dropdown-item title-filter" href="#">All Titles</a>
+                                        @foreach ($jobTitles as $title)
+                                            <a class="dropdown-item title-filter" href="#"
+                                                data-title-id="{{ $title->id }}">{{ strtoupper($title->name) }}</a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <!-- cv limit Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton7" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterCvLimit">All Count</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton7">
+                                        <a class="dropdown-item cv-limit-filter" href="#">All Count</a>
+                                        <a class="dropdown-item cv-limit-filter" href="#">Zero</a>
+                                        <a class="dropdown-item cv-limit-filter" href="#">Not Max</a>
+                                        <a class="dropdown-item cv-limit-filter" href="#">Max</a>
+                                    </div>
                                 </div>
                             </div>
-                             <!-- head office Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton6" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterOffice">All Head Office</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton6">
-                                    <a class="dropdown-item office-filter" href="#">All Head Office</a>
-                                    @foreach($offices as $office)
-                                        <a class="dropdown-item office-filter" href="#" data-office-id="{{ $office->id }}">{{ ucwords($office->office_name) }}</a>
-                                    @endforeach
-                                </div>
-                            </div>
-                            <!-- Category Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All Category</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <a class="dropdown-item category-filter" href="#">All Category</a>
-                                    @foreach($jobCategories as $category)
-                                        <a class="dropdown-item category-filter" href="#" data-category-id="{{ $category->id }}">{{ ucwords($category->name) }}</a>
-                                    @endforeach
-                                </div>
-                            </div>
-                            <!-- Type Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton4" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterType">All Types</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton4">
-                                    <a class="dropdown-item type-filter" href="#">All Types</a>
-                                    <a class="dropdown-item type-filter" href="#">Specialist</a>
-                                    <a class="dropdown-item type-filter" href="#">Regular</a>
-                                </div>
-                            </div>
-                             <!-- Title Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterTitle">All Titles</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
-                                    <a class="dropdown-item title-filter" href="#">All Titles</a>
-                                    @foreach($jobTitles as $title)
-                                        <a class="dropdown-item title-filter" href="#" data-title-id="{{ $title->id }}">{{ strtoupper($title->name) }}</a>
-                                    @endforeach
-                                </div>
-                            </div>
-                             <!-- cv limit Filter Dropdown -->
-                            <div class="dropdown d-inline">
-                                <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton7" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri-filter-line me-1"></i> <span id="showFilterCvLimit">All Count</span>
-                                </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton7">
-                                    <a class="dropdown-item cv-limit-filter" href="#">All Count</a>
-                                    <a class="dropdown-item cv-limit-filter" href="#">Zero</a>
-                                    <a class="dropdown-item cv-limit-filter" href="#">Not Max</a>
-                                    <a class="dropdown-item cv-limit-filter" href="#">Max</a>
+                        </div><!-- end col-->
+                    </div>
+                    <!-- Custom Search Bar -->
+                    <div class="row justify-content-start">
+                        <div class="col-lg-3">
+                            <div class="text-md-start mt-3 pt-1">
+                                <div class="input-group">
+                                    <!-- Use padding-right to prevent text from overlapping the clear icon -->
+                                    <input type="text" id="customSearchInput" class="form-control"
+                                        placeholder="Search ..." style="padding-right: 30px;">
+                                    <!-- Absolutely positioned over the input field -->
+                                    <span class="position-absolute d-none" id="customClearBtn" title="Clear"
+                                        style="right: 105px; top: 50%; transform: translateY(-50%); z-index: 10; cursor: pointer;">
+                                        <i class="ri-close-line text-primary"
+                                            style="font-size: 20px; font-weight: 900;"></i>
+                                    </span>
+                                    <button class="btn btn-primary z-3" id="customSearchBtn" type="button"><i
+                                            class="ri-search-line"></i> Search</button>
                                 </div>
                             </div>
                         </div>
-                    </div><!-- end col-->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="table-responsive">
-                    <table id="sales_table" class="table align-middle mb-3">
-                        <thead class="bg-light-subtle">
-                            <tr>
-                                <th>#</th>
-                                <th>Created Date</th>
-                                <th>Updated Date</th>
-                                <th>Open Date</th>
-                                <th>Agent</th>
-                                <th>Head Office</th>
-                                <th>Unit Name</th>
-                                <th>PostCode</th>
-                                <th>Position Type</th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Experience</th>
-                                <th>Qualification</th>
-                                <th>Salary</th>
-                                <th>CV Limit</th>
-                                <th>Notes</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- The data will be populated here by DataTables --}}
-                        </tbody>
-                    </table>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table id="sales_table" class="table align-middle mb-3">
+                            <thead class="bg-light-subtle">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Created Date</th>
+                                    <th>Updated Date</th>
+                                    <th>Open Date</th>
+                                    <th>Agent</th>
+                                    <th>Head Office</th>
+                                    <th>Unit Name</th>
+                                    <th>PostCode</th>
+                                    <th>Position Type</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Experience</th>
+                                    <th>Qualification</th>
+                                    <th>Salary</th>
+                                    <th>CV Limit</th>
+                                    <th>Notes</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- The data will be populated here by DataTables --}}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- end table-responsive -->
                 </div>
-                <!-- end table-responsive -->
             </div>
         </div>
     </div>
-</div>
 
-<!-- Experience Modal -->
-<div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="experienceModalLabel">Sale Experience</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="experienceModalBody">
-        <!-- Experience will be injected here -->
-      </div>
+    <!-- Experience Modal -->
+    <div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="experienceModalLabel">Sale Experience</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="experienceModalBody">
+                    <!-- Experience will be injected here -->
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
 @section('script')
     <!-- jQuery CDN (make sure this is loaded before DataTables) -->
@@ -174,7 +211,7 @@
     <!-- Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-   
+
     <!-- Add daterangepicker CSS/JS (place before your custom script section) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
@@ -191,9 +228,11 @@
 
             // When a date range is selected
             $('#dateRangePicker').on('apply.daterangepicker', function(ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD'));
+                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format(
+                    'YYYY-MM-DD'));
                 // Set the filter variable and reload DataTable
-                window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate.format('YYYY-MM-DD');
+                window.currentDateRangeFilter = picker.startDate.format('YYYY-MM-DD') + '|' + picker.endDate
+                    .format('YYYY-MM-DD');
                 $('#showDateRange').html($(this).val());
                 $('#sales_table').DataTable().ajax.reload();
             });
@@ -238,73 +277,139 @@
 
             // Initialize DataTable with server-side processing
             var table = $('#sales_table').DataTable({
-                processing: false,  // Disable default processing state
-                serverSide: true,  // Enables server-side processing
+                processing: false, // Disable default processing state
+                serverSide: true, // Enables server-side processing
                 ajax: {
-                    url: @json(route('getDirectSales')),  // Fetch data from the backend
+                    url: @json(route('getDirectSales')), // Fetch data from the backend
                     type: 'GET',
                     data: function(d) {
                         // Add the current filter to the request parameters
-                        d.type_filter = currentTypeFilter;  // Send the current filter value as a parameter
-                        d.date_range_filter = window.currentDateRangeFilter;  // Send the current filter value as a parameter
-                        d.category_filter = currentCategoryFilter;  // Send the current filter value as a parameter
-                        d.title_filter = currentTitleFilter;  // Send the current filter value as a parameter
-                        d.office_filter = currentOfficeFilter;  // Send the current filter value as a parameter
-                        d.user_filter = currentUserFilter;  // Send the current filter value as a parameter
-                        d.cv_limit_filter = currentFilterCvLimit;  // Send the current filter value as a parameter
+                        d.type_filter =
+                        currentTypeFilter; // Send the current filter value as a parameter
+                        d.date_range_filter = window
+                        .currentDateRangeFilter; // Send the current filter value as a parameter
+                        d.category_filter =
+                        currentCategoryFilter; // Send the current filter value as a parameter
+                        d.title_filter =
+                        currentTitleFilter; // Send the current filter value as a parameter
+                        d.office_filter =
+                        currentOfficeFilter; // Send the current filter value as a parameter
+                        d.user_filter =
+                        currentUserFilter; // Send the current filter value as a parameter
+                        d.cv_limit_filter =
+                        currentFilterCvLimit; // Send the current filter value as a parameter
                     }
                 },
-                columns: [
-                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'created_at', name: 'sales.created_at' },
-                    { data: 'updated_at', name: 'sales.updated_at' },
-                    { data: 'open_date', name: 'audits.created_at' },
-                    { data: 'user_name', name: 'users.name'},
-                    { data: 'office_name', name: 'offices.office_name'},
-                    { data: 'unit_name', name: 'units.unit_name'  },
-                    { data: 'sale_postcode', name: 'sales.sale_postcode' },
-                    { data: 'position_type', name: 'sales.position_type', searchable: false },
-                    { data: 'job_title', name: 'job_titles.name' },
-                    { data: 'job_category', name: 'job_categories.name' },
-                    { data: 'experience', name: 'sales.experience' },
-                    { data: 'qualification', name: 'sales.qualification' },
-                    { data: 'salary', name: 'sales.salary' },
-                    { data: 'cv_limit', name: 'sales.cv_limit' },
-                    { data: 'sale_notes', name: 'sales.sale_notes', orderable: false },
-                    { data: 'status', name: 'sales.status', orderable: false },
-                    { data: 'action', name: 'action', orderable: false }
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'sales.created_at'
+                    },
+                    {
+                        data: 'updated_at',
+                        name: 'sales.updated_at'
+                    },
+                    {
+                        data: 'open_date',
+                        name: 'audits.created_at'
+                    },
+                    {
+                        data: 'user_name',
+                        name: 'users.name'
+                    },
+                    {
+                        data: 'office_name',
+                        name: 'offices.office_name'
+                    },
+                    {
+                        data: 'unit_name',
+                        name: 'units.unit_name'
+                    },
+                    {
+                        data: 'sale_postcode',
+                        name: 'sales.sale_postcode'
+                    },
+                    {
+                        data: 'position_type',
+                        name: 'sales.position_type',
+                        searchable: false
+                    },
+                    {
+                        data: 'job_title',
+                        name: 'job_titles.name'
+                    },
+                    {
+                        data: 'job_category',
+                        name: 'job_categories.name'
+                    },
+                    {
+                        data: 'experience',
+                        name: 'sales.experience'
+                    },
+                    {
+                        data: 'qualification',
+                        name: 'sales.qualification'
+                    },
+                    {
+                        data: 'salary',
+                        name: 'sales.salary'
+                    },
+                    {
+                        data: 'cv_limit',
+                        name: 'sales.cv_limit'
+                    },
+                    {
+                        data: 'sale_notes',
+                        name: 'sales.sale_notes',
+                        orderable: false
+                    },
+                    {
+                        data: 'status',
+                        name: 'sales.status',
+                        orderable: false
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false
+                    }
                 ],
-                columnDefs: [
-                    {
-                        targets: 7,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                columnDefs: [{
+                        targets: 7, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 14,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 14, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 16,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 16, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
-                        targets: 17,  // Column index for 'job_details'
-                        createdCell: function (td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center');  // Center the text in this column
+                        targets: 17, // Column index for 'job_details'
+                        createdCell: function(td, cellData, rowData, row, col) {
+                            $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     }
                 ],
                 rowId: function(data) {
-                    return 'row_' + data.id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data
+                    .id; // Assign a unique ID to each row using the 'id' field from the data
                 },
-                dom: 'flrtip',  // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function (settings) {
+                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
+                drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -314,7 +419,8 @@
                     const totalPages = pageInfo.pages;
 
                     if (pageInfo.recordsTotal === 0) {
-                        $('#sales_table tbody').html('<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                        $('#sales_table tbody').html(
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
                         return;
                     }
 
@@ -328,39 +434,41 @@
                                             </a>
                                         </li>`;
 
-                        const visiblePages = 3;
-                        const showDots = totalPages > visiblePages + 2;
+                    const visiblePages = 3;
+                    const showDots = totalPages > visiblePages + 2;
 
-                        // Always show page 1
-                        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    // Always show page 1
+                    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
                         </li>`;
 
-                        let start = Math.max(2, currentPage - 1);
-                        let end = Math.min(totalPages - 1, currentPage + 1);
+                    let start = Math.max(2, currentPage - 1);
+                    let end = Math.min(totalPages - 1, currentPage + 1);
 
-                        if (start > 2) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (start > 2) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        for (let i = start; i <= end; i++) {
-                            paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    for (let i = start; i <= end; i++) {
+                        paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
                             </li>`;
-                        }
+                    }
 
-                        if (end < totalPages - 1) {
-                            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                        }
+                    if (end < totalPages - 1) {
+                        paginationHtml +=
+                            `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
 
-                        if (totalPages > 1) {
-                            paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    if (totalPages > 1) {
+                        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
                                 <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
                             </li>`;
-                        }
+                    }
 
-                        // Next button
-                        paginationHtml += `
+                    // Next button
+                    paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
                                     <span aria-hidden="true">&raquo;</span>
@@ -380,8 +488,43 @@
                     pagination.html(paginationHtml);
                 },
             });
+            // Search logic helper
+            function handleCustomSearch() {
+                let searchValue = $('#customSearchInput').val().trim();
+                table.search(searchValue).draw();
+            }
+
+            // Custom Search Button Event
+            $('#customSearchBtn').on('click', function() {
+                handleCustomSearch();
+            });
+
+            // Custom Search Input Enter Key Event
+            $('#customSearchInput').on('keypress', function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    handleCustomSearch();
+                }
+            });
+
+            // Show/Hide Clear button
+            $('#customSearchInput').on('keyup change', function() {
+                if ($(this).val().trim() !== '') {
+                    $('#customClearBtn').removeClass('d-none');
+                } else {
+                    $('#customClearBtn').addClass('d-none');
+                }
+            });
+
+            // Clear Button Event
+            $('#customClearBtn').on('click', function() {
+                $('#customSearchInput').val('');
+                $(this).addClass('d-none');
+                table.search('').draw();
+            });
+
             // Type filter dropdown handler
-            $('.type-filter').on('click', function () {
+            $('.type-filter').on('click', function() {
                 currentTypeFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -394,7 +537,7 @@
                 table.ajax.reload(); // Reload with updated type filter
             });
             // cv limit filter dropdown handler
-            $('.cv-limit-filter').on('click', function () {
+            $('.cv-limit-filter').on('click', function() {
                 currentFilterCvLimit = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -407,7 +550,7 @@
                 table.ajax.reload(); // Reload with updated status filter
             });
             // Status filter dropdown handler
-            $('.status-filter').on('click', function () {
+            $('.status-filter').on('click', function() {
                 currentFilter = $(this).text().toLowerCase();
 
                 // Capitalize each word
@@ -420,9 +563,10 @@
                 table.ajax.reload(); // Reload with updated status filter
             });
             // Status filter dropdown handler
-            $('.category-filter').on('click', function () {
+            $('.category-filter').on('click', function() {
                 const categoryName = $(this).text().trim();
-                currentCategoryFilter = $(this).data('category-id') ?? ''; // nullish fallback for "All Category"
+                currentCategoryFilter = $(this).data('category-id') ??
+                ''; // nullish fallback for "All Category"
 
                 const formattedText = categoryName
                     .toLowerCase()
@@ -434,7 +578,7 @@
                 table.ajax.reload();
             });
             // Status filter dropdown handler
-            $('.title-filter').on('click', function () {
+            $('.title-filter').on('click', function() {
                 const titleName = $(this).text().trim();
                 currentTitleFilter = $(this).data('title-id') ?? ''; // nullish fallback for "All Titles"
 
@@ -448,7 +592,7 @@
                 table.ajax.reload();
             });
             // Status filter dropdown handler
-            $('.user-filter').on('click', function () {
+            $('.user-filter').on('click', function() {
                 const userName = $(this).text().trim();
                 currentUserFilter = $(this).data('user-id') ?? ''; // nullish fallback for "All Category"
 
@@ -462,9 +606,10 @@
                 table.ajax.reload();
             });
             // Status filter dropdown handler
-            $('.office-filter').on('click', function () {
+            $('.office-filter').on('click', function() {
                 const officeName = $(this).text().trim();
-                currentOfficeFilter = $(this).data('office-id') ?? ''; // nullish fallback for "All Category"
+                currentOfficeFilter = $(this).data('office-id') ??
+                ''; // nullish fallback for "All Category"
 
                 const formattedText = officeName
                     .toLowerCase()
@@ -475,7 +620,7 @@
                 $('#showFilterOffice').html(formattedText); // Update displayed name
                 table.ajax.reload();
             });
-             // Handle the DataTable search
+            // Handle the DataTable search
             $('#sales_table_filter input').on('keyup', function() {
                 table.search(this.value).draw(); // Manually trigger search
             });
@@ -501,14 +646,14 @@
             var totalPages = table.page.info().pages;
 
             if (page === 'previous' && currentPage > 1) {
-                table.page(currentPage - 2).draw('page');  // Move to the previous page
+                table.page(currentPage - 2).draw('page'); // Move to the previous page
             } else if (page === 'next' && currentPage < totalPages) {
-                table.page(currentPage).draw('page');  // Move to the next page
+                table.page(currentPage).draw('page'); // Move to the next page
             } else if (typeof page === 'number' && page !== currentPage) {
-                table.page(page - 1).draw('page');  // Move to the selected page
+                table.page(page - 1).draw('page'); // Move to the selected page
             }
         }
-        
+
         // Function to show the notes modal
         function showNotesModal(saleId, notes, officeName, unitName, unitPostcode) {
             const modalId = `showNotesModal_${saleId}`;
@@ -559,7 +704,7 @@
                 `);
             }, 300); // adjust delay if needed
         }
-    
+
         // Function to show the notes modal
         function addNotesModal(saleID) {
             const modalId = `notesModal_${saleID}`;
@@ -599,14 +744,14 @@
             $(`#${modalId}`).modal('show');
 
             // Reset form fields on open
-            $(`#${modalId}`).on('shown.bs.modal', function () {
+            $(`#${modalId}`).on('shown.bs.modal', function() {
                 $(`#${formId}`)[0].reset();
                 $(`#${textareaId}`).removeClass('is-invalid is-valid');
                 $(`#${textareaId}`).next('.invalid-feedback').remove();
             });
 
             // Save button logic
-            $(`#${saveBtnId}`).off('click').on('click', function () {
+            $(`#${saveBtnId}`).off('click').on('click', function() {
                 const notes = $(`#${textareaId}`).val();
 
                 if (!notes) {
@@ -615,7 +760,7 @@
                         $(`#${textareaId}`).after('<div class="invalid-feedback">Please provide details.</div>');
                     }
 
-                    $(`#${textareaId}`).on('input', function () {
+                    $(`#${textareaId}`).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -630,17 +775,19 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
 
                 $.ajax({
-                    url: '{{ route("storeSaleNotes") }}',
+                    url: '{{ route('storeSaleNotes') }}',
                     type: 'POST',
                     data: {
                         sale_id: saleID,
                         details: notes,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Notes saved successfully!');
 
                         $(`#${modalId}`).modal('hide');
@@ -649,16 +796,16 @@
 
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         alert('An error occurred while saving notes.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-        
+
         // Function to change sale status modal
         function changeSaleStatusModal(saleID, currentStatus) {
             const modalId = `changeSaleStatusModal_${saleID}`;
@@ -708,7 +855,7 @@
             const dropdownSelector = `#statusDropdown_${saleID}`;
             const saveButtonSelector = `#saveNotesButton_${saleID}`;
 
-            $(modalSelector).on('shown.bs.modal', function () {
+            $(modalSelector).on('shown.bs.modal', function() {
                 $(formSelector)[0].reset();
                 $(textareaSelector).removeClass('is-invalid is-valid');
                 $(dropdownSelector).removeClass('is-invalid is-valid');
@@ -724,7 +871,7 @@
             $(modalSelector).modal('show');
 
             // Save button handler
-            $(saveButtonSelector).off('click').on('click', function () {
+            $(saveButtonSelector).off('click').on('click', function() {
                 const notes = $(textareaSelector).val();
                 const selectedStatus = $(dropdownSelector).val();
                 let hasError = false;
@@ -748,13 +895,13 @@
                 }
 
                 if (hasError) {
-                    $(textareaSelector).on('input', function () {
+                    $(textareaSelector).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
                         }
                     });
-                    $(dropdownSelector).on('change', function () {
+                    $(dropdownSelector).on('change', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -765,11 +912,13 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
 
                 // AJAX request
                 $.ajax({
-                    url: '{{ route("changeSaleStatus") }}',
+                    url: '{{ route('changeSaleStatus') }}',
                     type: 'POST',
                     data: {
                         sale_id: saleID,
@@ -777,21 +926,21 @@
                         status: selectedStatus,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function () {
+                    success: function() {
                         toastr.success('Sale status changed successfully!');
                         $(modalSelector).modal('hide');
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function () {
+                    error: function() {
                         toastr.error('An error occurred while updating the sale status.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
             });
         }
-       
+
         // Function to change on hold status modal
         function changeSaleOnHoldStatusModal(saleID, status) {
             const modalId = `changeSaleOnHoldStatusModal_${saleID}`;
@@ -834,7 +983,7 @@
             const formSelector = `#${formId}`;
             const saveBtnSelector = `#${saveBtnId}`;
 
-            $(modalSelector).on('shown.bs.modal', function () {
+            $(modalSelector).on('shown.bs.modal', function() {
                 $(formSelector)[0].reset();
                 $(textareaSelector).removeClass('is-invalid is-valid');
                 $(textareaSelector).next('.invalid-feedback').remove();
@@ -843,7 +992,7 @@
             $(modalSelector).modal('show');
 
             // Save button handler
-            $(saveBtnSelector).off('click').on('click', function () {
+            $(saveBtnSelector).off('click').on('click', function() {
                 const notes = $(textareaSelector).val();
                 const selectedStatus = $(`#status_${saleID}`).val();
 
@@ -858,7 +1007,7 @@
                 }
 
                 if (hasError) {
-                    $(textareaSelector).on('input', function () {
+                    $(textareaSelector).on('input', function() {
                         if ($(this).val()) {
                             $(this).removeClass('is-invalid').addClass('is-valid');
                             $(this).next('.invalid-feedback').remove();
@@ -869,11 +1018,13 @@
 
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                    );
 
                 // AJAX request (use POST instead of GET)
                 $.ajax({
-                    url: '{{ route("changeSaleHoldStatus") }}',
+                    url: '{{ route('changeSaleHoldStatus') }}',
                     type: 'GET',
                     data: {
                         id: saleID,
@@ -881,7 +1032,7 @@
                         status: selectedStatus,
                         _token: '{{ csrf_token() }}'
                     },
-                    success: function (response) {
+                    success: function(response) {
                         toastr.success('Sale marked as On Hold successfully!');
                         $(modalSelector).modal('hide');
                         $(formSelector)[0].reset();
@@ -890,10 +1041,10 @@
 
                         $('#sales_table').DataTable().ajax.reload();
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         toastr.error('An error occurred while updating the On Hold status.');
                     },
-                    complete: function () {
+                    complete: function() {
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
@@ -901,8 +1052,8 @@
         }
 
         function showDetailsModal(
-            saleId, postedOn, officeName, name, postcode, 
-            jobCategory, jobTitle, status, timing, 
+            saleId, postedOn, officeName, name, postcode,
+            jobCategory, jobTitle, status, timing,
             experience, salary, position, qualification, benefits
         ) {
             const modalId = `showDetailsModal_${saleId}`;
@@ -1007,9 +1158,11 @@
 
             // Make AJAX request
             $.ajax({
-                url: '{{ route("getSaleDocuments") }}',
+                url: '{{ route('getSaleDocuments') }}',
                 type: 'GET',
-                data: { id: saleId },
+                data: {
+                    id: saleId
+                },
                 success: function(response) {
                     let contentHtml = '';
 
@@ -1043,15 +1196,17 @@
                     $(`#${modalId} .modal-body`).html(contentHtml);
                 },
                 error: function(xhr) {
-                    $(`#${modalId} .modal-body`).html('<p class="text-danger">There was an error retrieving the documents. Please try again later.</p>');
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the documents. Please try again later.</p>'
+                        );
                 }
             });
         }
-       
+
         // Function to show the manager details modal
         function viewManagerDetails(id) {
             const modalID = 'viewManagerDetailsModal-' + id;
-            
+
             // Create modal if it doesn't exist
             if ($('#' + modalID).length === 0) {
                 $('body').append(`
@@ -1077,21 +1232,21 @@
                     </div>
                 `);
             }
-            
+
             // Show modal immediately with loading state
             $('#' + modalID).modal('show');
-            
+
             // Make AJAX call
             $.ajax({
-                url: '{{ route("getModuleContacts") }}',
+                url: '{{ route('getModuleContacts') }}',
                 type: 'GET',
-                data: { 
+                data: {
                     id: id,
                     module: 'Unit'
                 },
                 success: function(response) {
                     let contactHtml = '';
-                    
+
                     if (response.data.length === 0) {
 
                         contactHtml = '<p>' + response.message + '</p>';
@@ -1102,7 +1257,7 @@
                             const phone = contact.contact_phone;
                             const landline = contact.contact_landline || '-';
                             const note = contact.contact_note || 'N/A';
-                            
+
                             contactHtml += `
                                 <div class="note-entry">
                                     <p><strong>Name:</strong> ${name}</p>
@@ -1113,7 +1268,7 @@
                                 </div><hr>`;
                         });
                     }
-                    
+
                     $('#' + modalID + ' .modal-body').html(contactHtml);
                 },
                 error: function(xhr, status, error) {
@@ -1173,7 +1328,7 @@
 
             // AJAX request to fetch notes
             $.ajax({
-                url: '{{ route("getModuleNotesHistory") }}',
+                url: '{{ route('getModuleNotesHistory') }}',
                 type: 'GET',
                 data: {
                     id: id,
@@ -1205,13 +1360,15 @@
                     $(`#${modalId} .modal-body`).html(notesHtml);
                 },
                 error: function(xhr) {
-                    $(`#${modalId} .modal-body`).html('<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>');
+                    $(`#${modalId} .modal-body`).html(
+                        '<p class="text-danger">There was an error retrieving the notes. Please try again later.</p>'
+                        );
                 }
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            document.body.addEventListener('click', function (e) {
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.addEventListener('click', function(e) {
                 if (e.target.classList.contains('view-experience')) {
                     e.preventDefault();
                     const experience = e.target.getAttribute('data-experience');
@@ -1220,7 +1377,7 @@
             });
         });
 
-        $(document).on('click', '.export-btn', function (e) {
+        $(document).on('click', '.export-btn', function(e) {
             e.preventDefault();
 
             const $link = $(this);
@@ -1238,8 +1395,10 @@
             $.ajax({
                 url: url,
                 type: 'GET',
-                xhrFields: { responseType: 'blob' }, // for binary file
-                success: function (data, status, xhr) {
+                xhrFields: {
+                    responseType: 'blob'
+                }, // for binary file
+                success: function(data, status, xhr) {
                     const blob = new Blob([data]);
                     const link = document.createElement('a');
                     const fileName = xhr.getResponseHeader('Content-Disposition')
@@ -1250,10 +1409,10 @@
                     link.click();
                     document.body.removeChild(link);
                 },
-                error: function () {
+                error: function() {
                     alert('Export failed. Please try again.');
                 },
-                complete: function () {
+                complete: function() {
                     // Re-enable button + reset text
                     $btn.prop('disabled', false);
                     $icon.removeClass().addClass('ri-download-line me-1');
@@ -1262,6 +1421,5 @@
             });
         });
     </script>
-
 @endsection
-@endsection                        
+@endsection
