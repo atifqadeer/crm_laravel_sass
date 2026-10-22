@@ -22,9 +22,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Gate;
+use App\Traits\HidesPrivateContacts;
 
 class RegionController extends Controller
 {
+    use HidesPrivateContacts;
+
     public function __construct()
     {
         $this->middleware('permission:region-resource-index')->only(['resourcesIndex', 'getApplicantsByRegions']);
@@ -42,7 +45,9 @@ class RegionController extends Controller
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
-        $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
+        // The office filter must not list offices hidden by private notes.
+        $officesQuery = Office::where('status', 1)->orderBy('office_name', 'asc');
+        $offices = $this->excludePrivateNotes($officesQuery, 'offices.office_notes')->get();
         $regions = Region::orderBy('name', 'asc')->get();
 
         return view('regions.sales', compact('jobCategories', 'jobTitles', 'offices', 'regions'));
@@ -540,6 +545,9 @@ class RegionController extends Controller
                     ->orWhereNull('sales.job_source_id');
             });
         }
+
+        // Hide sales whose office/unit notes contain a private word (users without show-private-data).
+        $this->excludePrivateOfficeUnitNotes($model);
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');
