@@ -998,6 +998,31 @@ class ResourceController extends Controller
                 [$lat, $lng, $lat, $radius]
             );
 
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $query->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
+
         // Job Title Filtering
         $jobTitle = JobTitle::find($job_title_id);
         if ($jobTitle) {
@@ -1148,6 +1173,31 @@ class ResourceController extends Controller
                 'applicants.is_no_job'          => false,
             ])
             ->whereNull('applicants.deleted_at');
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
 
         // Hide rows for sales under offices/units with private notes, and rows whose CRM note
         // contains a private word (users without show-private-data), as on the CRM page.
@@ -1525,6 +1575,31 @@ class ResourceController extends Controller
                     ->with(['user:id,name'])->latest();
             }])
             ->whereNull('applicants_pivot_sales.applicant_id');
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
 
 
         // Sorting logic
@@ -2389,6 +2464,31 @@ class ResourceController extends Controller
             ->with(['jobTitle', 'jobCategory', 'jobSource'])
             ->distinct();
 
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
+
         // Sorting logic
         if ($request->has('order')) {
             $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
@@ -2790,6 +2890,31 @@ class ResourceController extends Controller
             ->join('units', 'units.id', '=', 'sales.unit_id')
             ->with(['jobTitle', 'jobCategory', 'jobSource'])
             ->distinct();
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
 
         // Hide rows for sales under offices/units with private notes (users without show-private-data).
         $this->excludePrivateOfficeUnitNotes($model);
@@ -3253,6 +3378,31 @@ class ResourceController extends Controller
                         Carbon::parse($today)->endOfDay(),
                     ]);
             });
+
+        $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
+        $hidePrivateData = array_filter(
+            array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
+        );
+
+        $sourceIds = [];
+
+        if (!Gate::allows('show-private-data') && count($hidePrivateData) > 0) {
+            $sourceIds = JobSource::where('is_active', 1)
+                ->where(function ($q) use ($hidePrivateData) {
+                    foreach ($hidePrivateData as $hideName) {
+                        $q->orWhere('name', 'LIKE', '%' . $hideName . '%');
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if (count($sourceIds) > 0) {
+            $model->where(function ($q) use ($sourceIds) {
+                $q->whereNotIn('applicants.job_source_id', $sourceIds)
+                    ->orWhereNull('applicants.job_source_id');
+            });
+        }
 
         // Applicant is linked to a sale (was a LEFT JOIN that could duplicate rows)
         $inPivotSales = function ($query) {
