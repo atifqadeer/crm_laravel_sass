@@ -44,12 +44,13 @@ use Horsefly\SmsTemplate;
 use Illuminate\Support\Str;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
+use App\Traits\HidesPrivateContacts;
 use Illuminate\Support\Facades\Gate;
 // use Illuminate\Http\JsonResponse;
 
 class CrmController extends Controller
 {
-    use SendEmails, SendSMS;
+    use SendEmails, SendSMS, HidesPrivateContacts;
 
     public function index()
     {
@@ -2329,6 +2330,12 @@ class CrmController extends Controller
                 break;
         }
 
+        // Every tab selects its notes as "<column> as notes_detail", so filter on that column.
+        $this->excludePrivateSelectedNotes($model, 'notes_detail');
+        
+        // Every tab joins offices and units; only joined tables are filtered, so an unknown tab can't break the query.
+        $this->excludePrivateOfficeUnitNotes($model);
+
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
 
         $hidePrivateData = array_filter(
@@ -2439,6 +2446,10 @@ class CrmController extends Controller
 
             return DataTables::eloquent($model)
                 ->skipTotalRecords()
+                // The filtered-count query wraps the whole query in a derived table. Counting
+                // only needs the rows, not the ~45 selected columns (several TEXT), so select
+                // `1` there instead. Safe because the outer query has no DISTINCT / GROUP BY.
+                ->ignoreSelectsInCountQuery()
                 ->order($applySorting)
                 ->addIndexColumn() // This will automatically add a serial number to the rows
                 ->addColumn("user_name", function ($applicant) {

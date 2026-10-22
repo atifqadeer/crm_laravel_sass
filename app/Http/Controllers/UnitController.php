@@ -242,7 +242,6 @@ class UnitController extends Controller
             ->with('office')
             ->whereNotIn('units.status', [4, 5]);
 
-        // Units whose notes mention a private word (hayaibu) are hidden without show-private-data.
         $this->excludePrivateNotes($query, 'units.unit_notes');
 
         $query->with(['contacts' => function ($q) {

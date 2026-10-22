@@ -28,6 +28,7 @@ use Horsefly\NotesForRangeApplicant;
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
 use App\Traits\Geocode;
+use App\Traits\HidesPrivateContacts;
 
 // Import necessary observers
 use App\Observers\ActionObserver;
@@ -56,7 +57,7 @@ use Illuminate\Support\Str;
 
 class ApplicantController extends Controller
 {
-    use SendEmails, SendSMS, Geocode;
+    use SendEmails, SendSMS, Geocode, HidesPrivateContacts;
 
     public function __construct()
     {
@@ -1968,6 +1969,10 @@ class ApplicantController extends Controller
             ->join('units', 'units.id', '=', 'sales.unit_id')
             ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id');
+
+        // from users without show-private-data.
+        $this->excludePrivateNotes($model, 'offices.office_notes');
+        $this->excludePrivateNotes($model, 'units.unit_notes');
 
         $model->select([
             'applicants.id as app_id',

@@ -386,7 +386,6 @@ class HeadOfficeController extends Controller
             ->whereNull('offices.deleted_at')
             ->distinct();
 
-        // Offices whose notes mention a private word (hayaibu) are hidden without show-private-data.
         $this->excludePrivateNotes($model, 'offices.office_notes');
 
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');

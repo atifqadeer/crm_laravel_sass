@@ -24,6 +24,7 @@ use Horsefly\User;
 
 use App\Traits\SendEmails;
 use App\Traits\SendSMS;
+use App\Traits\HidesPrivateContacts;
 
 use App\Support\DialLink;
 
@@ -42,7 +43,7 @@ use Illuminate\Support\Str;
 
 class QualityController extends Controller
 {
-    use SendEmails, SendSMS;
+    use SendEmails, SendSMS, HidesPrivateContacts;
 
     private const QUALITY_RESOURCE_TABS = [
         'requested cvs' => [
@@ -253,6 +254,13 @@ class QualityController extends Controller
                     ->orWhereNull('sales.job_source_id');
             });
         }
+
+        // Hide rows whose office/unit notes contain a private word (users without show-private-data).
+        $this->excludePrivateOfficeUnitNotes($model);
+
+        // Hide rows whose own notes (the Notes column) contain a private word.
+        $this->excludePrivateSelectedNotes($model, 'notes_detail');
+        $this->excludePrivateQualityDecisionNotes($model, $statusFilter);
 
         $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'status')]);
 
@@ -490,6 +498,42 @@ class QualityController extends Controller
             ]));
     }
 
+    /** quality_notes.moved_tab_to values whose latest note the cleared/rejected tabs display. */
+    private function qualityDecisionNoteStatuses(string $statusFilter): array
+    {
+        return $statusFilter === 'rejected cvs' ? ['rejected'] : ['cleared', 'cleared_no_job'];
+    }
+
+    /**
+     * Cleared/rejected tabs load their note per row (hydrateLazyQualityDecisionData), so hide
+     * rows whose note contains a private word here in SQL: the same latest matching quality note.
+     */
+    private function excludePrivateQualityDecisionNotes($model, string $statusFilter): void
+    {
+        if (!in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true)) {
+            return;
+        }
+
+        $noteStatuses = $this->qualityDecisionNoteStatuses($statusFilter);
+
+        foreach ($this->privateNoteLikePatterns() as $like) {
+            $model->whereNotExists(function ($q) use ($noteStatuses, $like) {
+                $q->select(DB::raw(1))
+                    ->from('quality_notes as private_qn')
+                    ->whereColumn('private_qn.applicant_id', 'applicants.id')
+                    ->whereColumn('private_qn.sale_id', 'lh.sale_id')
+                    ->where('private_qn.details', 'LIKE', $like)
+                    ->where('private_qn.id', function ($latest) use ($noteStatuses) {
+                        $latest->selectRaw('MAX(latest_qn.id)')
+                            ->from('quality_notes as latest_qn')
+                            ->whereColumn('latest_qn.applicant_id', 'private_qn.applicant_id')
+                            ->whereColumn('latest_qn.sale_id', 'private_qn.sale_id')
+                            ->whereIn('latest_qn.moved_tab_to', $noteStatuses);
+                    });
+            });
+        }
+    }
+
     private function hydrateLazyQualityDecisionData($applicant, string $statusFilter): void
     {
         if (!in_array($statusFilter, ['rejected cvs', 'cleared cvs'], true)) {
@@ -503,9 +547,7 @@ class QualityController extends Controller
         $applicant->setAttribute('_lazy_decision_loaded', true);
         $applicant->notes_detail = '';
 
-        $noteStatuses = $statusFilter === 'rejected cvs'
-            ? ['rejected']
-            : ['cleared', 'cleared_no_job'];
+        $noteStatuses = $this->qualityDecisionNoteStatuses($statusFilter);
 
         $note = DB::table('quality_notes')
             ->where('applicant_id', $applicant->id)
@@ -1759,6 +1801,13 @@ class QualityController extends Controller
                     ->orWhereNull('sales.job_source_id');
             });
         }
+
+        // Hide sales whose office/unit notes contain a private word (users without show-private-data).
+        $this->excludePrivateOfficeUnitNotes($model);
+
+        // Hide sales whose notes (as shown in the Notes column) contain a private word:
+        // sales.sale_notes, or the latest sale_notes row when that is empty.
+        $this->excludePrivateNotes($model, DB::raw("COALESCE(NULLIF(sales.sale_notes, ''), updated_notes.sale_note)"));
 
         if ($request->has('search.value')) {
             $searchTerm = (string) $request->input('search.value');

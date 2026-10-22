@@ -13,7 +13,6 @@ trait HidesPrivateContacts
 
     /**
      * Exclude contacts hidden by hide_private_data for users without show-private-data.
-     * Matches the string (e.g. hayaibu) in contact fields and matching job_source_id values (e.g. 10).
      */
     protected function excludePrivateContacts($query)
     {
@@ -83,27 +82,76 @@ trait HidesPrivateContacts
     }
 
     /**
-     * Hide records whose notes column mentions a hide_private_data word (e.g. hayaibu)
      * for users without show-private-data. Numeric values in the setting are job source
      * ids, not words, so they are not matched against notes.
      */
-    protected function excludePrivateNotes($query, string $notesColumn)
+    protected function excludePrivateNotes($query, $notesColumn)
+    {
+        // $notesColumn may be a column name or a DB::raw() expression.
+        foreach ($this->privateNoteLikePatterns() as $like) {
+            $query->where(function ($q) use ($notesColumn, $like) {
+                $q->whereNull($notesColumn)->orWhere($notesColumn, 'NOT LIKE', $like);
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Same as excludePrivateNotes(), for the column a query selects under an alias
+     * (e.g. "crm_notes.details as notes_detail"). Does nothing if no such alias is selected.
+     */
+    protected function excludePrivateSelectedNotes($query, string $alias = 'notes_detail')
+    {
+        $base = method_exists($query, 'getQuery') ? $query->getQuery() : $query;
+
+        $column = collect($base->columns ?? [])
+            ->filter(fn ($column) => is_string($column))
+            ->map(fn ($column) => preg_match('/^(\S+)\s+as\s+' . preg_quote($alias, '/') . '$/i', trim($column), $m) ? $m[1] : null)
+            ->filter()
+            ->first();
+
+        return $column ? $this->excludePrivateNotes($query, $column) : $query;
+    }
+
+    /**
+     * LIKE patterns for the hide_private_data words, or [] when the user may see private data.
+     * Numeric values are job source ids, not words, so they are skipped.
+     */
+    protected function privateNoteLikePatterns(): array
     {
         $context = $this->privateDataContext();
 
         if ($context === null) {
+            return [];
+        }
+
+        return collect($context['values'])
+            ->reject(fn ($value) => ctype_digit((string) $value))
+            ->map(fn ($value) => '%' . addcslashes($value, '\\%_') . '%')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Hide rows whose joined office or unit notes contain a hide_private_data word.
+     * Only filters tables the query actually joins as `offices` / `units`, so it is safe
+     * to call on any query; with a left join, rows without an office/unit stay visible.
+     */
+    protected function excludePrivateOfficeUnitNotes($query)
+    {
+        if ($this->privateDataContext() === null) {
             return $query;
         }
 
-        foreach ($context['values'] as $hideValue) {
-            if (ctype_digit((string) $hideValue)) {
-                continue;
-            }
+        $base = method_exists($query, 'getQuery') ? $query->getQuery() : $query;
+        $joinedTables = collect($base->joins ?? [])->pluck('table');
 
-            $like = '%' . addcslashes($hideValue, '\\%_') . '%';
-            $query->where(function ($q) use ($notesColumn, $like) {
-                $q->whereNull($notesColumn)->orWhere($notesColumn, 'NOT LIKE', $like);
-            });
+        if ($joinedTables->contains('offices')) {
+            $this->excludePrivateNotes($query, 'offices.office_notes');
+        }
+        if ($joinedTables->contains('units')) {
+            $this->excludePrivateNotes($query, 'units.unit_notes');
         }
 
         return $query;
@@ -128,7 +176,6 @@ trait HidesPrivateContacts
 
     /**
      * Blank contact fields when the joined contact is private.
-     * Used after fetch so LEFT JOIN rows stay, without leaking hayaibu / source id 10 data.
      */
     protected function hidePrivateContactData($item)
     {
@@ -186,10 +233,6 @@ trait HidesPrivateContacts
      */
     protected function privateDataContext(): ?array
     {
-        if ($this->privateDataContextCache !== false) {
-            return $this->privateDataContextCache;
-        }
-
         if (Gate::allows('show-private-data')) {
             return $this->privateDataContextCache = null;
         }
