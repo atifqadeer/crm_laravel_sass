@@ -32,11 +32,14 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use App\Traits\HidesPrivateContacts;
 
 use Exception;
 
 class ResourceController extends Controller
 {
+    use HidesPrivateContacts;
+
     public function __construct()
     {
         $this->middleware('permission:resource-direct-index')->only(['directIndex', 'getResourcesDirectSales']);
@@ -60,7 +63,11 @@ class ResourceController extends Controller
     {
         $jobCategories = JobCategory::where('is_active', 1)->orderBy('name', 'asc')->get();
         $jobTitles = JobTitle::where('is_active', 1)->orderBy('name', 'asc')->get();
-        $offices = Office::where('status', 1)->orderBy('office_name', 'asc')->get();
+        // The office filter must not list offices hidden by private notes.
+        $offices = $this->excludePrivateNotes(
+            Office::where('status', 1)->orderBy('office_name', 'asc'),
+            'offices.office_notes'
+        )->get();
         $users = User::where('is_active', 1)->orderBy('name', 'asc')->get();
 
         return view('resources.direct', compact('jobCategories', 'jobTitles', 'offices', 'users'));
@@ -191,6 +198,9 @@ class ResourceController extends Controller
                     ->orWhereNull('sales.job_source_id');
             });
         }
+
+        // Hide sales whose office/unit notes contain a private word (users without show-private-data).
+        $this->excludePrivateOfficeUnitNotes($model);
 
         // Filter by type if it's not empty
         switch ($typeFilter) {
@@ -650,6 +660,9 @@ class ResourceController extends Controller
                     ->orWhereNull('sales.job_source_id');
             });
         }
+
+        // Sales hidden by private office/unit notes don't bring their nearby applicants in.
+        $this->excludePrivateSales($salesQuery, 'sales.id');
 
         $salesData = $salesQuery->get();
 
@@ -1136,6 +1149,11 @@ class ResourceController extends Controller
             ])
             ->whereNull('applicants.deleted_at');
 
+        // Hide rows for sales under offices/units with private notes, and rows whose CRM note
+        // contains a private word (users without show-private-data), as on the CRM page.
+        $this->excludePrivateSales($model, 'crm_notes.sale_id');
+        $this->excludePrivateNotes($model, 'crm_notes.details');
+
         // ✅ Date filter
         if ($dateFilter) {
             $now        = Carbon::now();
@@ -1450,6 +1468,8 @@ class ResourceController extends Controller
                     'crm_notes.status',
                 )
                 ->where('crm_notes.applicant_id', '=', $applicant_id)
+                // Leave out notes for sales hidden by private office/unit notes.
+                ->tap(fn ($query) => $this->excludePrivateSales($query, 'crm_notes.sale_id'))
                 ->latest('created_at')
                 ->get();
 
@@ -2007,6 +2027,9 @@ class ResourceController extends Controller
                     ->orWhereNull('sales.job_source_id');
             });
         }
+
+        // Hide paid applicants for sales under offices/units with private notes (users without show-private-data).
+        $this->excludePrivateOfficeUnitNotes($query);
 
         // Search filter (same columns as the CRM Paid tab)
         $searchTerm = trim((string) $searchTerm);
@@ -2767,6 +2790,9 @@ class ResourceController extends Controller
             ->join('units', 'units.id', '=', 'sales.unit_id')
             ->with(['jobTitle', 'jobCategory', 'jobSource'])
             ->distinct();
+
+        // Hide rows for sales under offices/units with private notes (users without show-private-data).
+        $this->excludePrivateOfficeUnitNotes($model);
 
         // Sorting logic
         if ($request->has('order')) {
