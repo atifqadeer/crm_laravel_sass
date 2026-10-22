@@ -178,7 +178,7 @@
 
             <!-- resources Menu -->
             @canany(['resource-direct-index', 'resource-indirect-index', 'resource-category-index',
-                'resource-rejected-index', 'resource-blocked-index', 'resource-crm-paid-index', 'resource-no-job-index'])
+                'resource-rejected-index', 'resource-blocked-index', 'resource-crm-paid-index', 'resource-no-job-index', 'resource-not-interested-index'])
                 <li class="nav-item">
                     <a class="nav-link menu-arrow" href="#sidebarResources" data-bs-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="sidebarResources">
@@ -230,10 +230,12 @@
                                     <a class="sub-nav-link" href="{{ route('resources.noJobIndex') }}">No Job Resources</a>
                                 </li>
                             @endcanany
+                            @canany(['resource-not-interested-index'])
                             <li class="sub-nav-item">
                                 <a class="sub-nav-link" href="{{ route('resources.notInterestedIndex') }}">Not Interested
                                     Resources</a>
                             </li>
+                            @endcanany
                         </ul>
                     </div>
                 </li>
