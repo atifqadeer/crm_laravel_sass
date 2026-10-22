@@ -218,8 +218,8 @@
                                         <i class="ri-download-line me-1"></i> <span class="btn-text">Export</span>
                                     </button>
                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton3">
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'allClose']) }}">Export All Data</a>
-                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'emailsClose']) }}">Export Emails</a>
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'allRejected']) }}">Export All Data</a>
+                                        <a class="dropdown-item export-btn" href="{{ route('salesExport', ['type' => 'emailsRejected']) }}">Export Emails</a>
                                     </div>
                                 </div>
                             </div>
@@ -1524,7 +1524,8 @@
             e.preventDefault();
 
             const $link = $(this);
-            const url = $link.attr('href');
+            // Carry the table's current filters and search into the export.
+            const url = window.salesExportUrl($link.attr('href'), '#sales_table');
             const $dropdown = $link.closest('.dropdown');
             const $btn = $dropdown.find('button');
             const $icon = $btn.find('i');
@@ -1562,6 +1563,7 @@
             });
         });
     </script>
+    @include('sales.partials.export-filters')
     
 @endsection
 @endsection                        

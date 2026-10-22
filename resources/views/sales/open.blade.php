@@ -1980,7 +1980,8 @@
                 e.preventDefault();
 
                 const $link = $(this);
-                const url = $link.attr('href');
+                // Carry the table's current filters and search into the export.
+                const url = window.salesExportUrl($link.attr('href'), '#sales_table');
                 const $dropdown = $link.closest('.dropdown');
                 const $btn = $dropdown.find('button');
                 const $icon = $btn.find('i');
@@ -2020,5 +2021,6 @@
                 });
             });
         </script>
+    @include('sales.partials.export-filters')
     @endsection
 @endsection

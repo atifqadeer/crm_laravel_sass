@@ -4773,6 +4773,8 @@ class SaleController extends Controller
                 'office_filter',
                 'user_filter',
                 'cv_limit_filter',
+                'date_range_filter',
+                'date_flock_filter',
                 'search',
             ] as $key
         ) {

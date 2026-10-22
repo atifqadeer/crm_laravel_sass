@@ -7,6 +7,7 @@ use Horsefly\Sale;
 use Horsefly\Region;
 
 use App\Traits\HasDistanceCalculation;
+use App\Exports\Concerns\HidesPrivateExportData;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,6 +20,7 @@ class RegionApplicantsExport implements FromCollection, WithHeadings
     // because the trait's API wasn't available to reference here.
     // If the trait already exposes an equivalent helper, prefer
     // calling that instead of applyDistanceFilter() below.
+    use HidesPrivateExportData;
 
     protected $type;
     protected $radius;
@@ -54,6 +56,11 @@ class RegionApplicantsExport implements FromCollection, WithHeadings
 
     public function collection()
     {
+        // Applicants around a private sale are not exported (users without show-private-data).
+        if (strtolower((string) $this->model_type) === 'sale' && $this->exportIsPrivateSale($this->model_id)) {
+            return collect();
+        }
+
         switch ($this->type) {
             case 'emails':
                 return $this->baseQuery()
@@ -167,6 +174,9 @@ class RegionApplicantsExport implements FromCollection, WithHeadings
             ->where('applicants.status', 1)
             ->where('applicants.is_blocked', 0)
             ->whereNull('applicants.deleted_at');
+
+        // Applicants with a hidden job source are not exported (users without show-private-data).
+        $this->exportExcludeSourceColumn($query, 'applicants.job_source_id');
 
         if (!empty($this->category_filter)) {
             $query->whereIn('applicants.job_category_id', (array) $this->category_filter);

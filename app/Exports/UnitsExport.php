@@ -5,13 +5,13 @@ namespace App\Exports;
 use Horsefly\Unit;
 use Horsefly\Office;
 use Horsefly\Contact;
-use App\Traits\HidesPrivateContacts;
+use App\Exports\Concerns\HidesPrivateExportData;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class UnitsExport implements FromCollection, WithHeadings
 {
-    use HidesPrivateContacts;
+    use HidesPrivateExportData;
 
     protected $type;
     protected $filters;
@@ -136,7 +136,7 @@ class UnitsExport implements FromCollection, WithHeadings
         $query->whereNull('units.deleted_at')
             ->whereNotIn('units.status', [4, 5]);
 
-        $this->excludePrivateNotes($query, 'units.unit_notes');
+        $this->exportExcludeUnits($query);
 
         $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
         if ($status === 'active') {

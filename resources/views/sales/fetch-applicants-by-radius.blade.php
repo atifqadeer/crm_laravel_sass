@@ -1827,6 +1827,18 @@
 
             appendSelectedIds('source_filter', '.source-filter', 'source-id');
 
+            // Same job titles the table is filtered by (taken from its last request).
+            const tableParams = $.fn.DataTable.isDataTable('#applicants_table')
+                ? ($('#applicants_table').DataTable().ajax.params() || {})
+                : {};
+            url.searchParams.delete('title_filter[]');
+            url.searchParams.delete('title_filter');
+            [].concat(tableParams.title_filter || []).forEach(function(id) {
+                if (id !== '' && id !== null && typeof id !== 'undefined') {
+                    url.searchParams.append('title_filter[]', id);
+                }
+            });
+
             // Disable button + show loader
             $btn.prop('disabled', true);
             $icon.removeClass().addClass('spinner-border spinner-border-sm me-1');

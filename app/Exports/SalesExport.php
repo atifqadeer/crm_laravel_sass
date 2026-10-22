@@ -4,7 +4,7 @@ namespace App\Exports;
 
 use Horsefly\Sale;
 use Horsefly\Applicant;
-use App\Traits\HidesPrivateContacts;
+use App\Exports\Concerns\HidesPrivateExportData;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +12,7 @@ use Carbon\Carbon;
 
 class SalesExport implements FromCollection, WithHeadings
 {
-    use HidesPrivateContacts;
+    use HidesPrivateExportData;
 
     protected $type;
     protected $filters;
@@ -842,10 +842,169 @@ class SalesExport implements FromCollection, WithHeadings
                             'closed_date' => $item->closed_date ? Carbon::parse($item->closed_date)->format('d M Y, h:i A') : 'N/A',
                         ];
                     });
-                
+
+            case 'allRejected':
+                return $this->rejectedSalesExport(true);
+
+            case 'emailsRejected':
+                return $this->rejectedSalesExport(false);
+
             default:
             return collect(); // Return empty collection instead of null
         }
+    }
+
+    /**
+     * Date filters of the Open / Closed / Rejected sales pages, copied from
+     * SaleController::getOpenSales(), getClosedSales() and getRejectedSales() so an export
+     * contains the same sales as the page. All three filter sales.updated_at and default
+     * to the last 3 months; their period definitions differ slightly, as on the pages.
+     */
+    protected function applyPageDateFilters($query): void
+    {
+        $today = Carbon::today();
+        $range = trim((string) ($this->filters['date_range_filter'] ?? ''));
+        $between = function ($start, $end) use ($query) {
+            $query->whereBetween('sales.updated_at', [$start, $end]);
+        };
+        $lastThreeMonths = fn () => $between($today->copy()->subMonths(3)->startOfDay(), $today->copy()->endOfDay());
+
+        switch ($this->type) {
+            case 'allOpen':
+            case 'emailsOpen':
+                // Exact range from the date picker: "Y-m-d|Y-m-d".
+                if (str_contains($range, '|')) {
+                    [$start, $end] = explode('|', $range, 2);
+                    $between(trim($start) . ' 00:00:00', trim($end) . ' 23:59:59');
+                }
+
+                switch ($this->filters['date_flock_filter'] ?? '') {
+                    case 'last-6-months':
+                        $between($today->copy()->subMonths(9)->startOfDay(), $today->copy()->subMonths(3)->endOfDay());
+                        break;
+                    case 'last-9-months':
+                        $between($today->copy()->subMonths(18)->startOfDay(), $today->copy()->subMonths(9)->endOfDay());
+                        break;
+                    case 'other':
+                        $query->where('sales.updated_at', '<', $today->copy()->subMonths(18)->endOfDay());
+                        break;
+                    default: // 'last-3-months' and no selection
+                        $lastThreeMonths();
+                        break;
+                }
+                break;
+
+            case 'allClose':
+            case 'emailsClose':
+                switch ($range) {
+                    case 'last-6-months':
+                        $between($today->copy()->subMonths(6)->startOfDay(), $today->copy()->subMonths(3)->endOfDay());
+                        break;
+                    case 'last-9-months':
+                        $between($today->copy()->subMonths(9)->startOfDay(), $today->copy()->subMonths(6)->endOfDay());
+                        break;
+                    case 'other':
+                        $query->where('sales.updated_at', '<', $today->copy()->subMonths(18));
+                        break;
+                    default:
+                        $lastThreeMonths();
+                        break;
+                }
+                break;
+
+            case 'allRejected':
+            case 'emailsRejected':
+                switch ($range) {
+                    case 'last-6-months':
+                        $end = $today->copy()->subMonths(3)->endOfDay();
+                        $between($end->copy()->subMonths(6)->startOfDay(), $end);
+                        break;
+                    case 'last-9-months':
+                        $end = $today->copy()->subMonths(9)->endOfDay();
+                        $between($end->copy()->subMonths(9)->startOfDay(), $end);
+                        break;
+                    case 'other':
+                        $query->where('sales.updated_at', '<', $today->copy()->subMonths(18));
+                        break;
+                    default:
+                        $lastThreeMonths();
+                        break;
+                }
+                break;
+        }
+    }
+
+    /**
+     * Rejected sales (Rejected Sales page): same columns as allClose / emailsClose, but
+     * status 3 and the latest reject audit as the date, matching getRejectedSales().
+     */
+    protected function rejectedSalesExport(bool $allColumns)
+    {
+        $latestAuditSub = DB::table('audits')
+            ->select(DB::raw('MAX(id) as id'))
+            ->where('auditable_type', 'Horsefly\Sale')
+            ->whereIn('message', ['sale-rejected', 'reject'])
+            ->groupBy('auditable_id');
+
+        $columns = ['sales.id', 'offices.office_name', 'units.unit_name', 'sales.sale_postcode'];
+        $columns = array_merge($columns, $allColumns
+            ? ['contacts.contact_name', 'contacts.contact_email', 'contacts.contact_phone', 'contacts.contact_landline', 'contacts.contact_note']
+            : ['contacts.contact_email']);
+        $columns = array_merge($columns, [
+            'job_categories.name as job_category',
+            'sales.job_type',
+            'job_titles.name as job_title',
+            'sales.created_at',
+            'audits.created_at as rejected_date',
+        ]);
+
+        return Sale::select($columns)
+            ->where('sales.status', 3)
+            ->where('sales.is_on_hold', 0)
+            ->leftJoin('offices', 'sales.office_id', '=', 'offices.id')
+            ->leftJoin('units', 'sales.unit_id', '=', 'units.id')
+            ->leftJoin('job_categories', 'sales.job_category_id', '=', 'job_categories.id')
+            ->leftJoin('job_titles', 'sales.job_title_id', '=', 'job_titles.id')
+            ->leftJoin('contacts', function ($join) {
+                $this->constrainVisibleUnitContacts($join);
+            })
+            ->leftJoin('audits', function ($join) use ($latestAuditSub) {
+                $join->on('audits.auditable_id', '=', 'sales.id')
+                    ->where('audits.auditable_type', '=', 'Horsefly\Sale')
+                    ->whereIn('audits.message', ['sale-rejected', 'reject'])
+                    ->whereIn('audits.id', $latestAuditSub);
+            })
+            ->tap(function ($query) {
+                $this->excludeHiddenSaleSources($query);
+                $this->applyListFilters($query);
+            })
+            ->toBase()
+            ->get()
+            ->map(function ($item) use ($allColumns) {
+                $row = [
+                    'created_at' => $item->created_at ? Carbon::parse($item->created_at)->format('d M Y, h:i A') : 'N/A',
+                    'office_name' => ucwords(strtolower((string) $item->office_name)),
+                    'unit_name' => ucwords(strtolower((string) $item->unit_name)),
+                    'sale_postcode' => strtoupper((string) $item->sale_postcode),
+                ];
+
+                if ($allColumns) {
+                    $row['contact_name'] = ucwords(strtolower((string) $item->contact_name));
+                    $row['contact_email'] = $item->contact_email;
+                    $row['contact_phone'] = $item->contact_phone;
+                    $row['contact_landline'] = $item->contact_landline;
+                    $row['contact_note'] = $item->contact_note;
+                } else {
+                    $row['contact_email'] = $item->contact_email;
+                }
+
+                return $row + [
+                    'job_category' => strtoupper((string) $item->job_category),
+                    'job_type' => strtoupper((string) $item->job_type),
+                    'job_title' => strtoupper((string) $item->job_title),
+                    'rejected_date' => $item->rejected_date ? Carbon::parse($item->rejected_date)->format('d M Y, h:i A') : 'N/A',
+                ];
+            });
     }
 
     /**
@@ -853,6 +1012,18 @@ class SalesExport implements FromCollection, WithHeadings
      */
     protected function applyListFilters($query)
     {
+        // Never export private data (users without show-private-data). Runs for every export
+        // type, before the early return below:
+        //  - sales under offices/units with private notes or a hidden job source;
+        //  - for the applicant-based types (rejected_cv, declined, paid ...), applicants
+        //    with a hidden job source.
+        $this->exportExcludeOfficesAndUnits($query);
+
+        $base = method_exists($query, 'getQuery') ? $query->getQuery() : $query;
+        if ($base->from === 'applicants') {
+            $this->exportExcludeSourceColumn($query, 'applicants.job_source_id');
+        }
+
         if ($this->filters === []) {
             return $query;
         }
@@ -942,6 +1113,8 @@ class SalesExport implements FromCollection, WithHeadings
             }
         }
 
+        $this->applyPageDateFilters($query);
+
         $search = trim((string) ($this->filters['search'] ?? ''));
         if ($search !== '') {
             $saleIds = Sale::search($search)->keys()->toArray();
@@ -1002,6 +1175,10 @@ class SalesExport implements FromCollection, WithHeadings
                 return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Name', 'Contact Email', 'Contact Phone', 'Contact Landline', 'Contact Note', 'Job Category', 'Job Type', 'Job Title', 'Open Date'];
             case 'allClose':
                 return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Name', 'Contact Email', 'Contact Phone', 'Contact Landline', 'Contact Note', 'Job Category', 'Job Type', 'Job Title', 'Close Date'];
+            case 'emailsRejected':
+                return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Email', 'Job Category', 'Job Type', 'Job Title', 'Rejected Date'];
+            case 'allRejected':
+                return ['Created At', 'Head Office Name', 'Unit Name', 'Sale Postcode', 'Contact Name', 'Contact Email', 'Contact Phone', 'Contact Landline', 'Contact Note', 'Job Category', 'Job Type', 'Job Title', 'Rejected Date'];
             default:
                 return [];
         }

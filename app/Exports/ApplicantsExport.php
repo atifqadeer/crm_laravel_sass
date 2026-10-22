@@ -9,6 +9,8 @@ use Horsefly\JobTitle;
 
 use App\Traits\HasDistanceCalculation;
 use App\Traits\FiltersRadiusApplicants;
+use App\Exports\Concerns\HidesPrivateExportData;
+use Horsefly\Sale;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +20,7 @@ class ApplicantsExport implements FromCollection, WithHeadings
 {
     use HasDistanceCalculation;
     use FiltersRadiusApplicants;
+    use HidesPrivateExportData;
 
     protected $type;
     protected $radius;
@@ -457,6 +460,12 @@ class ApplicantsExport implements FromCollection, WithHeadings
                     });
                 }
 
+                // Applicants with a hidden job source aren't exported (as in every other type).
+                $this->applyHiddenSources($paidQuery, $sourceIds);
+
+                // Never export paid rows for private sales/offices/units (notes or job source).
+                $this->exportExcludeOfficesAndUnits($paidQuery);
+
                 return $this->applyApplicantListFilters($paidQuery, false);
 
             case 'allNoJob':
@@ -616,7 +625,15 @@ class ApplicantsExport implements FromCollection, WithHeadings
                             ->orWhereNull('sales.job_source_id');
                     });
                 }
+
+                // A hidden sale doesn't count as the nearby open sale.
+                $this->exportExcludeSales($sub, 'sales.id');
             });
+
+        // Never export rows for sales under offices/units with private notes, or whose
+        // CRM note contains a private word (same as the rejected applicants page).
+        $this->exportExcludeSales($query, 'crm_notes.sale_id');
+        $this->excludePrivateNotes($query, 'crm_notes.details');
 
         return $this->applyHiddenSources($query, $sourceIds);
     }
@@ -624,6 +641,12 @@ class ApplicantsExport implements FromCollection, WithHeadings
     private function buildWithinRadiusQuery(array $sourceIds)
     {
         $sale = $this->model_type::find($this->model_id);
+
+        // A hidden sale's nearby applicants are not exported (users without show-private-data).
+        if ($sale instanceof Sale && $this->exportIsPrivateSale($sale->id)) {
+            return Applicant::query()->whereRaw('1 = 0');
+        }
+
         $lat = (float) $sale->lat;
         $lng = (float) $sale->lng;
         $saleId = (int) $this->model_id;

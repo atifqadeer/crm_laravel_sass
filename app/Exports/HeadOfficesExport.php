@@ -4,13 +4,13 @@ namespace App\Exports;
 
 use Horsefly\Office;
 use Horsefly\Contact;
-use App\Traits\HidesPrivateContacts;
+use App\Exports\Concerns\HidesPrivateExportData;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class HeadOfficesExport implements FromCollection, WithHeadings
 {
-    use HidesPrivateContacts;
+    use HidesPrivateExportData;
 
     protected $type;
     protected $filters;
@@ -126,7 +126,7 @@ class HeadOfficesExport implements FromCollection, WithHeadings
         $query->whereNull('offices.deleted_at')
             ->whereNotIn('offices.status', [4, 5]);
 
-        $this->excludePrivateNotes($query, 'offices.office_notes');
+        $this->exportExcludeOffices($query);
 
         $status = strtolower(trim((string) ($this->filters['status_filter'] ?? '')));
         if ($status === 'active') {
