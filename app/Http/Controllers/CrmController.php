@@ -119,6 +119,16 @@ class CrmController extends Controller
         return (new CrmApplicantsTable($query->tab()))->make($query->build(), $query->sorter());
     }
 
+    /** Which of the applicants shown on the CRM page have an unread SMS (polled by crm/list to keep the row blink current). */
+    public function getCrmUnreadMessageApplicants(Request $request)
+    {
+        $ids = array_slice((array) $request->input('applicant_ids', []), 0, 500);
+
+        return response()->json([
+            'applicant_ids' => array_keys(Message::applicantIdsWithUnread($ids)),
+        ]);
+    }
+
     private function commonSelect(): array
     {
         return [

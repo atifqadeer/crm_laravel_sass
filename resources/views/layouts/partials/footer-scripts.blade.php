@@ -284,5 +284,49 @@
     });
 </script>
 
+@auth
+<script>
+    // Attendance: a user who shuts the PC down never logs out, so the server keeps the time the portal was
+    // last in use as the check-out. Sent on page load, then every 5 minutes, but only while the mouse /
+    // keyboard was used in the last 15 minutes (a PC left on with the portal open stops counting).
+    (function () {
+        const url = @json(route('attendance.heartbeat'));
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+        const SEND_EVERY = 5 * 60 * 1000;
+        const IDLE_AFTER = 15 * 60 * 1000;
+        let lastInput = Date.now();
+        let lastSent = 0;
+        let stopped = !token;
+
+        function send() {
+            if (stopped) return;
+            lastSent = Date.now();
+            fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            }).then(function (response) {
+                if (response.status === 401 || response.status === 419) stopped = true; // logged out / session expired
+            }).catch(function () {});
+        }
+
+        ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(function (type) {
+            document.addEventListener(type, function () {
+                lastInput = Date.now();
+                if (lastInput - lastSent >= SEND_EVERY) send(); // back after a break: record it straight away
+            }, { passive: true, capture: true });
+        });
+
+        setInterval(function () {
+            const now = Date.now();
+            if (now - lastInput < IDLE_AFTER && now - lastSent >= SEND_EVERY) send();
+        }, 60 * 1000);
+
+        send();
+    })();
+</script>
+@endauth
+
 @include('layouts.partials/xplosip-widget')
 @yield('script-bottom')

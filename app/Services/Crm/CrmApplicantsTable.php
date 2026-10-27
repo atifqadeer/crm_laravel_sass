@@ -8,6 +8,7 @@ use Closure;
 use Horsefly\EmailTemplate;
 use Horsefly\JobCategory;
 use Horsefly\JobTitle;
+use Horsefly\Message;
 use Horsefly\Setting;
 use Horsefly\SmsTemplate;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,10 +55,19 @@ class CrmApplicantsTable
         );
 
         // Runs on the page rows only, not on the count query.
-        $model->afterQuery(fn ($rows) => $actionMenu->prime($rows));
+        $unreadMessageApplicants = [];
+        $model->afterQuery(function ($rows) use ($actionMenu, &$unreadMessageApplicants) {
+            $actionMenu->prime($rows);
+            $unreadMessageApplicants = Message::applicantIdsWithUnread($rows->pluck('id'));
+        });
 
         // CrmDataTable: same as DataTables::eloquent(), with a lighter filtered-records count.
         return CrmDataTable::create($model)
+            // Applicants with an unread SMS blink in the list (crm/list.blade.php keeps it up to date).
+            ->setRowClass(function ($applicant) use (&$unreadMessageApplicants) {
+                return isset($unreadMessageApplicants[(int) $applicant->id]) ? 'crm-unread-message' : '';
+            })
+            ->setRowAttr(['data-applicant-id' => fn ($applicant) => (int) $applicant->id])
             ->skipTotalRecords()
             // The filtered-count query wraps the whole query in a derived table. Counting
             // only needs the rows, not the ~45 selected columns (several TEXT), so select
