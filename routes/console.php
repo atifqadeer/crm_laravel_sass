@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Log;
                 ->onFailure(function () {
                     Log::error('SendSms command failed.');
                 });
-    
+
     Schedule::command('attendance:auto-checkout')
                 ->hourly()
                 ->withoutOverlapping();
