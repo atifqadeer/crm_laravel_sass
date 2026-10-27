@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\AttendanceController;
 
 use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\HeadOfficeController;
@@ -48,9 +47,6 @@ Route::get('message_receive', [CommunicationController::class, 'messageReceive']
 
 // Route group with authentication middleware
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
-    // Attendance: "still working" ping from the layout, used as check-out when a user never logs out
-    Route::post('attendance/heartbeat', [AttendanceController::class, 'heartbeat'])->name('attendance.heartbeat');
-
     // Click-to-dial collision control — lock a number while an agent calls it
     Route::get('dialing/info',          [DialLockController::class, 'info'])->name('dialing.info');
     Route::post('dialing/acquire',      [DialLockController::class, 'acquire'])->name('dialing.acquire');

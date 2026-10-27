@@ -29,10 +29,6 @@ use Illuminate\Support\Facades\Log;
                     Log::error('SendSms command failed.');
                 });
 
-    Schedule::command('attendance:auto-checkout')
-                ->hourly()
-                ->withoutOverlapping();
-
     Schedule::command('app:update-available-job-status')
                 ->dailyAt('22:00')
                 ->withoutOverlapping()

@@ -12,7 +12,6 @@ use Horsefly\LoginDetail;
 use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Console\Kernel;
 use App\Helpers\PermissionHelper;
-use App\Services\AttendanceTracker;
 use Illuminate\Support\Facades\Log;
 class LoginController extends Controller
 {
@@ -89,10 +88,8 @@ class LoginController extends Controller
                     ->first();
 
                 if ($loginDetail) {
-                    // Logged in again today: keep the first check-in, the day is open again until the next check-out
+                    // Update logout_at to null if already exists for today
                     $loginDetail->logout_at = null;
-                    $loginDetail->checkout_source = null;
-                    $loginDetail->last_activity_at = Carbon::now();
                     $loginDetail->save();
                 } else {
                     // Create new login detail
@@ -100,7 +97,6 @@ class LoginController extends Controller
                         'user_id' => $user->id,
                         'ip_address' => $request->ip(),
                         'login_at' => Carbon::now(),
-                        'last_activity_at' => Carbon::now(),
                     ]);
                 }
 
@@ -166,8 +162,10 @@ class LoginController extends Controller
         $user = Auth::user();
 
         if ($user) {
-            // Check-out on the current day's row (older rows without a logout are closed by attendance:auto-checkout)
-            app(AttendanceTracker::class)->checkout($user);
+            // Update the login_details table with the logout time
+            LoginDetail::where('user_id', $user->id)
+                ->whereNull('logout_at') // Ensure only the active session gets updated
+                ->update(['logout_at' => Carbon::now()]);
         }
 
         // Now it's safe to log the user out
