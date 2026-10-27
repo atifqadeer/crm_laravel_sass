@@ -477,6 +477,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('save-scraper-settings', [SettingController::class, 'saveScraperSettings'])->name('settings.scraper.save');
     Route::delete('delete-scraper-actor/{key}', [SettingController::class, 'deleteScraperActor'])->name('settings.scraper.delete');
     Route::post('run-scraper-actor/{key}', [SettingController::class, 'runScraperActor'])->name('settings.scraper.run');
+    Route::post('settings/version', [SettingController::class, 'saveVersion'])->name('settings.version.save');
 
     Route::post('module-notes/store', [ModuleNotesController::class, 'store'])->name('moduleNotes.store');
     Route::get('getModuleNotesHistory', [ModuleNotesController::class, 'getModuleNotesHistory'])->name('getModuleNotesHistory');
