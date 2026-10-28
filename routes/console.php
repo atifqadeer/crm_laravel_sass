@@ -38,3 +38,7 @@ use Illuminate\Support\Facades\Log;
                 ->onFailure(function () {
                     Log::error('Update to the job availability command failed.');
                 });
+
+    Schedule::command('attachments:purge-deleted')
+                ->hourly()
+                ->withoutOverlapping();

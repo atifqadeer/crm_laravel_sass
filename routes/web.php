@@ -119,6 +119,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('store', [HeadOfficeController::class, 'store'])->name('head-offices.store');
         Route::get('{id}/edit', [HeadOfficeController::class, 'edit'])->name('head-offices.edit');
         Route::post('update', [HeadOfficeController::class, 'update'])->name('head-offices.update');
+        Route::get('{id}/documents', [HeadOfficeController::class, 'documents'])->name('head-offices.documents.index');
+        Route::get('{id}/documents/{documentId}', [HeadOfficeController::class, 'showDocument'])->name('head-offices.documents.show');
+        Route::delete('{id}/documents/{documentId}', [HeadOfficeController::class, 'destroyDocument'])->name('head-offices.documents.destroy');
+        Route::post('{id}/documents/{documentId}/restore', [HeadOfficeController::class, 'restoreDocument'])->name('head-offices.documents.restore');
         Route::post('{id}/toggle-blacklist', [HeadOfficeController::class, 'toggleBlacklist'])->name('head-offices.toggle-blacklist');
         Route::get('{id}', [HeadOfficeController::class, 'officeDetails'])->name('head-offices.details');
     });
@@ -133,6 +137,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('store', [UnitController::class, 'store'])->name('units.store');
         Route::get('{id}/edit', [UnitController::class, 'edit'])->name('units.edit');
         Route::post('update', [UnitController::class, 'update'])->name('units.update');
+        Route::get('{id}/documents', [UnitController::class, 'documents'])->name('units.documents.index');
+        Route::get('{id}/documents/{documentId}', [UnitController::class, 'showDocument'])->name('units.documents.show');
+        Route::delete('{id}/documents/{documentId}', [UnitController::class, 'destroyDocument'])->name('units.documents.destroy');
+        Route::post('{id}/documents/{documentId}/restore', [UnitController::class, 'restoreDocument'])->name('units.documents.restore');
         Route::post('{id}/change-status', [UnitController::class, 'changeUnitStatus'])->name('units.change-status');
         Route::post('{id}/toggle-blacklist', [UnitController::class, 'toggleBlacklist'])->name('units.toggle-blacklist');
         Route::get('{id}', [UnitController::class, 'unitDetails'])->name('units.details');
