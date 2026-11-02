@@ -40,6 +40,18 @@ class DashboardController extends Controller
 {
     use HidesPrivateContacts;
 
+    // "Current Statistics" stat key => bucket produced by currentSaleBucketSql()
+    private const CURRENT_SALE_BUCKETS = [
+        'current_active_sales'          => 'active',
+        'current_reopen_sales'          => 're_open',
+        'current_onhold_sales'          => 'on_hold',
+        'current_pending_onhold_sales'  => 'pending_on_hold',
+        'current_pending_sales'         => 'pending',
+        'current_rejected_sales'        => 'rejected',
+        'current_closed_sales'          => 'closed',
+        'current_blacklisted_sales'     => 'blacklisted',
+    ];
+
     public function __construct()
     {
         $this->middleware('permission:dashboard')->only(['index']);
@@ -337,6 +349,11 @@ class DashboardController extends Controller
                 'close_sales',
             ], 0);
 
+            $current_sales_stats = array_fill_keys(
+                array_merge(['current_total_sales'], array_keys(self::CURRENT_SALE_BUCKETS)),
+                0
+            );
+
             $data_entry_stats = [
                 'applicants_created' => 0,
                 'applicants_updated' => 0,
@@ -412,6 +429,17 @@ class DashboardController extends Controller
                     // 'is_re_open'  => 0,
                     // 'is_on_hold'  => 0,
                 ]);
+
+                // CURRENT STATISTICS — where the sales this user added/updated stand right now
+                $buckets = $this->userHandledSalesQuery($user_id, $startDate, $endDate)
+                    ->selectRaw($this->currentSaleBucketSql() . ' as bucket, COUNT(*) as total')
+                    ->groupBy('bucket')
+                    ->pluck('total', 'bucket');
+
+                foreach (self::CURRENT_SALE_BUCKETS as $key => $bucket) {
+                    $current_sales_stats[$key] = (int) ($buckets[$bucket] ?? 0);
+                }
+                $current_sales_stats['current_total_sales'] = (int) $buckets->sum();
             } elseif ($role_type === 'data_entry') {
 
                 $data_entry_stats['applicants_created'] = Audit::query()
@@ -709,6 +737,7 @@ class DashboardController extends Controller
                 'prev_user_stats'  => $prev_user_stats,
                 'data_entry_stats' => $data_entry_stats,
                 'sales_stats'      => $sales_stats,
+                'current_sales_stats' => $current_sales_stats,
                 'start_date'       => $startDate->format('d M Y'),
                 'end_date'         => $endDate->format('d M Y'),
             ]);
@@ -801,6 +830,57 @@ class DashboardController extends Controller
                         $sale->office->office_name ?? '—',
                         $sale->unit->unit_name     ?? '—',
                         $audit->created_at->format('d M Y h:i A'),
+                    ];
+                }
+
+                /*** current statistics: sales the user added/updated, by their current state */
+            } elseif ($stat_key === 'current_total_sales' || isset(self::CURRENT_SALE_BUCKETS[$stat_key])) {
+
+                $bucketSql = $this->currentSaleBucketSql();
+
+                $sales = $this->userHandledSalesQuery($user_id, $startDate, $endDate)
+                    ->select('sales.*')
+                    ->selectRaw("$bucketSql as bucket")
+                    ->selectSub(
+                        Audit::query()
+                            ->selectRaw('MAX(audits.created_at)')
+                            ->where('auditable_type', 'Horsefly\\Sale')
+                            ->whereColumn('audits.auditable_id', 'sales.id')
+                            ->where('user_id', $user_id)
+                            ->whereBetween('created_at', [$startDate, $endDate]),
+                        'last_action_at'
+                    )
+                    ->when($stat_key !== 'current_total_sales', function ($q) use ($bucketSql, $stat_key) {
+                        $q->whereRaw("$bucketSql = ?", [self::CURRENT_SALE_BUCKETS[$stat_key]]);
+                    })
+                    ->with(['jobCategory', 'jobTitle', 'office', 'unit'])
+                    ->orderByDesc('last_action_at')
+                    ->get();
+
+                $badges = [
+                    'blacklisted'     => ['dark', 'Blacklisted'],
+                    'on_hold'         => ['warning', 'On Hold'],
+                    'pending_on_hold' => ['warning', 'Pending On Hold'],
+                    're_open'         => ['dark', 'Re-Open'],
+                    'active'          => ['success', 'Active'],
+                    'pending'         => ['info', 'Pending'],
+                    'rejected'        => ['danger', 'Rejected'],
+                    'closed'          => ['danger', 'Closed'],
+                ];
+
+                $columns = ['#', 'Job Category', 'Job Title', 'Sale Postcode', 'Office', 'Unit', 'Current Status', 'Last Action'];
+
+                foreach ($sales as $i => $sale) {
+                    [$badgeClass, $badgeText] = $badges[$sale->bucket] ?? ['secondary', 'Other'];
+                    $rows[] = [
+                        $i + 1,
+                        $sale->jobCategory->name   ?? '—',
+                        $sale->jobTitle->name      ?? '—',
+                        $sale->sale_postcode       ?? '—',
+                        $sale->office->office_name ?? '—',
+                        $sale->unit->unit_name     ?? '—',
+                        '<span class="badge bg-' . $badgeClass . '">' . $badgeText . '</span>',
+                        $sale->last_action_at ? Carbon::parse($sale->last_action_at)->format('d M Y h:i A') : '—',
                     ];
                 }
 
@@ -1543,6 +1623,43 @@ class DashboardController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+    /**
+     * Distinct (non-deleted) sales the user created or updated within the range.
+     */
+    private function userHandledSalesQuery($user_id, Carbon $startDate, Carbon $endDate)
+    {
+        $saleIds = Audit::query()
+            ->select('auditable_id')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->where('user_id', $user_id)
+            ->where(function ($q) {
+                $q->where('message', 'LIKE', '%has been created%')
+                    ->orWhere('message', 'LIKE', '%has been updated%');
+            })
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        return Sale::query()->whereIn('sales.id', $saleIds);
+    }
+
+    /**
+     * Current state of a sale, mutually exclusive. Same precedence as the sale
+     * status badge, with blacklisted sales taking priority over everything.
+     */
+    private function currentSaleBucketSql(): string
+    {
+        return "CASE
+            WHEN sales.is_blacklist = 1 THEN 'blacklisted'
+            WHEN sales.status = 1 AND sales.is_on_hold = 1 THEN 'on_hold'
+            WHEN sales.status = 1 AND sales.is_on_hold = 2 THEN 'pending_on_hold'
+            WHEN sales.status = 1 AND sales.is_re_open = 1 THEN 're_open'
+            WHEN sales.status = 1 THEN 'active'
+            WHEN sales.status = 2 THEN 'pending'
+            WHEN sales.status = 3 THEN 'rejected'
+            WHEN sales.status = 0 THEN 'closed'
+            ELSE 'other'
+        END";
+    }
+
     private function processCrmStats($history, array &$crm_stats, $applicant_id, $sale_id, string $start_date, string $end_date): void
     {
         if (isset($history['crm_request_reject']) && $history['crm_request_reject']->status == 1) {

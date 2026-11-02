@@ -1420,6 +1420,27 @@
                         applicants_created: 'user-line-duotone',
                         applicants_updated: 'user-line-duotone',
                         cvs_cleared_reverted: 'restart-line-duotone',
+                        current_total_sales: 'case-round-line-duotone',
+                        current_active_sales: 'check-circle-line-duotone',
+                        current_reopen_sales: 'restart-line-duotone',
+                        current_onhold_sales: 'pause-circle-line-duotone',
+                        current_pending_onhold_sales: 'stopwatch-line-duotone',
+                        current_pending_sales: 'hourglass-line-duotone',
+                        current_rejected_sales: 'close-circle-line-duotone',
+                        current_closed_sales: 'lock-keyhole-line-duotone',
+                        current_blacklisted_sales: 'forbidden-circle-line-duotone',
+                    };
+
+                    const currentSalesColors = {
+                        current_total_sales: 'primary',
+                        current_active_sales: 'success',
+                        current_reopen_sales: 'dark',
+                        current_onhold_sales: 'warning',
+                        current_pending_onhold_sales: 'warning',
+                        current_pending_sales: 'info',
+                        current_rejected_sales: 'danger',
+                        current_closed_sales: 'secondary',
+                        current_blacklisted_sales: 'danger',
                     };
 
                     const prevIcons = {
@@ -1429,17 +1450,27 @@
                     };
 
                     const labelOverrides = {
-                        cvs_cleared_reverted: 'Cleared Reverted'
+                        cvs_cleared_reverted: 'Cleared Reverted',
+                        current_total_sales: 'Total Sales Handled',
+                        current_active_sales: 'Live & Active',
+                        current_reopen_sales: 'Re-Opened',
+                        current_onhold_sales: 'On Hold',
+                        current_pending_onhold_sales: 'Awaiting On-Hold Approval',
+                        current_pending_sales: 'Pending Approval',
+                        current_rejected_sales: 'Rejected',
+                        current_closed_sales: 'Closed',
+                        current_blacklisted_sales: 'Blacklisted',
                     };
 
                     const CARD_COL = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
                     // ── Unified card renderer ─────────────────────────────────────
-                    function renderStatBlock(data, icons, badgeClass) {
+                    function renderStatBlock(data, icons, defaultClass, colors = {}) {
                         let html = `<div class="row g-3">`;
                         Object.entries(data).forEach(([key, value]) => {
-                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const label = labelOverrides[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const icon = icons[key] || 'dot-line-duotone';
+                            const badgeClass = colors[key] || defaultClass;
                             html += `
                                 <div class="${CARD_COL}">
                                     <div class="d-flex align-items-center border rounded p-3 h-100 stat-card-clickable"
@@ -1520,6 +1551,13 @@
                         response.sales_stats && Object.keys(response.sales_stats).length > 0) {
                         notesHtml += '<h6 class="mt-3">Sales Statistics</h6>';
                         notesHtml += renderStatBlock(response.sales_stats, currentIcons, 'primary');
+                    }
+
+                    if (rt === 'sales' &&
+                        response.current_sales_stats && Object.keys(response.current_sales_stats).length > 0) {
+                        notesHtml += '<h6 class="mt-4 mb-1">Current Statistics</h6>';
+                        notesHtml += '<p class="text-muted small mb-2">Where the sales this user added or updated in the selected range stand right now.</p>';
+                        notesHtml += renderStatBlock(response.current_sales_stats, currentIcons, 'primary', currentSalesColors);
                     }
 
                     if ((rt === 'agent' || rt === 'team_lead') &&
