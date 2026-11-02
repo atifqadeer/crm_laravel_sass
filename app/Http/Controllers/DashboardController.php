@@ -367,7 +367,7 @@ class DashboardController extends Controller
 
             if ($role_type === 'sales') {
 
-                $buildStat = function (string $messageLike, array $saleWheres) use ($user_id, $startDate, $endDate) {
+                $buildStat = function (string $messageLike, array $saleWheres, ?string $excludeMessageLike = null) use ($user_id, $startDate, $endDate) {
                     $latestAuditIds = Audit::query()
                         ->selectRaw('MAX(id) as latest_id')
                         ->where('auditable_type', 'Horsefly\\Sale')
@@ -386,6 +386,10 @@ class DashboardController extends Controller
                         $query->where("sales.$column", $value);
                     }
 
+                    if ($excludeMessageLike) {
+                        $this->excludeSalesWithUserAudit($query, $excludeMessageLike, $user_id, $startDate, $endDate);
+                    }
+
                     return $query->count('audits.id');
                 };
 
@@ -400,11 +404,13 @@ class DashboardController extends Controller
                     // 'is_re_open'  => 1,
                 ]);
 
+                // Reopening also logs a "has been updated" audit, so leave out
+                // sales this user reopened in the range (counted in reopen_sales)
                 $sales_stats['updated_sales'] = $buildStat('%has been updated%', [
                     'status'      => 1,
                     // 'is_re_open'  => 0,
                     // 'is_on_hold'  => 0,
-                ]);
+                ], '%open%');
 
                 $sales_stats['pending_sales'] = $buildStat('%has been created%', [
                     'status'      => 2,
@@ -779,7 +785,7 @@ class DashboardController extends Controller
             $salesStatMap = [
                 'open_sales'     => ['message' => '%has been created%'],
                 'reopen_sales'   => ['message' => '%open%'],
-                'updated_sales'  => ['message' => '%has been updated%', 'status' => 1],
+                'updated_sales'  => ['message' => '%has been updated%', 'status' => 1, 'exclude' => '%open%'],
                 'pending_sales'  => ['message' => '%has been created%', 'status' => 2],
                 'onhold_sales'   => ['message' => '%sale-onhold%'],
                 'rejected_sales' => ['message' => '%reject%'],
@@ -812,6 +818,9 @@ class DashboardController extends Controller
                     })
                     ->when(isset($map['is_on_hold']) && !is_null($map['is_on_hold']), function ($q) use ($map) {
                         $q->where('sales.is_on_hold', $map['is_on_hold']);
+                    })
+                    ->when(!empty($map['exclude']), function ($q) use ($map, $user_id, $startDate, $endDate) {
+                        $this->excludeSalesWithUserAudit($q, $map['exclude'], $user_id, $startDate, $endDate);
                     })
                     ->with(['auditable' => fn($q) => $q->with(['jobCategory', 'jobTitle', 'office', 'unit'])])
                     ->select('audits.*')
@@ -1623,6 +1632,19 @@ class DashboardController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+    /**
+     * Drop sales that have an audit matching $messageLike by the same user within the range.
+     */
+    private function excludeSalesWithUserAudit($query, string $messageLike, $user_id, Carbon $startDate, Carbon $endDate): void
+    {
+        $query->whereNotIn('sales.id', Audit::query()
+            ->select('auditable_id')
+            ->where('auditable_type', 'Horsefly\\Sale')
+            ->where('user_id', $user_id)
+            ->where('message', 'LIKE', $messageLike)
+            ->whereBetween('created_at', [$startDate, $endDate]));
+    }
+
     /**
      * Distinct (non-deleted) sales the user created or updated within the range.
      */
