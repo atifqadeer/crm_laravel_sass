@@ -88,6 +88,9 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::post('update', [ApplicantController::class, 'update'])->name('applicants.update');
         Route::post('uploadCv', [ApplicantController::class, 'uploadCv'])->name('applicants.uploadCv');
         Route::post('crmuploadCv', [ApplicantController::class, 'crmuploadCv'])->name('applicants.crmuploadCv');
+        Route::get('draft-files/{synopsisForm}/download', [ApplicantController::class, 'downloadApplicantDraftFile'])
+            ->whereNumber('synopsisForm')
+            ->name('applicants.draft-file.download');
         Route::get('{id}/history', [ApplicantController::class, 'history'])->name('applicants.history');
     });
 
@@ -101,6 +104,9 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('storeShortNotes', [ApplicantController::class, 'storeShortNotes'])->name('storeShortNotes');
     Route::post('markApplicantNoNursingHome', [ApplicantController::class, 'markApplicantNoNursingHome'])->name('markApplicantNoNursingHome');
     Route::post('sendCVtoQuality', [ApplicantController::class, 'sendCVtoQuality'])->name('sendCVtoQuality');
+    Route::post('saveSendCvHangupNote', [ApplicantController::class, 'saveSendCvHangupNote'])->name('saveSendCvHangupNote');
+    Route::get('applicants/cv-questionnaire/{cvNoteId}/download', [ApplicantController::class, 'downloadCvQuestionnaire'])
+        ->name('applicants.cv-questionnaire.download');
     Route::get('getApplicantHistoryAjaxRequest', [ApplicantController::class, 'getApplicantHistoryAjaxRequest'])
         ->name('getApplicantHistoryAjaxRequest');
     Route::get('getApplicantNoNursingHomeNotes', [ApplicantController::class, 'getApplicantNoNursingHomeNotes'])

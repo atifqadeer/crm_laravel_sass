@@ -35,6 +35,19 @@
             /* main red bar */
             z-index: 2;
         }
+
+        .send-cv-existing-fields,
+        .send-cv-existing-fields .form-control,
+        .send-cv-existing-fields .form-check-label {
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .send-cv-questionnaire-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1rem;
+        }
     </style>
     <div class="row">
         <div class="col-lg-12">
@@ -945,7 +958,7 @@
                 $('body').append(
                     '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-labelledby="' + modalId +
                     'Label" aria-hidden="true">' +
-                    '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                    '<div class="modal-dialog modal-md modal-dialog-scrollable modal-dialog-top">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
                     '<h5 class="modal-title" id="' + modalId + 'Label">Add Notes</h5>' +
@@ -1104,11 +1117,11 @@
             if ($('#' + modalID).length === 0) {
                 $('body').append(
                     '<div class="modal fade" id="' + modalID +
-                    '" tabindex="-1" aria-labelledby="sendCVModalLabel" aria-hidden="true">' +
-                    '<div class="modal-dialog modal-lg modal-dialog-top">' +
+                    '" tabindex="-1" aria-labelledby="' + modalID + 'Label" aria-hidden="true">' +
+                    '<div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-top">' +
                     '<div class="modal-content">' +
                     '<div class="modal-header">' +
-                    '<h5 class="modal-title" id="sendCVModalLabel">Fill Out Form To Send CV</h5>' +
+                    '<h5 class="modal-title" id="' + modalID + 'Label">Fill Out Form To Send CV</h5>' +
                     '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                     '</div>' +
                     '<div class="modal-body">' +
@@ -1117,153 +1130,293 @@
                     '<input type="hidden" name="sale_id" value="' + saleID + '">' +
                     '<input type="hidden" name="_token" value="{{ csrf_token() }}">' +
 
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">1.</strong> Current Employer Name</label>' +
-                    '<div class="col-sm-9">' +
-                    '<input type="text" name="current_employer_name" class="form-control" placeholder="Enter Employer Name">' +
+                    '<div data-send-cv-page="2" class="d-none">' +
+                    '<div class="card border-0 shadow-sm mb-4">' +
+                    '<div class="card-header bg-light">' +
+                    '<h6 class="mb-1">Applicant Information</h6>' +
+                    '<small class="text-muted">Add the applicant’s statement for each question.</small>' +
+                    '</div>' +
+                    '<div class="card-body">' +
+                    '<div class="row g-3">' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="nmc_pin_status_' + applicantID + '_' + saleID + '">5. NMC PIN Status</label>' +
+                    '<textarea name="nmc_pin_status" id="nmc_pin_status_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the applicant’s NMC PIN status"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="notice_period_' + applicantID + '_' + saleID + '">6. Notice Period</label>' +
+                    '<textarea name="notice_period" id="notice_period_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the applicant’s notice period"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12">' +
+                    '<label class="form-label d-block">7. Clinical Skills</label>' +
+                    '<div class="row g-2">' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_wound_care_' + applicantID + '_' + saleID + '" value="Wound Care">' +
+                    '<label class="form-check-label" for="clinical_wound_care_' + applicantID + '_' + saleID + '">Wound Care</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">2.</strong> PostCode</label>' +
-                    '<div class="col-sm-9">' +
-                    '<input type="text" name="postcode" class="form-control" placeholder="Enter PostCode" value="' +
-                    applicantPostcode + '">' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_catheterization_' + applicantID + '_' + saleID + '" value="Catheterization">' +
+                    '<label class="form-check-label" for="clinical_catheterization_' + applicantID + '_' + saleID + '">Catheterization</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">3.</strong> Current/Expected Salary</label>' +
-                    '<div class="col-sm-9">' +
-                    '<input type="number" name="expected_salary" class="form-control" placeholder="Enter Salary">' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_venepuncture_' + applicantID + '_' + saleID + '" value="Venepuncture">' +
+                    '<label class="form-check-label" for="clinical_venepuncture_' + applicantID + '_' + saleID + '">Venepuncture</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">4.</strong> Qualification</label>' +
-                    '<div class="col-sm-9">' +
-                    '<input type="text" name="qualification" class="form-control" placeholder="Enter Qualification">' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_peg_feeding_' + applicantID + '_' + saleID + '" value="PEG Feeding">' +
+                    '<label class="form-check-label" for="clinical_peg_feeding_' + applicantID + '_' + saleID + '">PEG Feeding</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">5.</strong> Transport Type</label>' +
-                    '<div class="col-sm-9 d-flex align-items-center">' +
-                    '<div class="form-check form-check-inline">' +
-                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="by_walk" value="By Walk"><label class="form-check-label" for="by_walk">By Walk</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline">' +
-                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="cycle" value="Cycle">' +
-                    '<label class="form-check-label" for="cycle">Cycle</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline ml-3">' +
-                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="car" value="Car">' +
-                    '<label class="form-check-label" for="car">Car</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline ml-3">' +
-                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="public_transport" value="Public Transport">' +
-                    '<label class="form-check-label" for="public_transport">Public Transport</label>' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_tracheostomy_care_' + applicantID + '_' + saleID + '" value="Tracheostomy Care">' +
+                    '<label class="form-check-label" for="clinical_tracheostomy_care_' + applicantID + '_' + saleID + '">Tracheostomy Care</label>' +
                     '</div>' +
                     '</div>' +
-                    '</div>' +
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">6.</strong> Shift Pattern</label>' +
-                    '<div class="col-sm-9 d-flex align-items-center">' +
-                    '<div class="form-check form-check-inline">' +
-                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="day" value="Day">' +
-                    '<label class="form-check-label" for="day">Day</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline">' +
-                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="night" value="Night">' +
-                    '<label class="form-check-label" for="night">Night</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline ml-3">' +
-                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="full_time" value="Full Time">' +
-                    '<label class="form-check-label" for="full_time">Full Time</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline ml-3">' +
-                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="part_time" value="Part Time">' +
-                    '<label class="form-check-label" for="part_time">Part Time</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline ml-3">' +
-                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="twenty_four_hours" value="24 hours">' +
-                    '<label class="form-check-label" for="twenty_four_hours">24 Hours</label>' +
-                    '</div>' +
-                    '<div class="form-check form-check-inline">' +
-                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="day_night" value="Day/Night">' +
-                    '<label class="form-check-label" for="day_night">Day/Night</label>' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_suctioning_' + applicantID + '_' + saleID + '" value="Suctioning">' +
+                    '<label class="form-check-label" for="clinical_suctioning_' + applicantID + '_' + saleID + '">Suctioning</label>' +
                     '</div>' +
                     '</div>' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_dementia_care_' + applicantID + '_' + saleID + '" value="Dementia Care">' +
+                    '<label class="form-check-label" for="clinical_dementia_care_' + applicantID + '_' + saleID + '">Dementia Care</label>' +
                     '</div>' +
-                    '<div class="form-group row">' +
-                    '<label class="col-form-label col-sm-3"><strong style="font-size:18px">7.</strong> Visa Status</label>' +
-                    '<div class="col-sm-9 d-flex align-items-center">' +
-                    '<div class="d-flex">' +
-                    '<div class="form-check form-check-inline">' +
-                    '<input type="radio" name="visa_status" id="british" class="form-check-input" value="British">' +
-                    '<label class="form-check-label" for="british">British</label>' +
                     '</div>' +
-                    '<div class="form-check form-check-inline ml-3">' +
-                    '<input type="radio" name="visa_status" id="required_sponsorship" class="form-check-input" value="Required Sponsorship">' +
-                    '<label class="form-check-label" for="required_sponsorship">Required Sponsorship</label>' +
+                    '<div class="col-6 col-md-3">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="clinical_skills[]" id="clinical_palliative_care_' + applicantID + '_' + saleID + '" value="Palliative Care">' +
+                    '<label class="form-check-label" for="clinical_palliative_care_' + applicantID + '_' + saleID + '">Palliative Care</label>' +
                     '</div>' +
                     '</div>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group row">' +
-                    '<div class="col-6 my-2">' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="visa_status_' + applicantID + '_' + saleID + '">8. Visa Status</label>' +
+                    '<textarea name="visa_status" id="visa_status_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the applicant’s visa status"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="dbs_convictions_' + applicantID + '_' + saleID + '">9. Convictions on DBS</label>' +
+                    '<textarea name="dbs_convictions" id="dbs_convictions_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s statement"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="expected_hourly_rate_' + applicantID + '_' + saleID + '">10. Expected Hourly Rate</label>' +
+                    '<textarea name="expected_hourly_rate" id="expected_hourly_rate_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the expected hourly rate"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="holidays_booked_' + applicantID + '_' + saleID + '">11. Holidays Booked</label>' +
+                    '<textarea name="holidays_booked" id="holidays_booked_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record any holidays already booked"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="reasons_for_job_change_' + applicantID + '_' + saleID + '">12. Reasons for Job Change</label>' +
+                    '<textarea name="reasons_for_job_change" id="reasons_for_job_change_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s reasons"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="nursing_experience_years_' + applicantID + '_' + saleID + '">13. Years of Experience as a Nurse</label>' +
+                    '<textarea name="nursing_experience_years" id="nursing_experience_years_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter years of experience"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="nursing_home_experience_' + applicantID + '_' + saleID + '">14. Years of Experience as a Nurse in Nursing Home</label>' +
+                    '<textarea name="nursing_home_experience" id="nursing_home_experience_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s nursing home experience"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="manager_rota_' + applicantID + '_' + saleID + '">15. Working According to the Manager’s Rota</label>' +
+                    '<textarea name="manager_rota" id="manager_rota_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s response"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="current_dbs_status_' + applicantID + '_' + saleID + '">16. Current DBS Status</label>' +
+                    '<textarea name="current_dbs_status" id="current_dbs_status_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the current DBS status"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="expected_salary_' + applicantID + '_' + saleID + '">17. Expected Salary</label>' +
+                    '<textarea name="expected_salary" id="expected_salary_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the expected salary"></textarea>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6">' +
+                    '<label class="form-label" for="qualification_' + applicantID + '_' + saleID + '">18. Qualification</label>' +
+                    '<textarea name="qualification" id="qualification_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the qualification"></textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div data-send-cv-page="1">' +
+                    '<div class="card border-0 shadow-sm mb-4">' +
+                    '<div class="card-header bg-light">' +
+                    '<h6 class="mb-1">First Information</h6>' +
+                    '<small class="text-muted">Add transport, shift, and availability details.</small>' +
+                    '</div>' +
+                    '<div class="card-body send-cv-existing-fields">' +
+                    '<div class="row g-3">' +
+                    '<div class="col-12">' +
+                    '<label class="form-label d-block">1. Transport Type</label>' +
+                    '<div class="send-cv-questionnaire-options">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="by_walk_' + applicantID + '_' + saleID + '" value="By Walk"><label class="form-check-label" for="by_walk_' + applicantID + '_' + saleID + '">By Walk</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="cycle_' + applicantID + '_' + saleID + '" value="Cycle">' +
+                    '<label class="form-check-label" for="cycle_' + applicantID + '_' + saleID + '">Cycle</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="car_' + applicantID + '_' + saleID + '" value="Car">' +
+                    '<label class="form-check-label" for="car_' + applicantID + '_' + saleID + '">Car</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="transport_type[]" id="public_transport_' + applicantID + '_' + saleID + '" value="Public Transport">' +
+                    '<label class="form-check-label" for="public_transport_' + applicantID + '_' + saleID + '">Public Transport</label>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-12">' +
+                    '<label class="form-label d-block">2. Shift Pattern</label>' +
+                    '<div class="send-cv-questionnaire-options">' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="day_' + applicantID + '_' + saleID + '" value="Day">' +
+                    '<label class="form-check-label" for="day_' + applicantID + '_' + saleID + '">Day</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="night_' + applicantID + '_' + saleID + '" value="Night">' +
+                    '<label class="form-check-label" for="night_' + applicantID + '_' + saleID + '">Night</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="full_time_' + applicantID + '_' + saleID + '" value="Full Time">' +
+                    '<label class="form-check-label" for="full_time_' + applicantID + '_' + saleID + '">Full Time</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="part_time_' + applicantID + '_' + saleID + '" value="Part Time">' +
+                    '<label class="form-check-label" for="part_time_' + applicantID + '_' + saleID + '">Part Time</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="twenty_four_hours_' + applicantID + '_' + saleID + '" value="24 hours">' +
+                    '<label class="form-check-label" for="twenty_four_hours_' + applicantID + '_' + saleID + '">24 Hours</label>' +
+                    '</div>' +
+                    '<div class="form-check">' +
+                    '<input class="form-check-input" type="checkbox" name="shift_pattern[]" id="day_night_' + applicantID + '_' + saleID + '" value="Day/Night">' +
+                    '<label class="form-check-label" for="day_night_' + applicantID + '_' + saleID + '">Day/Night</label>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="form-group row mb-2">' +
+
+                    '<div class="col-12">' +
+                    '<div class="row g-3 mt-2">' +
+                    '<div class="col-12 col-sm-6">' +
+                    '<label class="form-label" for="interview_option_1_' + applicantID + '_' + saleID + '">3. Interview Availability Same Week</label>' +
+                    '<input class="form-control" type="datetime-local" name="interview_option_1" id="interview_option_1_' + applicantID + '_' + saleID + '" required>' +
+                    '</div>' +
+                    '<div class="col-12 col-sm-6">' +
+                    '<label class="form-label" for="interview_option_2_' + applicantID + '_' + saleID + '">4. Interview Availability Next Week</label>' +
+                    '<input class="form-control" type="datetime-local" name="interview_option_2" id="interview_option_2_' + applicantID + '_' + saleID + '" required>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-12 col-sm-6 my-2">' +
                     '<div class="form-check form-switch">' +
-                    '<input class="form-check-input" type="checkbox" role="switch" ' +
-                    'name="nursing_home" ' +
-                    'id="nursing_home_checkbox" ' +
-                    (applicantNursingHomeExp == 1 ? 'checked ' : '') +
-                    'value="on">' +
-                    '<label class="form-check-label" for="nursing_home_checkbox">Nursing Home</label>' +
+                    '<input class="form-check-input" type="checkbox" name="hangup_call" role="switch" id="hangup_call_checkbox_' + applicantID + '_' + saleID + '" value="1">' +
+                    '<label class="form-check-label" for="hangup_call_checkbox_' + applicantID + '_' + saleID + '">Call Hung up/Not Interested</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="col-6 my-2">' +
+                    '<div class="col-12 col-sm-6 my-2">' +
                     '<div class="form-check form-switch">' +
-                    '<input class="form-check-input" type="checkbox" role="switch" name="alternate_weekend" id="alternate_weekend_checkbox">' +
-                    '<label class="form-check-label" for="alternate_weekend_checkbox">Alternate Weekend</label>' +
+                    '<input class="form-check-input" type="checkbox" role="switch" name="no_job" id="no_job_checkbox_' + applicantID + '_' + saleID + '" value="1">' +
+                    '<label class="form-check-label" for="no_job_checkbox_' + applicantID + '_' + saleID + '">No Job</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="col-6 my-2">' +
-                    '<div class="form-check form-switch">' +
-                    '<input class="form-check-input" type="checkbox" role="switch" name="interview_availability" id="interview_availability_checkbox">' +
-                    '<label class="form-check-label" for="interview_availability_checkbox">Interview Availability</label>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="col-6 my-2">' +
-                    '<div class="form-check form-switch">' +
-                    '<input class="form-check-input" type="checkbox" role="switch" name="no_job" id="no_job_checkbox" onclick="handleCheckboxClick(\'no_job_checkbox\', \'hangup_call_checkbox\')">' +
-                    '<label class="form-check-label" for="no_job_checkbox">No Job</label>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="col-6 my-2">' +
-                    '<div class="form-check form-switch">' +
-                    '<input class="form-check-input" type="checkbox" name="hangup_call" role="switch" id="hangup_call_checkbox" onclick="handleCheckboxClick(\'hangup_call_checkbox\', \'no_job_checkbox\')">' +
-                    '<label class="form-check-label" for="hangup_call_checkbox">Call Hung up/Not Interested</label>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="form-group">' +
-                    '<label class="col-form-label col-sm-12" for="note_details">Other Details <span class="text-danger">*</span></label>' +
+                    '<div class="form-group mb-0">' +
+                    '<label class="col-form-label col-sm-12" for="note_details_' + applicantID + '_' + saleID + '">Other Details <span class="text-danger" data-details-required-indicator>*</span></label>' +
                     '<div class="col-sm-12">' +
-                    '<textarea name="details" id="note_details" class="form-control" cols="30" rows="4" placeholder="Type here ..." required></textarea>' +
+                    '<textarea name="details" id="note_details_' + applicantID + '_' + saleID + '" class="form-control" cols="30" rows="4" placeholder="Type here ..." required></textarea>' +
+                    '</div>' +
+                    '</div>' +
                     '</div>' +
                     '</div>' +
                     '</form>' +
                     '</div>' +
                     '<div class="modal-footer">' +
                     '<button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>' +
+                    '<button type="button" class="btn btn-outline-secondary d-none" id="backCVBtn_' + applicantID + '_' + saleID + '">Back</button>' +
                     '<button type="button" class="btn btn-success" id="saveCVBtn_' + applicantID + '_' + saleID +
-                    '">Save</button>' +
+                    '">Next</button>' +
                     '</div>' +
                     '</div>' +
                     '</div>' +
                     '</div>'
                 );
+                const formElement = $('#' + formID);
+                const pageOne = formElement.find('[data-send-cv-page="1"]');
+                const pageTwo = formElement.find('[data-send-cv-page="2"]');
+                const submitButton = $('#saveCVBtn_' + applicantID + '_' + saleID);
+                const backButton = $('#backCVBtn_' + applicantID + '_' + saleID);
+                const hangupCall = formElement.find('[name="hangup_call"]');
+                const noJob = formElement.find('[name="no_job"]');
+                const detailsField = formElement.find('[name="details"]');
+                let currentPage = 1;
+                const isShortcutSubmission = function() {
+                    return hangupCall.is(':checked') || noJob.is(':checked');
+                };
+
+                const showPageOne = function() {
+                    currentPage = 1;
+                    pageOne.removeClass('d-none');
+                    pageTwo.addClass('d-none');
+                    backButton.addClass('d-none');
+                    submitButton.text(isShortcutSubmission() ? 'Submit' : 'Next');
+                };
+                const showPageTwo = function() {
+                    currentPage = 2;
+                    pageOne.addClass('d-none');
+                    pageTwo.removeClass('d-none');
+                    backButton.removeClass('d-none');
+                    submitButton.text('Submit');
+                };
+                const updateShortcutNavigation = function() {
+                    const isShortcut = isShortcutSubmission();
+                    detailsField.prop('required', !isShortcut);
+                    formElement.find('[data-details-required-indicator]')
+                        .toggleClass('d-none', isShortcut);
+                    if (isShortcut) {
+                        showPageOne();
+                        pageTwo.find('.is-invalid').removeClass('is-invalid');
+                        pageTwo.find('.invalid-feedback').remove();
+                    } else if (currentPage === 2) {
+                        submitButton.text('Submit');
+                    } else {
+                        submitButton.text('Next');
+                    }
+                };
+
+                backButton.off('click').on('click', showPageOne);
+                formElement.off('change', '[name="no_job"], [name="hangup_call"]').on('change',
+                    '[name="no_job"], [name="hangup_call"]',
+                    function() {
+                        if (this.checked) {
+                            formElement.find('[name="no_job"], [name="hangup_call"]').not(this).prop('checked', false);
+                        }
+                        updateShortcutNavigation();
+                    });
+
                 // Handle save button click - using event delegation
                 $(document).off('click', '#saveCVBtn_' + applicantID + '_' + saleID).on('click', '#saveCVBtn_' +
                     applicantID + '_' + saleID,
                     function() {
                         const form = $('#' + formID);
+                        const isHangupCall = hangupCall.is(':checked');
+                        const isShortcut = isShortcutSubmission();
+                        if (!isShortcut && currentPage === 1) {
+                            showPageTwo();
+                            return;
+                        }
+
                         const notes = form.find('[name="details"]').val();
                         let isValid = true;
 
@@ -1272,25 +1425,39 @@
                         form.find('.invalid-feedback').remove();
 
                         // Validate required fields
-                        if (!notes) {
+                        if (!isShortcut && !notes) {
                             form.find('[name="details"]').addClass('is-invalid')
                                 .after('<div class="invalid-feedback">Please enter note details.</div>');
                             isValid = false;
                         }
 
+                        if (!isShortcut) {
+                            ['interview_option_1', 'interview_option_2'].forEach(function(fieldName) {
+                                const field = form.find('[name="' + fieldName + '"]');
+                                if (!field.val()) {
+                                    field.addClass('is-invalid')
+                                        .after('<div class="invalid-feedback">Please select ' +
+                                            (fieldName === 'interview_option_1' ? 'Interview Availability Same Week.' : 'Interview Availability Next Week.') +
+                                            '</div>');
+                                    isValid = false;
+                                }
+                            });
+                        }
+
                         // Validate at least one transport type is selected
-                        if (form.find('[name="transport_type[]"]:checked').length === 0) {
-                            form.find('[name="transport_type[]"]').first().closest('.form-group').find('.col-sm-9')
+                        if (!isShortcut && form.find('[name="transport_type[]"]:checked').length === 0) {
+                            form.find('[name="transport_type[]"]').first().closest('.col-12')
                                 .append(
                                     '<div class="invalid-feedback d-block">Please select at least one transport type.</div>'
                                 );
                             isValid = false;
                         }
 
-                        // Validate visa status is selected
-                        if (!form.find('[name="visa_status"]:checked').val()) {
-                            form.find('[name="visa_status"]').first().closest('.form-group').find('.col-sm-9')
-                                .append('<div class="invalid-feedback d-block">Please select visa status.</div>');
+                        // Validate visa status is provided
+                        const visaStatus = form.find('[name="visa_status"]');
+                        if (!isShortcut && !visaStatus.val().trim()) {
+                            visaStatus.addClass('is-invalid')
+                                .after('<div class="invalid-feedback">Please enter visa status.</div>');
                             isValid = false;
                         }
 
@@ -1307,7 +1474,8 @@
 
                         // Submit form via AJAX
                         $.ajax({
-                            url: '{{ route('sendCVtoQuality') }}',
+                            url: isShortcut ? '{{ route('saveSendCvHangupNote') }}' :
+                                '{{ route('sendCVtoQuality') }}',
                             type: 'POST',
                             data: form.serialize(),
                             success: function(response) {
@@ -1337,7 +1505,14 @@
 
             // Reset form when modal shows
             $('#' + modalID).on('show.bs.modal', function() {
-                $(this).find('form')[0].reset();
+                const form = $(this).find('form');
+                form[0].reset();
+                form.find('[data-send-cv-page="1"]').removeClass('d-none');
+                form.find('[data-send-cv-page="2"]').addClass('d-none');
+                form.find('[name="details"]').prop('required', true);
+                form.find('[data-details-required-indicator]').removeClass('d-none');
+                $('#backCVBtn_' + applicantID + '_' + saleID).addClass('d-none');
+                $('#saveCVBtn_' + applicantID + '_' + saleID).text('Next');
                 $(this).find('.is-invalid').removeClass('is-invalid');
                 $(this).find('.invalid-feedback').remove();
             });

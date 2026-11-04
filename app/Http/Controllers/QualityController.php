@@ -112,6 +112,7 @@ class QualityController extends Controller
         $qualityResourceTabs = $this->allowedQualityResourceTabs();
         $defaultQualityResourceTab = array_key_first($qualityResourceTabs) ?? '';
         $defaultQualityResourceTabLabel = $qualityResourceTabs[$defaultQualityResourceTab] ?? 'Requested CVs';
+        $canShowDraftFile = Gate::allows('applicant-show-draft-file');
 
         return view('quality.resources', compact(
             'jobCategories',
@@ -119,7 +120,8 @@ class QualityController extends Controller
             'jobSources',
             'qualityResourceTabs',
             'defaultQualityResourceTab',
-            'defaultQualityResourceTabLabel'
+            'defaultQualityResourceTabLabel',
+            'canShowDraftFile'
         ));
     }
     public function saleIndex()
@@ -174,6 +176,8 @@ class QualityController extends Controller
         if ($statusFilter === '' || !isset($allowedTabs[$statusFilter])) {
             abort(403, 'You do not have permission to view this quality resources tab.');
         }
+
+        $canShowDraftFile = Gate::allows('applicant-show-draft-file');
 
         $commonSaleSelect = [
             'offices.office_name as office_name',
@@ -263,6 +267,9 @@ class QualityController extends Controller
         $this->excludePrivateQualityDecisionNotes($model, $statusFilter);
 
         $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'status')]);
+        if ($canShowDraftFile) {
+            $model->with(['synopsisForms' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'file_url', 'created_at')->orderByDesc('created_at')]);
+        }
 
         $model
             ->when($categoryFilter, fn($q) => $q->whereIn('applicants.job_category_id', $categoryFilter))
@@ -406,9 +413,30 @@ class QualityController extends Controller
             })
             ->editColumn('applicant_resume', fn($row) => $this->renderResumeLink($row->applicant_cv, $row->is_blocked, 'success'))
             ->addColumn('crm_resume', fn($row) => $this->renderResumeLink($row->updated_cv, $row->is_blocked, 'primary'))
+            ->addColumn('draft_file', function ($row) use ($canShowDraftFile) {
+                if (!$canShowDraftFile) {
+                    return '-';
+                }
+
+                $saleSynopsisForms = $row->synopsisForms->where('sale_id', $row->sale_id);
+                if ($saleSynopsisForms->isEmpty()) {
+                    return '-';
+                }
+
+                return $saleSynopsisForms->values()->map(function ($synopsisForm, $index) {
+                    $url = route('applicants.draft-file.download', (int) $synopsisForm->id);
+                    $date = $synopsisForm->created_at ? Carbon::parse($synopsisForm->created_at)->format('d M Y, h:i A') : '';
+                    $label = 'Download synopsis form ' . ($index + 1) . ($date !== '' ? ' (' . $date . ')' : '');
+
+                    return '<a class="d-inline-flex align-items-center me-1 mb-1" href="' . e($url) .
+                        '" title="' . e($label) . '" aria-label="' . e($label) . '">' .
+                        '<iconify-icon icon="solar:document-text-bold-duotone" class="text-primary fs-24"></iconify-icon>' .
+                        '</a>';
+                })->implode('');
+            })
             ->addColumn('customStatus', fn($row) => $this->renderCustomStatus($row))
             ->addColumn('action', fn($row) => $this->renderActionMenu($row, $statusFilter))
-            ->rawColumns(['notes_detail', 'applicant_name', 'notes_created_at', 'job_details', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'sale_job_source', 'action'])
+            ->rawColumns(['notes_detail', 'applicant_name', 'notes_created_at', 'job_details', 'sale_postcode', 'applicantEmail', 'applicant_postcode', 'crm_resume', 'draft_file', 'applicantPhone', 'job_title', 'applicant_resume', 'customStatus', 'job_category', 'sale_job_source', 'action'])
             ->make(true);
     }
 
