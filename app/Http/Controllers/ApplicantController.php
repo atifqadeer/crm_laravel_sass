@@ -82,7 +82,7 @@ class ApplicantController extends Controller
             'saveSendCvHangupNote',
             'downloadCvQuestionnaire',
         ]);
-        $this->middleware('permission:applicant-show-draft-file')->only(['downloadApplicantDraftFile']);
+        $this->middleware('permission:applicant-show-synopsis-forms')->only(['downloadApplicantDraftFile']);
     }
 
     /**

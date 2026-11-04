@@ -112,7 +112,7 @@ class QualityController extends Controller
         $qualityResourceTabs = $this->allowedQualityResourceTabs();
         $defaultQualityResourceTab = array_key_first($qualityResourceTabs) ?? '';
         $defaultQualityResourceTabLabel = $qualityResourceTabs[$defaultQualityResourceTab] ?? 'Requested CVs';
-        $canShowDraftFile = Gate::allows('applicant-show-draft-file');
+        $canShowSynopsisForms = Gate::allows('applicant-show-synopsis-forms');
 
         return view('quality.resources', compact(
             'jobCategories',
@@ -121,7 +121,7 @@ class QualityController extends Controller
             'qualityResourceTabs',
             'defaultQualityResourceTab',
             'defaultQualityResourceTabLabel',
-            'canShowDraftFile'
+            'canShowSynopsisForms'
         ));
     }
     public function saleIndex()
@@ -177,7 +177,7 @@ class QualityController extends Controller
             abort(403, 'You do not have permission to view this quality resources tab.');
         }
 
-        $canShowDraftFile = Gate::allows('applicant-show-draft-file');
+        $canShowSynopsisForms = Gate::allows('applicant-show-synopsis-forms');
 
         $commonSaleSelect = [
             'offices.office_name as office_name',
@@ -267,7 +267,7 @@ class QualityController extends Controller
         $this->excludePrivateQualityDecisionNotes($model, $statusFilter);
 
         $model->with(['cv_notes' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'status')]);
-        if ($canShowDraftFile) {
+        if ($canShowSynopsisForms) {
             $model->with(['synopsisForms' => fn($q) => $q->select('id', 'applicant_id', 'sale_id', 'file_url', 'created_at')->orderByDesc('created_at')]);
         }
 
@@ -413,8 +413,8 @@ class QualityController extends Controller
             })
             ->editColumn('applicant_resume', fn($row) => $this->renderResumeLink($row->applicant_cv, $row->is_blocked, 'success'))
             ->addColumn('crm_resume', fn($row) => $this->renderResumeLink($row->updated_cv, $row->is_blocked, 'primary'))
-            ->addColumn('draft_file', function ($row) use ($canShowDraftFile) {
-                if (!$canShowDraftFile) {
+            ->addColumn('draft_file', function ($row) use ($canShowSynopsisForms) {
+                if (!$canShowSynopsisForms) {
                     return '-';
                 }
 

@@ -242,7 +242,7 @@
                                     <th>PostCode (Sale)</th>
                                     <th>Source (Sale)</th>
                                     <th width="10%">Notes</th>
-                                    @if ($canShowDraftFile)
+                                    @if ($canShowSynopsisForms)
                                         <th>Synopsis Form</th>
                                     @endif
                                     <th>Action</th>
@@ -420,7 +420,7 @@
                     title: 'Notes',
                     default: true
                 },
-                @if ($canShowDraftFile)
+                @if ($canShowSynopsisForms)
                     {
                         title: 'Synopsis Form',
                         default: true
@@ -625,7 +625,7 @@
                         orderable: false,
                         searchable: false
                     },
-                    @if ($canShowDraftFile)
+                    @if ($canShowSynopsisForms)
                         {
                             data: 'draft_file',
                             name: 'draft_file',
