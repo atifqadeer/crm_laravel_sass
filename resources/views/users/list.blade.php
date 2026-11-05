@@ -94,6 +94,7 @@
                                     <th>#</th>
                                     <th>Date</th>
                                     <th>Name</th>
+                                    <th>Pseudo Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
                                     <th>Status</th>
@@ -361,6 +362,7 @@
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'created_at', name: 'users.created_at' },
                     { data: 'name', name: 'users.name'  },
+                    { data: 'pseudo_name', name: 'users.pseudo_name', defaultContent: '-' },
                     { data: 'email', name: 'users.email' },
                     { data: 'role_name', name: 'roles.name' },
                     { data: 'is_active', name: 'users.is_active', orderable: false },
