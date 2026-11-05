@@ -2730,6 +2730,7 @@ class ApplicantController extends Controller
                 'notice_period' => 'nullable|string|max:2000',
                 'clinical_skills' => 'nullable|array',
                 'clinical_skills.*' => 'string|in:Wound Care,Catheterization,Venepuncture,PEG Feeding,Tracheostomy Care,Suctioning,Dementia Care,Palliative Care',
+                'category' => 'nullable|string|in:Nurse,Non Nurse',
                 'dbs_convictions' => 'nullable|string|max:2000',
                 'expected_hourly_rate' => 'nullable|string|max:2000',
                 'holidays_booked' => 'nullable|string|max:2000',
@@ -3019,22 +3020,30 @@ class ApplicantController extends Controller
                 (string) $request->input($field)
             )->format('d M Y, H:i');
         };
+        $isNonNurse = $request->input('category') === 'Non Nurse';
+        $yearsOfExperienceLabel = $isNonNurse
+            ? '13. Years of Experience'
+            : '13. Years of Experience as a Nurse';
+        $careExperienceLabel = $isNonNurse
+            ? '14. Years of Experience as a Carer, care assistant or support worker'
+            : '14. Years of Experience as a Nurse in Nursing Home';
 
-        return [
+        $questionnaire = [
             '1. Transport Type' => $answer($request->input('transport_type', [])),
             '2. Shift Pattern' => $answer($request->input('shift_pattern', [])),
             '3. Interview Availability Same Week' => $interviewOption('interview_option_1'),
             '4. Interview Availability Next Week' => $interviewOption('interview_option_2'),
-            '5. NMC PIN Status' => $answer($request->input('nmc_pin_status')),
+            'Category' => $answer($request->input('category')),
+            '5. NMC PIN Status' => $isNonNurse ? 'Not applicable' : $answer($request->input('nmc_pin_status')),
             '6. Notice Period' => $answer($request->input('notice_period')),
-            '7. Clinical Skills' => $answer($request->input('clinical_skills', [])),
+            '7. Clinical Skills' => $isNonNurse ? 'Not applicable' : $answer($request->input('clinical_skills', [])),
             '8. Visa Status' => $answer($request->input('visa_status')),
             '9. Convictions on DBS' => $answer($request->input('dbs_convictions')),
             '10. Expected Hourly Rate' => $answer($request->input('expected_hourly_rate')),
             '11. Holidays Booked' => $answer($request->input('holidays_booked')),
             '12. Reasons for Job Change' => $answer($request->input('reasons_for_job_change')),
-            '13. Years of Experience as a Nurse' => $answer($request->input('nursing_experience_years')),
-            '14. Years of Experience as a Nurse in Nursing Home' => $answer($request->input('nursing_home_experience')),
+            $yearsOfExperienceLabel => $answer($request->input('nursing_experience_years')),
+            $careExperienceLabel => $answer($request->input('nursing_home_experience')),
             '15. Working According to the Manager\'s Rota' => $answer($request->input('manager_rota')),
             '16. Current DBS Status' => $answer($request->input('current_dbs_status')),
             '17. Expected Salary' => $answer($request->input('expected_salary')),
@@ -3043,6 +3052,28 @@ class ApplicantController extends Controller
             '22. Call Hung up/Not Interested' => $request->boolean('hangup_call') ? 'Yes' : 'No',
             'Other Details' => $answer($request->input('details')),
         ];
+
+        if ($isNonNurse) {
+            unset($questionnaire['5. NMC PIN Status'], $questionnaire['7. Clinical Skills']);
+
+            $renumberedQuestionnaire = [];
+            $questionNumber = 5;
+            foreach ($questionnaire as $label => $value) {
+                if (
+                    preg_match('/^(\d+)\.\s/', $label, $matches)
+                    && (int) $matches[1] >= 5
+                    && (int) $matches[1] <= 18
+                ) {
+                    $label = preg_replace('/^\d+\./', $questionNumber++ . '.', $label);
+                }
+
+                $renumberedQuestionnaire[$label] = $value;
+            }
+
+            return $renumberedQuestionnaire;
+        }
+
+        return $questionnaire;
     }
 
     private function buildSendCvShortcutQuestionnaire(Request $request): array

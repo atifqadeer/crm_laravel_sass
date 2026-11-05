@@ -122,9 +122,15 @@
                 <div class="modal-body">
                     <form id="createUserForm">
                         @csrf
-                        <div class="mb-3">
-                            <label for="userName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="userName" name="name" placeholder="Enter Full Name" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="userName" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="userName" name="name" placeholder="Enter Full Name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="userPseudoName" class="form-label">Pseudo Name</label>
+                                <input type="text" class="form-control" id="userPseudoName" name="pseudo_name" placeholder="Enter Pseudo Name">
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="userEmail" class="form-label">Email</label>
@@ -179,9 +185,15 @@
                     <form id="editUserForm">
                         @csrf
                         <input type="hidden" id="userId" name="id">
-                        <div class="mb-3">
-                            <label for="editUserName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="editUserName" name="name" placeholder="Enter Full Name" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editUserName" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="editUserName" name="name" placeholder="Enter Full Name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editUserPseudoName" class="form-label">Pseudo Name</label>
+                                <input type="text" class="form-control" id="editUserPseudoName" name="pseudo_name" placeholder="Enter Pseudo Name">
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="editUserEmail" class="form-label">Email</label>
@@ -533,9 +545,10 @@
             const saveEditBtn = $('#saveEditUserButton');
 
             // Show modal and populate fields
-            window.showEditModal = function (id, name, email, status, roleId) {
+            window.showEditModal = function (id, name, email, status, roleId, pseudoName) {
                 $('#userId').val(id);
                 $('#editUserName').val(name);
+                $('#editUserPseudoName').val(pseudoName || '');
                 $('#editUserEmail').val(email);
                 $('#editUserRole').val(roleId);
                 if (typeof status !== 'undefined') {

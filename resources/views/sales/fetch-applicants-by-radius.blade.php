@@ -1112,6 +1112,30 @@
         function sendCVModal(applicantID, saleID, applicantPostcode, applicantNursingHomeExp) {
             const modalID = 'sendCVModal' + applicantID + '-' + saleID;
             const formID = 'sendCV_form' + applicantID + '-' + saleID;
+            const updateNurseFields = function() {
+                const form = $('#' + formID);
+                const isNonNurse = form.find('[name="category"]:checked').val() === 'Non Nurse';
+                form.find('[data-nurse-label]').each(function() {
+                    $(this).text(isNonNurse ? $(this).data('non-nurse-label') : $(this).data('nurse-label'));
+                });
+                form.find('[data-nurse-only]').each(function() {
+                    const fields = $(this).find(':input');
+                    $(this).toggleClass('d-none', isNonNurse);
+                    fields.prop('disabled', isNonNurse);
+                    if (isNonNurse) {
+                        fields.filter(':checkbox').prop('checked', false);
+                        fields.filter('textarea').val('');
+                    }
+                });
+                let questionNumber = 5;
+                form.find('[data-send-cv-page="2"] [data-send-cv-question]').each(function() {
+                    if ($(this).hasClass('d-none')) {
+                        return;
+                    }
+                    const label = $(this).find('.form-label').first();
+                    label.text(label.text().replace(/^\d+\.\s*/, questionNumber++ + '. '));
+                });
+            };
 
             // Add modal if not exists
             if ($('#' + modalID).length === 0) {
@@ -1138,15 +1162,27 @@
                     '</div>' +
                     '<div class="card-body">' +
                     '<div class="row g-3">' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12">' +
+                    '<label class="form-label d-block">Category</label>' +
+                    '<div class="form-check form-check-inline">' +
+                    '<input class="form-check-input" type="radio" name="category" id="category_nurse_' + applicantID + '_' + saleID + '" value="Nurse" checked>' +
+                    '<label class="form-check-label" for="category_nurse_' + applicantID + '_' + saleID + '">Nurse</label>' +
+                    '</div>' +
+                    '<div class="form-check form-check-inline">' +
+                    '<input class="form-check-input" type="radio" name="category" id="category_non_nurse_' + applicantID + '_' + saleID + '" value="Non Nurse">' +
+                    '<label class="form-check-label" for="category_non_nurse_' + applicantID + '_' + saleID + '">Non Nurse</label>' +
+                    '</div>' +
+                    '<div class="text-danger small d-none" data-category-error>Please select a category.</div>' +
+                    '</div>' +
+                    '<div class="col-12 col-md-6" data-send-cv-question data-nurse-only>' +
                     '<label class="form-label" for="nmc_pin_status_' + applicantID + '_' + saleID + '">5. NMC PIN Status</label>' +
                     '<textarea name="nmc_pin_status" id="nmc_pin_status_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the applicant’s NMC PIN status"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="notice_period_' + applicantID + '_' + saleID + '">6. Notice Period</label>' +
                     '<textarea name="notice_period" id="notice_period_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the applicant’s notice period"></textarea>' +
                     '</div>' +
-                    '<div class="col-12">' +
+                    '<div class="col-12" data-send-cv-question data-nurse-only>' +
                     '<label class="form-label d-block">7. Clinical Skills</label>' +
                     '<div class="row g-2">' +
                     '<div class="col-6 col-md-3">' +
@@ -1199,47 +1235,47 @@
                     '</div>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="visa_status_' + applicantID + '_' + saleID + '">8. Visa Status</label>' +
                     '<textarea name="visa_status" id="visa_status_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the applicant’s visa status"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="dbs_convictions_' + applicantID + '_' + saleID + '">9. Convictions on DBS</label>' +
                     '<textarea name="dbs_convictions" id="dbs_convictions_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s statement"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="expected_hourly_rate_' + applicantID + '_' + saleID + '">10. Expected Hourly Rate</label>' +
                     '<textarea name="expected_hourly_rate" id="expected_hourly_rate_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the expected hourly rate"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="holidays_booked_' + applicantID + '_' + saleID + '">11. Holidays Booked</label>' +
                     '<textarea name="holidays_booked" id="holidays_booked_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record any holidays already booked"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="reasons_for_job_change_' + applicantID + '_' + saleID + '">12. Reasons for Job Change</label>' +
                     '<textarea name="reasons_for_job_change" id="reasons_for_job_change_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s reasons"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
-                    '<label class="form-label" for="nursing_experience_years_' + applicantID + '_' + saleID + '">13. Years of Experience as a Nurse</label>' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
+                    '<label class="form-label" for="nursing_experience_years_' + applicantID + '_' + saleID + '" data-nurse-label="13. Years of Experience as a Nurse" data-non-nurse-label="13. Years of Experience">13. Years of Experience as a Nurse</label>' +
                     '<textarea name="nursing_experience_years" id="nursing_experience_years_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter years of experience"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
-                    '<label class="form-label" for="nursing_home_experience_' + applicantID + '_' + saleID + '">14. Years of Experience as a Nurse in Nursing Home</label>' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
+                    '<label class="form-label" for="nursing_home_experience_' + applicantID + '_' + saleID + '" data-nurse-label="14. Years of Experience as a Nurse in Nursing Home" data-non-nurse-label="14. Years of Experience as a Carer, care assistant or support worker">14. Years of Experience as a Nurse in Nursing Home</label>' +
                     '<textarea name="nursing_home_experience" id="nursing_home_experience_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s nursing home experience"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="manager_rota_' + applicantID + '_' + saleID + '">15. Working According to the Manager’s Rota</label>' +
                     '<textarea name="manager_rota" id="manager_rota_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Record the applicant’s response"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="current_dbs_status_' + applicantID + '_' + saleID + '">16. Current DBS Status</label>' +
                     '<textarea name="current_dbs_status" id="current_dbs_status_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the current DBS status"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="expected_salary_' + applicantID + '_' + saleID + '">17. Expected Salary</label>' +
                     '<textarea name="expected_salary" id="expected_salary_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the expected salary"></textarea>' +
                     '</div>' +
-                    '<div class="col-12 col-md-6">' +
+                    '<div class="col-12 col-md-6" data-send-cv-question>' +
                     '<label class="form-label" for="qualification_' + applicantID + '_' + saleID + '">18. Qualification</label>' +
                     '<textarea name="qualification" id="qualification_' + applicantID + '_' + saleID + '" class="form-control" rows="2" placeholder="Enter the qualification"></textarea>' +
                     '</div>' +
@@ -1340,6 +1376,7 @@
                     '</div>' +
                     '</div>' +
                     '</div>' +
+                    '</div>' +
                     '</form>' +
                     '</div>' +
                     '<div class="modal-footer">' +
@@ -1396,6 +1433,10 @@
                 };
 
                 backButton.off('click').on('click', showPageOne);
+                formElement.off('change', '[name="category"]').on('change', '[name="category"]', function() {
+                    updateNurseFields();
+                    formElement.find('[data-category-error]').addClass('d-none');
+                });
                 formElement.off('change', '[name="no_job"], [name="hangup_call"]').on('change',
                     '[name="no_job"], [name="hangup_call"]',
                     function() {
@@ -1423,6 +1464,11 @@
                         // Reset validation
                         form.find('.is-invalid').removeClass('is-invalid');
                         form.find('.invalid-feedback').remove();
+
+                        if (!isShortcut && !form.find('[name="category"]:checked').length) {
+                            form.find('[data-category-error]').removeClass('d-none');
+                            isValid = false;
+                        }
 
                         // Validate required fields
                         if (!isShortcut && !notes) {
@@ -1511,6 +1557,8 @@
                 form.find('[data-send-cv-page="2"]').addClass('d-none');
                 form.find('[name="details"]').prop('required', true);
                 form.find('[data-details-required-indicator]').removeClass('d-none');
+                form.find('[data-category-error]').addClass('d-none');
+                updateNurseFields();
                 $('#backCVBtn_' + applicantID + '_' + saleID).addClass('d-none');
                 $('#saveCVBtn_' + applicantID + '_' + saleID).text('Next');
                 $(this).find('.is-invalid').removeClass('is-invalid');

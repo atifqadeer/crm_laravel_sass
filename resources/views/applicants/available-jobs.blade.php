@@ -803,8 +803,8 @@
                 ['expected_hourly_rate', '10. Expected Hourly Rate', 'Enter the expected hourly rate'],
                 ['holidays_booked', '11. Holidays Booked', 'Record any holidays already booked'],
                 ['reasons_for_job_change', '12. Reasons for Job Change', 'Record the applicant’s reasons'],
-                ['nursing_experience_years', '13. Years of Experience as a Nurse', 'Enter years of experience'],
-                ['nursing_home_experience', '14. Years of Experience as a Nurse in Nursing Home', 'Record the applicant’s nursing home experience'],
+                ['nursing_experience_years', '13. Years of Experience as a Nurse', 'Enter years of experience', '13. Years of Experience'],
+                ['nursing_home_experience', '14. Years of Experience as a Nurse in Nursing Home', 'Record the applicant’s nursing home experience', '14. Years of Experience as a Carer, care assistant or support worker'],
                 ['manager_rota', '15. Working According to the Manager’s Rota', 'Record the applicant’s response'],
                 ['current_dbs_status', '16. Current DBS Status', 'Enter the current DBS status'],
                 ['expected_salary', '17. Expected Salary', 'Enter the expected salary'],
@@ -813,10 +813,13 @@
             const fieldId = function(name) {
                 return `${name}_${applicantID}_${saleID}`;
             };
-            const textArea = function(name, label, placeholder) {
+            const textArea = function(name, label, placeholder, nurseOnly, nonNurseLabel) {
                 const id = fieldId(name);
-                return `<div class="col-12 col-md-6">
-                    <label class="form-label" for="${id}">${label}</label>
+                const nurseOnlyAttribute = nurseOnly ? ' data-nurse-only' : '';
+                const experienceLabelAttributes = nonNurseLabel ?
+                    ` data-nurse-label="${label}" data-non-nurse-label="${nonNurseLabel}"` : '';
+                return `<div class="col-12 col-md-6" data-send-cv-question${nurseOnlyAttribute}>
+                    <label class="form-label" for="${id}"${experienceLabelAttributes}>${label}</label>
                     <textarea name="${name}" id="${id}" class="form-control" rows="2" placeholder="${placeholder}"></textarea>
                 </div>`;
             };
@@ -843,7 +846,7 @@
                     </div></div>`;
                 }).join('');
                 const applicantFieldMarkup = applicantFields.map(function(field) {
-                    return textArea(field[0], field[1], field[2]);
+                    return textArea(field[0], field[1], field[2], false, field[3]);
                 }).join('');
 
                 $('body').append(`
@@ -867,12 +870,24 @@
                                                 </div>
                                                 <div class="card-body">
                                                     <div class="row g-3">
-                                                        ${textArea('nmc_pin_status', '5. NMC PIN Status', 'Enter the applicant’s NMC PIN status')}
-                                                        ${textArea('notice_period', '6. Notice Period', 'Enter the applicant’s notice period')}
-                                                        <div class="col-12">
-                                                            <label class="form-label d-block">7. Clinical Skills</label>
-                                                            <div class="row g-2">${clinicalSkillMarkup}</div>
-                                                        </div>
+                                                      <div class="col-12">
+                                                          <label class="form-label d-block">Category</label>
+                                                          <div class="form-check form-check-inline">
+                                                              <input class="form-check-input" type="radio" name="category" id="${fieldId('category_nurse')}" value="Nurse" checked>
+                                                              <label class="form-check-label" for="${fieldId('category_nurse')}">Nurse</label>
+                                                          </div>
+                                                          <div class="form-check form-check-inline">
+                                                              <input class="form-check-input" type="radio" name="category" id="${fieldId('category_non_nurse')}" value="Non Nurse">
+                                                              <label class="form-check-label" for="${fieldId('category_non_nurse')}">Non Nurse</label>
+                                                          </div>
+                                                          <div class="text-danger small d-none" data-category-error>Please select a category.</div>
+                                                      </div>
+                                                      ${textArea('nmc_pin_status', '5. NMC PIN Status', 'Enter the applicant’s NMC PIN status', true)}
+                                                      ${textArea('notice_period', '6. Notice Period', 'Enter the applicant’s notice period')}
+                                                      <div class="col-12" data-send-cv-question data-nurse-only>
+                                                          <label class="form-label d-block">7. Clinical Skills</label>
+                                                          <div class="row g-2">${clinicalSkillMarkup}</div>
+                                                      </div>
                                                         ${applicantFieldMarkup}
                                                     </div>
                                                 </div>
@@ -945,6 +960,29 @@
             const $noJob = $form.find('[name="no_job"]');
             const $details = $form.find('[name="details"]');
             let currentPage = 1;
+            const updateNurseFields = function() {
+                const isNonNurse = $form.find('[name="category"]:checked').val() === 'Non Nurse';
+                $form.find('[data-nurse-label]').each(function() {
+                    $(this).text(isNonNurse ? $(this).data('non-nurse-label') : $(this).data('nurse-label'));
+                });
+                $pageTwo.find('[data-nurse-only]').each(function() {
+                    const $fields = $(this).find(':input');
+                    $(this).toggleClass('d-none', isNonNurse);
+                    $fields.prop('disabled', isNonNurse);
+                    if (isNonNurse) {
+                        $fields.filter(':checkbox').prop('checked', false);
+                        $fields.filter('textarea').val('');
+                    }
+                });
+                let questionNumber = 5;
+                $pageTwo.find('[data-send-cv-question]').each(function() {
+                    if ($(this).hasClass('d-none')) {
+                        return;
+                    }
+                    const $label = $(this).find('.form-label').first();
+                    $label.text($label.text().replace(/^\d+\.\s*/, `${questionNumber++}. `));
+                });
+            };
             const isShortcut = function() {
                 return $hangup.is(':checked') || $noJob.is(':checked');
             };
@@ -981,9 +1019,14 @@
                 $form.find('.is-invalid, .is-valid').removeClass('is-invalid is-valid');
                 $form.find('.invalid-feedback').remove();
                 showPageOne();
+                updateNurseFields();
                 updateShortcut();
             });
             $backButton.off('click').on('click', showPageOne);
+            $form.off('change', '[name="category"]').on('change', '[name="category"]', function() {
+                updateNurseFields();
+                $form.find('[data-category-error]').addClass('d-none');
+            });
             $form.off('change', '[name="hangup_call"], [name="no_job"]').on(
                 'change',
                 '[name="hangup_call"], [name="no_job"]',
@@ -1004,6 +1047,10 @@
                 $form.find('.is-invalid').removeClass('is-invalid');
                 $form.find('.invalid-feedback').remove();
                 let valid = true;
+                if (!shortcut && !$form.find('[name="category"]:checked').length) {
+                    $form.find('[data-category-error]').removeClass('d-none');
+                    valid = false;
+                }
                 if (!shortcut && !$details.val()) {
                     $details.addClass('is-invalid').after('<div class="invalid-feedback">Please enter note details.</div>');
                     valid = false;

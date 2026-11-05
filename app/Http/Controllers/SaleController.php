@@ -1559,7 +1559,7 @@ class SaleController extends Controller
                 ->skipTotalRecords()
                 ->order(fn($query) => $applySorting($query))
                 ->addIndexColumn()
-                ->setRowClass(fn ($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
                 ->addColumn('office_name', function ($sale) {
                     return $sale->office_name ? ucwords($sale->office_name) : '-';
                 })
@@ -4421,34 +4421,40 @@ class SaleController extends Controller
                         </button>
                         <ul class="dropdown-menu">';
 
-                if ($status_value == 'open') {
-                    $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale_id . ')" class="dropdown-item">Mark Not Interested On Sale</a></li>
+                if ($applicant->is_blocked) {
+                    $html .= '<li><button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
+                                    <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Blocked
+                                </button></li>';
+                } else {
+
+                    if ($status_value == 'open') {
+                        $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale_id . ')" class="dropdown-item">Mark Not Interested On Sale</a></li>
                               <li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">Mark No Nursing Home</a></li>';
 
-                    if ($sale->is_on_hold != 0) {
-                        $html .= '<li><a href="javascript:void(0)" class="dropdown-item"><span><small class="text-danger">(Sale On Hold)</small></span></a></li>';
-                    } elseif ($sale_cv_counts >= $sale->cv_limit && $sale->is_on_hold == 0) {
-                        $html .= '<li><a href="javascript:void(0)" class="dropdown-item"><span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
-                    } else {
-                        $html .= '<li>
+                        if ($sale->is_on_hold != 0) {
+                            $html .= '<li><a href="javascript:void(0)" class="dropdown-item"><span><small class="text-danger">(Sale On Hold)</small></span></a></li>';
+                        } elseif ($sale_cv_counts >= $sale->cv_limit && $sale->is_on_hold == 0) {
+                            $html .= '<li><a href="javascript:void(0)" class="dropdown-item"><span><small class="text-danger">(CV Limit Reached)</small></span></a></li>';
+                        } else {
+                            $html .= '<li>
                                 <a href="javascript:void(0);" class="dropdown-item"
                                 onclick="sendCVModal('
-                            . (int) $applicant->id . ','
-                            . (int) $sale_id . ','
-                            . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
-                            . (int) $applicant->have_nursing_home_experience . ')">
+                                . (int) $applicant->id . ','
+                                . (int) $sale_id . ','
+                                . htmlspecialchars(json_encode($applicant->applicant_postcode), ENT_QUOTES, 'UTF-8') . ','
+                                . (int) $applicant->have_nursing_home_experience . ')">
                                     <span>Send CV</span>
                                 </a>
                             </li>';
-                    }
+                        }
 
-                    $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale_id . ')">Mark Callback</a></li>';
-                } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
-                    $html .= '<li><button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
+                        $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markApplicantCallbackModal(' . $applicant->id . ', ' . $sale_id . ')">Mark Callback</a></li>';
+                    } elseif ($status_value == 'sent' || $status_value == 'reject_job' || $status_value == 'paid') {
+                        $html .= '<li><button type="button" class="btn btn-light btn-sm disabled d-inline-flex align-items-center">
                                     <iconify-icon icon="solar:lock-bold" class="fs-14 me-1"></iconify-icon> Locked
                                 </button></li>';
+                    }
                 }
-
                 $html .= '</ul></div>';
                 return $html;
             })
