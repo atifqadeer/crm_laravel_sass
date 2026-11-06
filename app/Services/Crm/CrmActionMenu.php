@@ -237,8 +237,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                    data-email="' . $applicant->applicant_email . '"
-                                    data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                    data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                    data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                 ';
 
         return $actionButtons;
@@ -295,8 +295,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                        data-email="' . $applicant->applicant_email . '"
-                                        data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                        data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                     ';
 
         return $actionButtons;
@@ -342,8 +342,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -453,8 +453,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -554,8 +554,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                            data-email="' . $applicant->applicant_email . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                            data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                            data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                         ';
 
         return $actionButtons;
@@ -611,8 +611,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                            data-email="' . $applicant->applicant_email . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                            data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                            data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                         ';
 
         return $actionButtons;
@@ -666,8 +666,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                            data-email="' . $applicant->applicant_email . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                            data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                            data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                         ';
 
         return $actionButtons;
@@ -720,8 +720,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                    data-email="' . $applicant->applicant_email . '"
-                                    data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                    data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                    data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                 ';
 
         return $actionButtons;
@@ -775,8 +775,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                            data-email="' . $applicant->applicant_email . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                            data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                            data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                         ';
 
         return $actionButtons;
@@ -830,8 +830,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                            data-email="' . $applicant->applicant_email . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                            data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                            data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                         ';
 
         return $actionButtons;
@@ -875,8 +875,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -920,8 +920,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                            data-email="' . $applicant->applicant_email . '"
-                                            data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                            data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                            data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                         ';
 
         return $actionButtons;
@@ -975,8 +975,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -1031,8 +1031,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -1086,8 +1086,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -1130,8 +1130,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -1175,8 +1175,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -1219,8 +1219,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                data-email="' . $applicant->applicant_email . '"
-                                data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                             ';
 
         return $actionButtons;
@@ -1295,8 +1295,8 @@ class CrmActionMenu
             }
         }
         $actionButtons .= '<li><a class="dropdown-item email-btn" href="javascript:void(0);" data-applicant-id="' . (int)$applicant->id . '" 
-                                        data-email="' . $applicant->applicant_email . '"
-                                        data-name="' . ucwords($applicant->applicant_name) . '">Send Email</a></li>
+                                        data-email="' . htmlspecialchars($applicant->applicant_email ?? '', ENT_QUOTES, 'UTF-8') . '" data-secondary-email="' . htmlspecialchars($applicant->applicant_email_secondary ?? '', ENT_QUOTES, 'UTF-8') . '"
+                                        data-name="' . htmlspecialchars(ucwords($applicant->applicant_name), ENT_QUOTES, 'UTF-8') . '" data-job-title="' . htmlspecialchars($applicant->jobTitle ?? '', ENT_QUOTES, 'UTF-8') . '" data-office-name="' . htmlspecialchars($applicant->office_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-unit-name="' . htmlspecialchars($applicant->unit_name ?? '', ENT_QUOTES, 'UTF-8') . '" data-position-type="' . htmlspecialchars($applicant->position_type ?? '', ENT_QUOTES, 'UTF-8') . '" data-benefits="' . htmlspecialchars($applicant->benefits ?? '', ENT_QUOTES, 'UTF-8') . '" data-salary="' . htmlspecialchars($applicant->salary ?? '', ENT_QUOTES, 'UTF-8') . '" data-timing="' . htmlspecialchars($applicant->timing ?? '', ENT_QUOTES, 'UTF-8') . '" data-experience="' . htmlspecialchars($applicant->sale_experience ?? '', ENT_QUOTES, 'UTF-8') . '" data-qualification="' . htmlspecialchars($applicant->sale_qualification ?? '', ENT_QUOTES, 'UTF-8') . '" data-location="' . htmlspecialchars($applicant->sale_postcode ?? '', ENT_QUOTES, 'UTF-8') . '">Send Email</a></li>
                                     ';
 
         return $actionButtons;

@@ -31,12 +31,6 @@ class SendBulkEmails extends Command
                 return;
             }
 
-            // Load logo as Base64 (once)
-            $imagePath = public_path('images/logo-light22.png');
-            $base64Image = file_exists($imagePath)
-                ? 'data:image/png;base64,' . base64_encode(file_get_contents($imagePath))
-                : '';
-
             // Group emails by their sender (from address)
             $groupedEmails = $unsentEmails->groupBy('sent_from');
 
@@ -70,23 +64,18 @@ class SendBulkEmails extends Command
                 // Log::info("Processing batch for SMTP: {$smtp->from_address}");
 
                 // Send in chunks to control memory + delay between chunks
-                $emails->chunk(100)->each(function ($chunk) use ($smtp, $base64Image) {
+                $emails->chunk(100)->each(function ($chunk) use ($smtp) {
                     foreach ($chunk as $email) {
                         try {
                             $ccEmails = !empty($email->cc_emails)
                                 ? array_filter(array_map('trim', explode(',', $email->cc_emails)))
                                 : [];
 
-                            Mail::mailer('dynamic_smtp')->send('emails.bulk', [
-                                'subject' => $email->subject ?? 'Bulk Email',
-                                'template' => $email->template ?? 'This is a bulk email sent via cron job.',
-                                'from_address' => $smtp->from_address,
-                                'from_name' => $smtp->from_name,
-                                'base64Image' => $base64Image,
-                            ], function ($message) use ($email, $smtp, $ccEmails) {
+                            Mail::mailer('dynamic_smtp')->send([], [], function ($message) use ($email, $smtp, $ccEmails) {
                                 $message->to($email->sent_to)
                                         ->subject($email->subject ?? 'Bulk Email')
-                                        ->from($smtp->from_address, $smtp->from_name);
+                                        ->from($smtp->from_address, $smtp->from_name)
+                                        ->html($email->template);
 
                                 if (!empty($ccEmails)) {
                                     $message->cc($ccEmails);

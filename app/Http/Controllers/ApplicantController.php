@@ -2730,7 +2730,7 @@ class ApplicantController extends Controller
                 'notice_period' => 'nullable|string|max:2000',
                 'clinical_skills' => 'nullable|array',
                 'clinical_skills.*' => 'string|in:Wound Care,Catheterization,Venepuncture,PEG Feeding,Tracheostomy Care,Suctioning,Dementia Care,Palliative Care',
-                'category' => 'nullable|string|in:Nurse,Non Nurse',
+                'category' => 'nullable|string|in:Nurse,Non Nurse,Nursery',
                 'dbs_convictions' => 'nullable|string|max:2000',
                 'expected_hourly_rate' => 'nullable|string|max:2000',
                 'holidays_booked' => 'nullable|string|max:2000',
@@ -3020,13 +3020,20 @@ class ApplicantController extends Controller
                 (string) $request->input($field)
             )->format('d M Y, H:i');
         };
-        $isNonNurse = $request->input('category') === 'Non Nurse';
-        $yearsOfExperienceLabel = $isNonNurse
-            ? '13. Years of Experience'
-            : '13. Years of Experience as a Nurse';
-        $careExperienceLabel = $isNonNurse
-            ? '14. Years of Experience as a Carer, care assistant or support worker'
-            : '14. Years of Experience as a Nurse in Nursing Home';
+        $category = $request->input('category');
+        $isNonNurse = $category === 'Non Nurse';
+        $isNursery = $category === 'Nursery';
+        $hideNurseQuestions = $isNonNurse || $isNursery;
+        $yearsOfExperienceLabel = $isNursery
+            ? '13. Years of Experience as a Nursery'
+            : ($isNonNurse
+                ? '13. Years of Experience as a Carer, care assistant or support worker'
+                : '13. Years of Experience as a Nurse');
+        $careExperienceLabel = $isNursery
+            ? '14. Years of Experience as a nursery day care center'
+            : ($isNonNurse
+                ? '14. Years of Experience as a Carer, care assistant or support worker'
+                : '14. Years of Experience as a Nurse in Nursing Home');
 
         $questionnaire = [
             '1. Transport Type' => $answer($request->input('transport_type', [])),
@@ -3034,9 +3041,9 @@ class ApplicantController extends Controller
             '3. Interview Availability Same Week' => $interviewOption('interview_option_1'),
             '4. Interview Availability Next Week' => $interviewOption('interview_option_2'),
             'Category' => $answer($request->input('category')),
-            '5. NMC PIN Status' => $isNonNurse ? 'Not applicable' : $answer($request->input('nmc_pin_status')),
+            '5. NMC PIN Status' => $hideNurseQuestions ? 'Not applicable' : $answer($request->input('nmc_pin_status')),
             '6. Notice Period' => $answer($request->input('notice_period')),
-            '7. Clinical Skills' => $isNonNurse ? 'Not applicable' : $answer($request->input('clinical_skills', [])),
+            '7. Clinical Skills' => $hideNurseQuestions ? 'Not applicable' : $answer($request->input('clinical_skills', [])),
             '8. Visa Status' => $answer($request->input('visa_status')),
             '9. Convictions on DBS' => $answer($request->input('dbs_convictions')),
             '10. Expected Hourly Rate' => $answer($request->input('expected_hourly_rate')),
@@ -3053,7 +3060,7 @@ class ApplicantController extends Controller
             'Other Details' => $answer($request->input('details')),
         ];
 
-        if ($isNonNurse) {
+        if ($hideNurseQuestions) {
             unset($questionnaire['5. NMC PIN Status'], $questionnaire['7. Clinical Skills']);
 
             $renumberedQuestionnaire = [];
@@ -3141,7 +3148,16 @@ class ApplicantController extends Controller
             'width' => 135,
             'alignment' => 'center',
         ]);
-        $section->addText('Applicant Synopsis Form', [
+        $section->addText(mb_strtoupper($applicant->applicant_name), [
+            'bold' => true,
+            'size' => 14,
+            'color' => '1F3A5F',
+        ], [
+            'alignment' => 'center',
+            'spaceAfter' => 120,
+        ]);
+        $section->addTextBreak();
+        $section->addText('Synopsis Form and CV', [
             'bold' => true,
             'size' => 20,
             'color' => '1F3A5F',

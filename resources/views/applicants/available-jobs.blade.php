@@ -803,8 +803,8 @@
                 ['expected_hourly_rate', '10. Expected Hourly Rate', 'Enter the expected hourly rate'],
                 ['holidays_booked', '11. Holidays Booked', 'Record any holidays already booked'],
                 ['reasons_for_job_change', '12. Reasons for Job Change', 'Record the applicant’s reasons'],
-                ['nursing_experience_years', '13. Years of Experience as a Nurse', 'Enter years of experience', '13. Years of Experience'],
-                ['nursing_home_experience', '14. Years of Experience as a Nurse in Nursing Home', 'Record the applicant’s nursing home experience', '14. Years of Experience as a Carer, care assistant or support worker'],
+                ['nursing_experience_years', '13. Years of Experience as a Nurse', 'Enter years of experience', '13. Years of Experience as a Carer, care assistant or support worker', '13. Years of Experience as a Nursery'],
+                ['nursing_home_experience', '14. Years of Experience as a Nurse in Nursing Home', 'Record the applicant’s nursing home experience', '14. Years of Experience as a Carer, care assistant or support worker', '14. Years of Experience as a nursery day care center'],
                 ['manager_rota', '15. Working According to the Manager’s Rota', 'Record the applicant’s response'],
                 ['current_dbs_status', '16. Current DBS Status', 'Enter the current DBS status'],
                 ['expected_salary', '17. Expected Salary', 'Enter the expected salary'],
@@ -813,11 +813,11 @@
             const fieldId = function(name) {
                 return `${name}_${applicantID}_${saleID}`;
             };
-            const textArea = function(name, label, placeholder, nurseOnly, nonNurseLabel) {
+            const textArea = function(name, label, placeholder, nurseOnly, nonNurseLabel, nurseryLabel) {
                 const id = fieldId(name);
                 const nurseOnlyAttribute = nurseOnly ? ' data-nurse-only' : '';
                 const experienceLabelAttributes = nonNurseLabel ?
-                    ` data-nurse-label="${label}" data-non-nurse-label="${nonNurseLabel}"` : '';
+                    ` data-nurse-label="${label}" data-non-nurse-label="${nonNurseLabel}" data-nursery-label="${nurseryLabel}"` : '';
                 return `<div class="col-12 col-md-6" data-send-cv-question${nurseOnlyAttribute}>
                     <label class="form-label" for="${id}"${experienceLabelAttributes}>${label}</label>
                     <textarea name="${name}" id="${id}" class="form-control" rows="2" placeholder="${placeholder}"></textarea>
@@ -846,7 +846,7 @@
                     </div></div>`;
                 }).join('');
                 const applicantFieldMarkup = applicantFields.map(function(field) {
-                    return textArea(field[0], field[1], field[2], false, field[3]);
+                    return textArea(field[0], field[1], field[2], false, field[3], field[4]);
                 }).join('');
 
                 $('body').append(`
@@ -879,6 +879,10 @@
                                                           <div class="form-check form-check-inline">
                                                               <input class="form-check-input" type="radio" name="category" id="${fieldId('category_non_nurse')}" value="Non Nurse">
                                                               <label class="form-check-label" for="${fieldId('category_non_nurse')}">Non Nurse</label>
+                                                          </div>
+                                                          <div class="form-check form-check-inline">
+                                                              <input class="form-check-input" type="radio" name="category" id="${fieldId('category_nursery')}" value="Nursery">
+                                                              <label class="form-check-label" for="${fieldId('category_nursery')}">Nursery</label>
                                                           </div>
                                                           <div class="text-danger small d-none" data-category-error>Please select a category.</div>
                                                       </div>
@@ -961,25 +965,41 @@
             const $details = $form.find('[name="details"]');
             let currentPage = 1;
             const updateNurseFields = function() {
-                const isNonNurse = $form.find('[name="category"]:checked').val() === 'Non Nurse';
+                const category = $form.find('[name="category"]:checked').val();
+                const isNonNurse = category === 'Non Nurse';
+                const isNursery = category === 'Nursery';
+                const hideNurseFields = category !== 'Nurse';
+                $pageTwo.find('[data-send-cv-question] .form-label').each(function() {
+                    const $label = $(this);
+                    if ($label.data('original-label') === undefined) {
+                        $label.data('original-label', $label.text());
+                    }
+                    $label.text($label.data('original-label'));
+                });
                 $form.find('[data-nurse-label]').each(function() {
-                    $(this).text(isNonNurse ? $(this).data('non-nurse-label') : $(this).data('nurse-label'));
+                    const $label = $(this);
+                    $label.text(isNursery
+                        ? $label.data('nursery-label')
+                        : isNonNurse
+                            ? $label.data('non-nurse-label')
+                            : $label.data('nurse-label'));
                 });
                 $pageTwo.find('[data-nurse-only]').each(function() {
                     const $fields = $(this).find(':input');
-                    $(this).toggleClass('d-none', isNonNurse);
-                    $fields.prop('disabled', isNonNurse);
-                    if (isNonNurse) {
+                    $(this).toggleClass('d-none', hideNurseFields);
+                    $fields.prop('disabled', hideNurseFields);
+                    if (hideNurseFields) {
                         $fields.filter(':checkbox').prop('checked', false);
                         $fields.filter('textarea').val('');
                     }
                 });
                 let questionNumber = 5;
                 $pageTwo.find('[data-send-cv-question]').each(function() {
-                    if ($(this).hasClass('d-none')) {
+                    const $question = $(this);
+                    if ($question.hasClass('d-none')) {
                         return;
                     }
-                    const $label = $(this).find('.form-label').first();
+                    const $label = $question.find('.form-label').first();
                     $label.text($label.text().replace(/^\d+\.\s*/, `${questionNumber++}. `));
                 });
             };

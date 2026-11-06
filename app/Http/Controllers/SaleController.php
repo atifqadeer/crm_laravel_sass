@@ -4012,7 +4012,7 @@ class SaleController extends Controller
         $radius  = (float) ($validated['radius'] ?? 15);
 
         // Load the sale together with its job title row (for related_titles)
-        $sale = Sale::with('jobTitle')->findOrFail($sale_id);
+        $sale = Sale::with(['jobTitle', 'jobCategory', 'office', 'unit'])->findOrFail($sale_id);
 
         if ($sale->lat === null || $sale->lng === null) {
             return response()->json(['error' => 'Sale location coordinates are missing.'], 422);
@@ -4063,23 +4063,20 @@ class SaleController extends Controller
             ->where('status', 1)
             ->count();
 
-        $latestModuleNoteSub = DB::table('module_notes')
-            ->select('module_noteable_id', 'details', 'created_at')
+        $latestModuleNoteDetails = DB::table('module_notes')
+            ->select('details')
             ->where('module_noteable_type', Applicant::class)
-            ->whereIn('id', function ($query) {
-                $query->select(DB::raw('MAX(id)'))
-                    ->from('module_notes')
-                    ->where('module_noteable_type', Applicant::class)
-                    ->groupBy('module_noteable_id');
-            });
+            ->whereColumn('module_noteable_id', 'applicants.id')
+            ->orderByDesc('id')
+            ->limit(1);
 
-        $latestApplicantNoteSub = DB::table('applicant_notes')
-            ->select('applicant_id', 'details', 'created_at')
-            ->whereIn('id', function ($query) {
-                $query->select(DB::raw('MAX(id)'))
-                    ->from('applicant_notes')
-                    ->groupBy('applicant_id');
-            });
+        $latestModuleNoteCreatedAt = (clone $latestModuleNoteDetails)->select('created_at');
+        $latestApplicantNoteDetails = DB::table('applicant_notes')
+            ->select('details')
+            ->whereColumn('applicant_id', 'applicants.id')
+            ->orderByDesc('id')
+            ->limit(1);
+        $latestApplicantNoteCreatedAt = (clone $latestApplicantNoteDetails)->select('created_at');
 
         $model = Applicant::query()
             ->with([
@@ -4095,15 +4092,11 @@ class SaleController extends Controller
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
                 'job_sources.name as job_source_name',
-                DB::raw('COALESCE(latest_module_notes.details, latest_applicant_notes.details) AS notes_details'),
-                DB::raw('COALESCE(latest_module_notes.created_at, latest_applicant_notes.created_at, applicants.updated_at) AS notes_created_at'),
             ])
-            ->leftJoinSub($latestModuleNoteSub, 'latest_module_notes', function ($join) {
-                $join->on('applicants.id', '=', 'latest_module_notes.module_noteable_id');
-            })
-            ->leftJoinSub($latestApplicantNoteSub, 'latest_applicant_notes', function ($join) {
-                $join->on('applicants.id', '=', 'latest_applicant_notes.applicant_id');
-            })
+            ->selectSub($latestModuleNoteDetails, 'latest_module_note_details')
+            ->selectSub($latestModuleNoteCreatedAt, 'latest_module_note_created_at')
+            ->selectSub($latestApplicantNoteDetails, 'latest_applicant_note_details')
+            ->selectSub($latestApplicantNoteCreatedAt, 'latest_applicant_note_created_at')
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
             ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
@@ -4112,11 +4105,11 @@ class SaleController extends Controller
             ->where('applicants.is_in_nurse_home', 0)
             ->whereNotNull('applicants.lat')
             ->whereNotNull('applicants.lng')
-            ->whereIn('applicants.job_title_id', $titleIds) // <-- sale's title + related titles, not user-selectable
-            ->whereRaw(
-                '(6371 * acos(cos(radians(?)) * cos(radians(applicants.lat)) * cos(radians(applicants.lng) - radians(?)) + sin(radians(?)) * sin(radians(applicants.lat)))) <= ?',
-                [$lat, $lng, $lat, $radius]
-            )
+            ->whereIn('applicants.job_title_id', $titleIds); // Sale's title + related titles, not user-selectable
+
+        $this->applyRadiusDistanceFilter($model, $lat, $lng, $radius);
+
+        $model
             ->selectRaw("
             CASE
                 WHEN applicants.paid_status = 'close' THEN 1
@@ -4143,17 +4136,14 @@ class SaleController extends Controller
             } elseif ($orderColumn === 'job_title') {
                 $model->orderBy('job_title_id', $orderDirection);
             } elseif ($orderColumn === 'notes_created_at') {
-                // ✅ Must use orderByRaw for computed/aliased columns
-                $model->orderByRaw("notes_created_at {$orderDirection}");
+                $model->orderByRaw("COALESCE(latest_module_note_created_at, latest_applicant_note_created_at, applicants.updated_at) {$orderDirection}");
             } elseif ($orderColumn && !in_array($orderColumn, ['DT_RowIndex', 'checkbox'])) {
                 $model->orderBy($orderColumn, $orderDirection);
             } else {
-                // ✅ Fallback default
-                $model->orderByRaw('notes_created_at DESC');
+                $model->orderByRaw('COALESCE(latest_module_note_created_at, latest_applicant_note_created_at, applicants.updated_at) DESC');
             }
         } else {
-            // ✅ Default: latest note date first
-            $model->orderByRaw('notes_created_at DESC');
+            $model->orderByRaw('COALESCE(latest_module_note_created_at, latest_applicant_note_created_at, applicants.updated_at) DESC');
         }
 
         // Search - first/last name tokens plus similar words; notes via EXISTS
@@ -4266,8 +4256,9 @@ class SaleController extends Controller
                 }
             })
             ->addColumn('applicantNotes', function ($applicant) use ($sale_id) {
-                // ✅ Just use notes_details, fall back to applicant_notes field
-                $notesDetails = $applicant->notes_details ?? $applicant->applicant_notes;
+                $notesDetails = $applicant->latest_module_note_details
+                    ?? $applicant->latest_applicant_note_details
+                    ?? $applicant->applicant_notes;
                 $notes = HtmlNotes::toSafeHtml($notesDetails);
 
                 $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
@@ -4344,9 +4335,13 @@ class SaleController extends Controller
                 });
             })
             ->addColumn('notes_created_at', function ($applicant) {
-                return Carbon::parse($applicant->notes_created_at)->format('d M Y, h:i A');
+                $createdAt = $applicant->latest_module_note_created_at
+                    ?? $applicant->latest_applicant_note_created_at
+                    ?? $applicant->updated_at;
+
+                return Carbon::parse($createdAt)->format('d M Y, h:i A');
             })
-            ->orderColumn('notes_created_at', 'notes_created_at $1') // ✅ direct column name
+            ->orderColumn('notes_created_at', 'COALESCE(latest_module_note_created_at, latest_applicant_note_created_at, applicants.updated_at) $1')
             ->addColumn('applicant_resume', function ($applicant) {
                 $path = $applicant->applicant_cv;
                 if ($path && str_starts_with($path, 'uploads/')) {
@@ -4414,6 +4409,7 @@ class SaleController extends Controller
             ->orderColumn('paid_status', 'paid_status_order $1')
             ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
                 $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
+                $escapeAttribute = fn ($value) => e((string) ($value ?? ''));
 
                 $html = '<div class="btn-group dropstart">
                         <button type="button" class="border-0 bg-transparent p-0" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -4430,6 +4426,25 @@ class SaleController extends Controller
                     if ($status_value == 'open') {
                         $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale_id . ')" class="dropdown-item">Mark Not Interested On Sale</a></li>
                               <li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">Mark No Nursing Home</a></li>';
+
+                        if ($applicant->applicant_email || $applicant->applicant_email_secondary) {
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item email-btn"
+                                data-applicant-id="' . (int) $applicant->id . '"
+                                data-sale-id="' . (int) $sale_id . '"
+                                data-email="' . $escapeAttribute($applicant->applicant_email) . '"
+                                data-secondary-email="' . $escapeAttribute($applicant->applicant_email_secondary) . '"
+                                data-name="' . $escapeAttribute($applicant->applicant_name) . '"
+                                data-job-title="' . $escapeAttribute($sale->jobTitle?->name) . '"
+                                data-office-name="' . $escapeAttribute($sale->office?->office_name) . '"
+                                data-unit-name="' . $escapeAttribute($sale->unit?->unit_name) . '"
+                                data-position-type="' . $escapeAttribute($sale->position_type) . '"
+                                data-benefits="' . $escapeAttribute($sale->benefits) . '"
+                                data-salary="' . $escapeAttribute($sale->salary) . '"
+                                data-timing="' . $escapeAttribute($sale->timing) . '"
+                                data-experience="' . $escapeAttribute($sale->experience) . '"
+                                data-qualification="' . $escapeAttribute($sale->qualification) . '"
+                                data-location="' . $escapeAttribute($sale->sale_postcode) . '">Send Email</a></li>';
+                        }
 
                         if ($sale->is_on_hold != 0) {
                             $html .= '<li><a href="javascript:void(0)" class="dropdown-item"><span><small class="text-danger">(Sale On Hold)</small></span></a></li>';

@@ -323,11 +323,12 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::put('job-sources/update', [SettingController::class, 'jobSourceUpdate'])->name('job-sources.update');
 
     /**Email Templates */
-    Route::post('settings/email-templates', [SettingController::class, 'emailTemplatesIndex'])->name('settings.email-templates');
+    Route::get('settings/email-templates', [SettingController::class, 'emailTemplatesIndex'])->name('settings.email-templates');
     Route::get('getEmailTemplates', [SettingController::class, 'getEmailTemplates'])->name('getEmailTemplates');
     Route::post('emailEditTemplate', [SettingController::class, 'emailEditTemplate'])->name('emailEditTemplate');
     Route::post('email-templates/store', [SettingController::class, 'emailTemplatesStore'])->name('emailTemplates.store');
     Route::put('email-templates/update', [SettingController::class, 'emailTemplatesUpdate'])->name('emailTemplates.update');
+    Route::put('settings/email-layout', [SettingController::class, 'saveEmailLayout'])->name('settings.email-layout.save');
     Route::post('emailTemplateDelete', [SettingController::class, 'emailTemplateDelete'])->name('emailTemplates.delete');
 
     /**SMS Templates */
@@ -481,6 +482,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
 
     Route::post('save-settings', [SettingController::class, 'saveContactSettings'])->name('settings.contact.save');
     Route::post('save-general-settings', [SettingController::class, 'saveGeneralSettings'])->name('settings.general.save');
+    Route::post('save-email-signature-settings', [SettingController::class, 'saveEmailSignatureSettings'])->name('settings.email-signature.save');
     Route::post('save-profile-settings', [SettingController::class, 'saveProfileSettings'])->name('settings.profile.save');
     Route::post('save-sms-settings', [SettingController::class, 'saveSmsSettings'])->name('settings.sms.save');
     Route::post('save-google-settings', [SettingController::class, 'saveGoogleSettings'])->name('settings.google.save');
