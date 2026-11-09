@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Email Temaplates List', 'subTitle' => 'Administrator'])
+@extends('layouts.vertical', ['title' => 'Email Templates', 'subTitle' => 'Administrator'])
 @section('style')
 <style>
     .dropdown-toggle::after {
@@ -10,47 +10,7 @@
 </style>
 @endsection
 @section('content')
-    @can('administrator-email-template-edit')
         <div class="row">
-            <div class="col-xl-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-1">Email Layout</h5>
-                        <p class="text-muted mb-0">Edit the HTML wrapper used for outgoing emails. Keep the email content placeholder in the layout.</p>
-                    </div>
-                    <div class="card-body">
-                        <form id="emailLayoutForm">
-                            @csrf
-                            <div class="mb-3">
-                                <label for="emailLayoutHtml" class="form-label">Layout HTML</label>
-                                <textarea id="emailLayoutHtml" name="email_layout_html" class="form-control font-monospace" rows="24" maxlength="60000" required>{{ $emailLayoutHtml }}</textarea>
-                                <div class="form-text">
-                                    Available placeholders:
-                                    <code>{{ '{{ email_content }}' }}</code>,
-                                    <code>{{ '{{ email_title }}' }}</code>,
-                                    <code>{{ '{{ email_subject }}' }}</code>,
-                                    <code>{{ '{{ sender_name }}' }}</code>,
-                                    <code>{{ '{{ primary_email }}' }}</code> (From address),
-                                    <code>{{ '{{ signature_email }}' }}</code>,
-                                    <code>{{ '{{ signature_address }}' }}</code>,
-                                    <code>{{ '{{ signature_image_url }}' }}</code>,
-                                    <code>{{ '{{ signature_company_name }}' }}</code>,
-                                    <code>{{ '{{ signature_phone }}' }}</code>,
-                                    <code>{{ '{{ logo_url }}' }}</code>.
-                                    Keep <code>{{ '{{ email_content }}' }}</code> where the composed body should appear and do not remove the
-                                    <code>&lt;!-- EMAIL_SIGNATURE_START --&gt;</code> / <code>&lt;!-- EMAIL_SIGNATURE_END --&gt;</code> markers around the signature.
-                                </div>
-                                <div id="emailLayoutError" class="invalid-feedback"></div>
-                            </div>
-                            <button type="submit" class="btn btn-primary" id="saveEmailLayoutButton">Save Email Layout</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endcan
-
-    <div class="row">
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-header border-0">
@@ -179,41 +139,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>  
 
     <script>
-        $('#emailLayoutForm').on('submit', function(event) {
-            event.preventDefault();
-
-            const form = $(this);
-            const field = $('#emailLayoutHtml');
-            const button = $('#saveEmailLayoutButton');
-            const originalText = button.html();
-            field.removeClass('is-invalid');
-            $('#emailLayoutError').text('');
-            button.prop('disabled', true).html(
-                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
-            );
-
-            $.ajax({
-                url: @json(route('settings.email-layout.save')),
-                method: 'PUT',
-                data: form.serialize(),
-                success: function(response) {
-                    toastr.success(response.message || 'Email layout saved successfully.');
-                },
-                error: function(xhr) {
-                    if (xhr.status === 422 && xhr.responseJSON.errors?.email_layout_html) {
-                        field.addClass('is-invalid');
-                        $('#emailLayoutError').text(xhr.responseJSON.errors.email_layout_html[0]);
-                        return;
-                    }
-
-                    toastr.error(xhr.responseJSON?.message || 'Email layout could not be saved.');
-                },
-                complete: function() {
-                    button.prop('disabled', false).html(originalText);
-                }
-            });
-        });
-
         $(document).ready(function() {
             // Initialize Summernote and set content
             $(`#template`).summernote({
@@ -224,6 +149,7 @@
                     ['fontsize', ['fontsize']],
                     ['color', []],
                     ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
                     ['insert', ['link']],
                     ['view', []]
                 ]
@@ -492,6 +418,7 @@
                             ['fontsize', ['fontsize']],
                             ['color', []],
                             ['para', ['ul', 'ol', 'paragraph']],
+                            ['table', ['table']],
                             ['insert', ['link']],
                             ['view', []]
                         ]
