@@ -51,6 +51,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use Exception;
@@ -81,6 +82,7 @@ class ApplicantController extends Controller
             'sendCVtoQuality',
             'saveSendCvHangupNote',
             'downloadCvQuestionnaire',
+            'autoDownloadApplicantDraftFile',
         ]);
         $this->middleware('permission:applicant-show-synopsis-forms')->only(['downloadApplicantDraftFile']);
     }
@@ -2716,6 +2718,7 @@ class ApplicantController extends Controller
 
             $user = Auth::user();
             $questionnaireDocumentPath = null;
+            $autoDownloadUrl = null;
             $requiredForRegularSubmission = fn () => Rule::requiredIf(
                 fn () => !$request->boolean('hangup_call') && !$request->boolean('no_job')
             );
@@ -2863,6 +2866,11 @@ class ApplicantController extends Controller
                     $downloadUrl = route('applicants.draft-file.download', $synopsisForm->id);
                     $cvNoteDetails .= '<strong>Word questionnaire:</strong> <a href="' .
                         e($downloadUrl) . '">Download the questionnaire</a><br>';
+                    $autoDownloadUrl = URL::temporarySignedRoute(
+                        'applicants.draft-file.auto-download',
+                        now()->addMinutes(10),
+                        ['synopsisForm' => $synopsisForm->id]
+                    );
                 }
 
                 $cv_note->update([
@@ -2888,6 +2896,7 @@ class ApplicantController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'CV successfully sent to quality.',
+                    'download_url' => $autoDownloadUrl,
                 ]);
             } catch (Exception $e) {
                 // ❌ Rollback the transaction if something fails inside
@@ -2996,6 +3005,15 @@ class ApplicantController extends Controller
             basename($filePath),
             ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
         );
+    }
+
+    /**
+     * The automatic download straight after Send CV. The short-lived signed link lets the sender
+     * download their own form without the applicant-show-synopsis-forms permission.
+     */
+    public function autoDownloadApplicantDraftFile(ApplicantsSynopsisForm $synopsisForm): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        return $this->downloadApplicantDraftFile($synopsisForm);
     }
 
     private function buildSendCvQuestionnaire(Request $request): array
@@ -3156,7 +3174,6 @@ class ApplicantController extends Controller
             'alignment' => 'center',
             'spaceAfter' => 120,
         ]);
-        $section->addTextBreak();
         $section->addText('Synopsis Form and CV', [
             'bold' => true,
             'size' => 20,

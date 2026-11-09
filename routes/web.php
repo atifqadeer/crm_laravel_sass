@@ -91,6 +91,10 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('draft-files/{synopsisForm}/download', [ApplicantController::class, 'downloadApplicantDraftFile'])
             ->whereNumber('synopsisForm')
             ->name('applicants.draft-file.download');
+        Route::get('draft-files/{synopsisForm}/auto-download', [ApplicantController::class, 'autoDownloadApplicantDraftFile'])
+            ->whereNumber('synopsisForm')
+            ->middleware('signed')
+            ->name('applicants.draft-file.auto-download');
         Route::get('{id}/history', [ApplicantController::class, 'history'])->name('applicants.history');
     });
 

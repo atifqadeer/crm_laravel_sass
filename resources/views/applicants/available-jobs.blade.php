@@ -1113,6 +1113,14 @@
                     success: function(response) {
                         if (response.success) {
                             toastr.success(response.message || 'CV sent successfully!');
+                            if (response.download_url) {
+                                const downloadLink = document.createElement('a');
+                                downloadLink.href = response.download_url;
+                                downloadLink.download = '';
+                                document.body.appendChild(downloadLink);
+                                downloadLink.click();
+                                downloadLink.remove();
+                            }
                             $modal.modal('hide');
                             $('#sales_table').DataTable().ajax.reload();
                         } else {
