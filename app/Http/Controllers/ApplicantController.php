@@ -58,6 +58,7 @@ use Exception;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings as PhpWordSettings;
 
 class ApplicantController extends Controller
 {
@@ -3156,6 +3157,9 @@ class ApplicantController extends Controller
         if (!is_file($logoPath)) {
             throw new \RuntimeException('The company logo required for the questionnaire document was not found.');
         }
+
+        // Without this, an answer containing & or < produces a file Word can't open.
+        PhpWordSettings::setOutputEscapingEnabled(true);
 
         $word = new PhpWord();
         $word->setDefaultFontName('Arial');
