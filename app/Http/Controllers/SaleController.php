@@ -24,6 +24,7 @@ use App\Observers\ActionObserver;
 use App\Support\DialLink;
 use App\Support\HtmlNotes;
 use App\Support\IntelligentSearch;
+use App\Support\SaleEmailRestriction;
 use App\Support\StatusBadge;
 
 use Illuminate\Support\Facades\Auth;
@@ -4013,6 +4014,7 @@ class SaleController extends Controller
 
         // Load the sale together with its job title row (for related_titles)
         $sale = Sale::with(['jobTitle', 'jobCategory', 'office', 'unit'])->findOrFail($sale_id);
+        $is_email_restricted = SaleEmailRestriction::applies($sale);
 
         if ($sale->lat === null || $sale->lng === null) {
             return response()->json(['error' => 'Sale location coordinates are missing.'], 422);
@@ -4407,7 +4409,7 @@ class SaleController extends Controller
                 return '<span class="badge ' . $color_class . '">' . ucwords($status_value) . '</span>';
             })
             ->orderColumn('paid_status', 'paid_status_order $1')
-            ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts) {
+            ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts, $is_email_restricted) {
                 $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
                 $escapeAttribute = fn ($value) => e((string) ($value ?? ''));
 
@@ -4427,7 +4429,9 @@ class SaleController extends Controller
                         $html .= '<li><a href="javascript:void(0);" onclick="markNotInterestedModal(' . $applicant->id . ', ' . $sale_id . ')" class="dropdown-item">Mark Not Interested On Sale</a></li>
                               <li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">Mark No Nursing Home</a></li>';
 
-                        if ($applicant->applicant_email || $applicant->applicant_email_secondary) {
+                        if ($is_email_restricted) {
+                            $html .= SaleEmailRestriction::disabledDropdownItem();
+                        } elseif ($applicant->applicant_email || $applicant->applicant_email_secondary) {
                             $html .= '<li><a href="javascript:void(0);" class="dropdown-item email-btn"
                                 data-applicant-id="' . (int) $applicant->id . '"
                                 data-sale-id="' . (int) $sale_id . '"
