@@ -105,9 +105,11 @@ class SettingController extends Controller
             'email_layout_html' => 'required|string|max:60000',
         ]);
 
-        if (!str_contains($validated['email_layout_html'], '{{ email_content }}')
+        if (
+            !str_contains($validated['email_layout_html'], '{{ email_content }}')
             || !str_contains($validated['email_layout_html'], '<!-- EMAIL_SIGNATURE_START -->')
-            || !str_contains($validated['email_layout_html'], '<!-- EMAIL_SIGNATURE_END -->')) {
+            || !str_contains($validated['email_layout_html'], '<!-- EMAIL_SIGNATURE_END -->')
+        ) {
             return response()->json([
                 'success' => false,
                 'errors' => ['email_layout_html' => ['Keep the {{ email_content }} placeholder and both email signature markers in the layout.']],
@@ -1388,24 +1390,26 @@ class SettingController extends Controller
 
         try {
             DB::transaction(function () use ($validated, $imagePath) {
-                foreach ([
-                    'email_signature_email' => [
-                        $validated['email_signature_email'],
-                        'email',
-                    ],
-                    'email_signature_company_name' => [
-                        $validated['email_signature_company_name'],
-                        'string',
-                    ],
-                    'email_signature_phone' => [
-                        $validated['email_signature_phone'],
-                        'string',
-                    ],
-                    'email_signature_address' => [
-                        $validated['email_signature_address'],
-                        'string',
-                    ],
-                ] as $key => [$value, $type]) {
+                foreach (
+                    [
+                        'email_signature_email' => [
+                            $validated['email_signature_email'],
+                            'email',
+                        ],
+                        'email_signature_company_name' => [
+                            $validated['email_signature_company_name'],
+                            'string',
+                        ],
+                        'email_signature_phone' => [
+                            $validated['email_signature_phone'],
+                            'string',
+                        ],
+                        'email_signature_address' => [
+                            $validated['email_signature_address'],
+                            'string',
+                        ],
+                    ] as $key => [$value, $type]
+                ) {
                     Setting::updateOrCreate(
                         ['key' => $key],
                         ['value' => $value, 'type' => $type, 'group' => 'signature']

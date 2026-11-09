@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Services\EmailLayoutRenderer;
+use App\Support\EmailInlineImages;
 use Horsefly\EmailTemplate;
 use Horsefly\SentEmail;
 use Illuminate\Support\Facades\Mail;
@@ -36,7 +37,7 @@ trait SendEmails
                 $message->from($from_email, 'Kingsbury Personnel Ltd');
                 $message->to($to);
                 $message->subject($subject);
-                $message->html($html);
+                $message->html(EmailInlineImages::embed($message, $html));
             });
 
             $this->saveEmailDB($to, $from_email, $subject, $formattedMessage, $title, $applicant_id);

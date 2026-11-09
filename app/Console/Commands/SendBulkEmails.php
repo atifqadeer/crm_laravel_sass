@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\EmailInlineImages;
 use Illuminate\Console\Command;
 use Horsefly\SentEmail;
 use Horsefly\SmtpSetting;
@@ -75,7 +76,7 @@ class SendBulkEmails extends Command
                                 $message->to($email->sent_to)
                                         ->subject($email->subject ?? 'Bulk Email')
                                         ->from($smtp->from_address, $smtp->from_name)
-                                        ->html($email->template);
+                                        ->html(EmailInlineImages::embed($message, $email->template));
 
                                 if (!empty($ccEmails)) {
                                     $message->cc($ccEmails);

@@ -70,36 +70,40 @@ class CommunicationController extends Controller
         $unit = Unit::where('office_id', $sale->office_id)->first();
         $JobCategory = JobCategory::where('id', $sale->job_category_id)->first();
         $job_category = $sale->job_category_id;
-        $job_postcode = $sale->sale_postcode;
         $job_title = $sale->job_title_id;
 
         $nearby_applicants = $this->distance($sale->lat, $sale->lng, $radius, $job_title, $job_category);
         $emails = is_null($nearby_applicants) ? '' : implode(',', $nearby_applicants->toArray());
 
-        $user_name = Auth::user()->name;
+        $user_pseudo_name = Auth::user()->pseudo_name;
+        $site_name = Setting::where('key', 'site_name')->first()->value ?? '-';
 
         $category = ($JobCategory ? ucwords($JobCategory->name) : '-');
         $unit_name = ($unit ? $unit->unit_name : '-');
         $salary = $sale->salary ?? '-';
+        $benefits = $sale->benefits ?? '-';
         $qualification = $sale->qualification ?? '-';
-        $job_type = $sale->position_type ?? '-';
+        $job_type = ucwords($sale->position_type) ?? '-';
         $timing = $sale->timing ?? '-';
         $experience = $sale->experience ?? '-';
-        $location = '-';
+        $location = $sale->sale_postcode ?? '-';
 
         // Fill template placeholders
         $replace = [
-            $user_name,
-            optional($JobCategory)->name ?? '-',
-            optional($unit)->unit_name ?? '-',
-            $sale->salary ?? '-',
-            $sale->qualification ?? '-',
-            $sale->position_type ?? '-',
-            $sale->timing ?? '-',
-            $sale->experience ?? '-',
-            '-',
+            $user_pseudo_name,
+            $site_name,
+            $salary,
+            $benefits,
+            $category,
+            $unit_name,
+            $qualification,
+            $job_type,
+            $timing,
+            $experience,
+            $location,
         ];
-        $prev_val = ['(agent_name)', '(job_category)', '(unit_name)', '(salary)', '(qualification)', '(job_type)', '(timing)', '(experience)', '(location)'];
+
+        $prev_val = ['(agent_pseudo_name)', '(site_name)', '(salary)', '(benefits)', '(job_category)', '(unit_name)', '(qualification)', '(job_type)', '(timing)', '(experience)', '(location)'];
 
         $formattedMessage = '';
         $subject = '';
@@ -107,12 +111,18 @@ class CommunicationController extends Controller
         $template = EmailTemplate::where('slug', 'send_job_vacancy_details')->where('is_active', 1)->first();
         if ($template && !empty($template->template)) {
             $newPhrase = str_replace($prev_val, $replace, $template->template);
+            $newPhrase = preg_replace_callback(
+                '/\(\s*(?:<[^>]*>\s*)*salary(?:\s*<[^>]*>)*\)/i',
+                fn () => e((string) $salary),
+                $newPhrase
+            ) ?? $newPhrase;
             $formattedMessage = nl2br($newPhrase);
             $subject = $template->subject;
         }
 
         return view('emails.send-email-to-applicant', compact('sale', 'unit', 'subject', 'formattedMessage', 'emails'));
     }
+    
     function distance($lat, $lon, $radius, $job_title_id, $job_category_id)
     {
         $location_distance = Applicant::with('cv_notes')
@@ -411,8 +421,7 @@ class CommunicationController extends Controller
                         $email_body,
                         $email_title,
                         $applicant->id,
-                        $sale_id,
-                        useEmailLayout: false
+                        $sale_id
                     );
                     if (!$is_save) {
                         // Optional: throw or log
@@ -451,8 +460,7 @@ class CommunicationController extends Controller
                 $validated['email_body'],
                 $title,
                 $applicant?->id,
-                $validated['sale_id'] ?? null,
-                true
+                $validated['sale_id'] ?? null
             );
 
             if (!$isSaved) {
