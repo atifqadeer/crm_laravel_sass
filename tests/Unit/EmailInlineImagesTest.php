@@ -47,6 +47,26 @@ class EmailInlineImagesTest extends TestCase
         $this->assertCount(1, $message->getSymfonyMessage()->getAttachments());
     }
 
+    public function test_signature_logo_on_a_private_address_is_embedded(): void
+    {
+        $message = $this->message();
+        $html = EmailInlineImages::embed($message, '<img src="http://127.0.0.1/' . self::LOGO . '">');
+
+        $this->assertStringContainsString('src="cid:', $html);
+        $this->assertCount(1, $message->getSymfonyMessage()->getAttachments());
+    }
+
+    public function test_signature_logo_on_a_public_address_stays_a_link(): void
+    {
+        foreach (['https://crm.kingsburypersonnel.com/', 'http://8.8.8.8/'] as $base) {
+            $html = '<img src="' . $base . self::LOGO . '">';
+            $message = $this->message();
+
+            $this->assertSame($html, EmailInlineImages::embed($message, $html));
+            $this->assertCount(0, $message->getSymfonyMessage()->getAttachments());
+        }
+    }
+
     public function test_other_images_are_left_unchanged(): void
     {
         $html = '<img src="https://other.example.test/banner.png">'
