@@ -34,12 +34,16 @@ class SendBulkEmails extends Command
 
             // Group emails by their sender (from address)
             $groupedEmails = $unsentEmails->groupBy('sent_from');
+            $acceptedCount = 0;
+            $failedCount = 0;
+            $skippedCount = 0;
 
             foreach ($groupedEmails as $fromAddress => $emails) {
                 $smtp = SmtpSetting::where('from_address', $fromAddress)->first();
 
                 if (!$smtp) {
-                    // Log::warning("SMTP not found for sender: {$fromAddress}");
+                    $skippedCount += $emails->count();
+                    Log::warning("Bulk emails skipped: no SMTP settings for sender {$fromAddress}", ['count' => $emails->count()]);
                     $this->warn("SMTP not found for sender: {$fromAddress}");
                     continue;
                 }
@@ -61,11 +65,14 @@ class SendBulkEmails extends Command
                     'mail.from.name' => $smtp->from_name,
                 ]);
 
+                // Laravel keeps a resolved mailer for the whole run, so drop it or this sender uses the previous SMTP.
+                Mail::purge('dynamic_smtp');
+
                 $this->info("Using SMTP: {$smtp->from_address} ({$smtp->host})");
                 // Log::info("Processing batch for SMTP: {$smtp->from_address}");
 
                 // Send in chunks to control memory + delay between chunks
-                $emails->chunk(100)->each(function ($chunk) use ($smtp) {
+                $emails->chunk(100)->each(function ($chunk) use ($smtp, &$acceptedCount, &$failedCount) {
                     foreach ($chunk as $email) {
                         try {
                             $ccEmails = !empty($email->cc_emails)
@@ -85,12 +92,15 @@ class SendBulkEmails extends Command
 
                             $email->update(['status' => '1']);
 
-                            $this->info("Email sent to {$email->sent_to} (SMTP ID: {$smtp->id})");
+                            $acceptedCount++;
+                            $this->info("Accepted by SMTP for {$email->sent_to} (SMTP ID: {$smtp->id})");
                             // Log::info("Email sent to {$email->sent_to} via SMTP ID {$smtp->id}, Email ID {$email->id}");
 
                         } catch (\Exception $e) {
                             $this->error("Failed: {$email->sent_to} — {$e->getMessage()}");
-                            // Log::error("Failed sending Email ID {$email->id}: {$e->getMessage()}");
+                            $failedCount++;
+                            $email->update(['status' => '2']);
+                            Log::error("Failed sending Email ID {$email->id}: {$e->getMessage()}");
                         }
                     }
 
@@ -100,7 +110,8 @@ class SendBulkEmails extends Command
                 });
             }
 
-            $this->info('All emails processed successfully.');
+            $summary = "Finished: {$acceptedCount} accepted by SMTP, {$failedCount} failed, {$skippedCount} skipped (no SMTP settings for sender).";
+            ($failedCount || $skippedCount) ? $this->warn($summary) : $this->info($summary);
             // Log::debug('SendBulkEmails command completed.');
         } else {
             // Log::info('SendBulkEmails command not completed, because Email Notifications are disabled.');
