@@ -686,51 +686,6 @@ class ApplicantController extends Controller
             $model->orderBy('applicants.created_at', 'desc');
         }
 
-        // if ($request->filled('search.value')) {
-        //     $searchTerm  = trim($request->input('search.value'));
-        //     $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
-        //     $isDigitOnly = !empty($cleanDigits) && strlen($cleanDigits) === strlen($searchTerm);
-
-        //     if (strlen($searchTerm) >= 2) {
-        //         $firstWord = explode(' ', $searchTerm)[0];
-
-        //         // Check for exact applicant_name match
-        //         $exactNameCount = Applicant::where('applicant_name', $searchTerm)->count();
-
-        //         if ($exactNameCount > 0) {
-        //             // If exact match exists, filter only for those
-        //             $model->where('applicants.applicant_name', $searchTerm);
-        //         } else {
-        //             // Proceed with existing closest match logic
-
-        //             // Check if the search term looks like a postcode
-        //             if (preg_match('/^[A-Za-z]{1,2}[0-9]{1,2}/i', $searchTerm)) {
-        //                 $model->where(function ($q) use ($searchTerm) {
-        //                     $q->whereRaw('UPPER(applicants.applicant_postcode) LIKE ?', [strtoupper($searchTerm) . '%']);
-        //                 });
-        //             } else {
-        //                 // Search for name or email variants
-        //                 $model->where(function ($q) use ($firstWord) {
-        //                     $q->where('applicants.applicant_name', 'LIKE', $firstWord . '%')
-        //                         ->orWhere('applicants.applicant_email', 'LIKE', $firstWord . '%')
-        //                         ->orWhere('applicants.applicant_email_secondary', 'LIKE', $firstWord . '%')
-        //                         ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-        //                         ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_phone_secondary, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-        //                         ->orWhereRaw('REPLACE(REPLACE(applicants.applicant_landline, " ", ""), "-", "") LIKE ?', [$firstWord . '%'])
-        //                         ->orWhere('applicants.applicant_notes', 'LIKE', '%' . $firstWord . '%');
-
-        //                     // Relationship search — only if 3+ chars
-        //                     if (strlen($firstWord) >= 3) {
-        //                         $q->orWhereHas('jobTitle', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-        //                             ->orWhereHas('jobCategory', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'))
-        //                             ->orWhereHas('jobSource', fn($q) => $q->where('name', 'LIKE', $firstWord . '%'));
-        //                     }
-        //                 });
-        //             }
-        //         }
-        //     }
-        // }
-
         if ($request->filled('search.value')) {
             $searchTerm = trim($request->input('search.value'));
             $cleanDigits = preg_replace('/[^0-9]/', '', $searchTerm);
@@ -802,7 +757,6 @@ class ApplicantController extends Controller
                 }
             }
         }
-
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)

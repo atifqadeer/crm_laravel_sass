@@ -270,12 +270,12 @@
                                     <th>PostCode</th>
                                     <th>Title</th>
                                     <th>Category</th>
-                                    <th>Source</th>
                                     <th>Details</th>
                                     <th>Experience</th>
                                     <th>Qualification</th>
                                     <th>Salary</th>
                                     <th>CV Limit</th>
+                                    <th>Source</th>
                                     <th width="15%">Notes</th>
                                     <th>Status</th>
                                     <th>Action</th>
@@ -411,10 +411,7 @@
                     title: 'Category',
                     default: true
                 },
-                {
-                    title: 'Source',
-                    default: true
-                },
+                
                 {
                     title: 'Details',
                     default: true
@@ -433,6 +430,10 @@
                 },
                 {
                     title: 'CV Limit',
+                    default: true
+                },
+                {
+                    title: 'Source',
                     default: true
                 },
                 {
@@ -587,10 +588,7 @@
                         data: 'job_category',
                         name: 'job_categories.name'
                     },
-                    {
-                        data: 'job_source',
-                        name: 'job_sources.name'
-                    },
+                   
                     {
                         data: 'job_details',
                         name: 'job_details',
@@ -612,6 +610,10 @@
                         data: 'cv_limit',
                         name: 'sales.cv_limit'
                     },
+                     {
+                        data: 'job_source',
+                        name: 'job_sources.name'
+                    },
                     {
                         data: 'sale_notes',
                         name: 'sales.sale_notes',
@@ -629,19 +631,13 @@
                     }
                 ],
                 columnDefs: [{
-                        targets: 8, // Column index for 'job_details'
+                        targets: 13, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
                     },
                     {
                         targets: 9, // Column index for 'job_details'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 15, // Column index for 'job_details'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
