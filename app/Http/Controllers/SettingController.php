@@ -43,6 +43,8 @@ class SettingController extends Controller
             'saveSmtpSettings',
             'saveGeneralSettings',
             'saveEmailSignatureSettings',
+            'saveEmailLayout',
+            'previewEmailLayout',
             'saveGoogleSettings',
             'saveNotificationSettings',
             'saveSmsSettings',
@@ -65,7 +67,7 @@ class SettingController extends Controller
         $this->middleware('permission:administrator-job-source-edit')->only(['jobSourceUpdate']);
         $this->middleware('permission:administrator-email-template-index')->only(['emailTemplatesIndex', 'getEmailTemplates', 'emailEditTemplate']);
         $this->middleware('permission:administrator-email-template-create')->only(['emailTemplatesStore']);
-        $this->middleware('permission:administrator-email-template-edit')->only(['emailTemplatesUpdate', 'saveEmailLayout']);
+        $this->middleware('permission:administrator-email-template-edit')->only(['emailTemplatesUpdate']);
         $this->middleware('permission:administrator-sms-template-index')->only(['smsTemplatesIndex', 'getSmsTemplates', 'smsEditTemplate']);
         $this->middleware('permission:administrator-sms-template-create')->only(['smsTemplatesStore']);
         $this->middleware('permission:administrator-sms-template-edit')->only(['smsTemplatesUpdate']);
@@ -75,8 +77,10 @@ class SettingController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(EmailLayoutRenderer $emailLayoutRenderer)
     {
+        $emailLayoutHtml = $emailLayoutRenderer->templateForEditing();
+        $defaultEmailLayoutHtml = $emailLayoutRenderer->defaultTemplate();
         $appVersion = Setting::where('key', 'app_version')->value('value');
         $versionHistory = DB::table('application_version_history')
             ->leftJoin('users', 'users.id', '=', 'application_version_history.updated_by')
@@ -89,14 +93,35 @@ class SettingController extends Controller
             ->orderByDesc('application_version_history.id')
             ->get();
 
-        return view('settings.list', compact('appVersion', 'versionHistory'));
+        return view('settings.list', compact('appVersion', 'versionHistory', 'emailLayoutHtml', 'defaultEmailLayoutHtml'));
     }
     public function emailTemplatesIndex()
     {
         $users = DB::table('users')->where('is_active', true)->orderBy('name', 'asc')->get();
-        $emailLayoutHtml = app(EmailLayoutRenderer::class)->templateForEditing();
 
-        return view('settings.email-templates', compact('users', 'emailLayoutHtml'));
+        return view('settings.email-templates', compact('users'));
+    }
+
+    public function previewEmailLayout(Request $request, EmailLayoutRenderer $emailLayoutRenderer)
+    {
+        $validated = $request->validate([
+            'email_layout_html' => 'required|string|max:60000',
+        ]);
+
+        $sampleContent = '<p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">Dear Sarah,</p>'
+            . '<p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">Thank you for registering with us. '
+            . 'This sample text shows where the message of each email appears inside your layout.</p>'
+            . '<p style="margin:0;color:#334155;font-size:14px;line-height:1.6;">Please let us know a good time to discuss the roles available in your area.</p>';
+
+        return response()->json([
+            'html' => $emailLayoutRenderer->render(
+                'Your Application Update',
+                'Your Application Update',
+                $sampleContent,
+                true,
+                $validated['email_layout_html']
+            ),
+        ]);
     }
 
     public function saveEmailLayout(Request $request)

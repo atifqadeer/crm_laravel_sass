@@ -17,7 +17,7 @@ class EmailLayoutRenderer
         return is_string($template) && $template !== '' ? $template : $this->defaultTemplate();
     }
 
-    public function render(string $title, string $subject, string $content, bool $showSignature = true): string
+    public function render(string $title, string $subject, string $content, bool $showSignature = true, ?string $template = null): string
     {
         $user = Auth::user();
         $senderName = $user?->pseudo_name ?: $user?->name ?: 'Kingsbury Personnel';
@@ -44,7 +44,7 @@ class EmailLayoutRenderer
             }
         }
         $logoUrl = asset('images/Kingsbury-Personnel-Logo.png');
-        $template = $this->templateForEditing();
+        $template ??= $this->templateForEditing();
         $template = preg_replace_callback(
             '/(<!-- EMAIL_SIGNATURE_START -->)(.*?)(<!-- EMAIL_SIGNATURE_END -->)/s',
             function ($matches) use ($primaryEmail, $signatureEmail, $companyName, $phone, $signatureImageUrl) {
@@ -106,7 +106,7 @@ class EmailLayoutRenderer
         ]);
     }
 
-    private function defaultTemplate(): string
+    public function defaultTemplate(): string
     {
         $signature = '<!-- EMAIL_SIGNATURE_START -->'
             . view('emails.partials.signature', [

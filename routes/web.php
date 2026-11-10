@@ -333,6 +333,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::post('email-templates/store', [SettingController::class, 'emailTemplatesStore'])->name('emailTemplates.store');
     Route::put('email-templates/update', [SettingController::class, 'emailTemplatesUpdate'])->name('emailTemplates.update');
     Route::put('settings/email-layout', [SettingController::class, 'saveEmailLayout'])->name('settings.email-layout.save');
+    Route::post('settings/email-layout/preview', [SettingController::class, 'previewEmailLayout'])->name('settings.email-layout.preview');
     Route::post('emailTemplateDelete', [SettingController::class, 'emailTemplateDelete'])->name('emailTemplates.delete');
 
     /**SMS Templates */

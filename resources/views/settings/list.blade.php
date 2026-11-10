@@ -51,11 +51,297 @@
         }
     </style>
 @endsection
+@section('css')
+    <style>
+        @media (min-width: 768px) {
+            .settings-row.is-email-layout .settings-menu-col {
+                flex: 0 0 210px;
+                width: 210px;
+            }
+
+            .settings-row.is-email-layout .settings-form-col {
+                flex: 1 1 0;
+                width: auto;
+                min-width: 0;
+            }
+        }
+
+        .el-hero {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 18px 22px;
+            border-radius: 12px;
+            color: #fff;
+            background: linear-gradient(120deg, #0b1f3a 0%, #17375f 100%);
+            box-shadow: 0 10px 24px rgba(11, 31, 58, .18);
+        }
+
+        .el-hero-eyebrow {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #e0a94a;
+        }
+
+        .el-hero h5 {
+            margin: 0;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .el-hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .el-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12.5px;
+            color: #c9d6e6;
+        }
+
+        .el-status::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34d399;
+        }
+
+        .el-status.is-dirty {
+            color: #fde3b0;
+        }
+
+        .el-status.is-dirty::before {
+            background: #f5b041;
+        }
+
+        .el-hero .btn.el-reset {
+            color: #fff;
+            background: transparent;
+            border-color: rgba(255, 255, 255, .5);
+        }
+
+        .el-hero .btn.el-reset:hover,
+        .el-hero .btn.el-reset:focus {
+            color: #0b1f3a;
+            background: #fff;
+            border-color: #fff;
+        }
+
+        .el-hero .btn.el-save {
+            color: #0b1f3a;
+            font-weight: 600;
+            background: #e0a94a;
+            border-color: #e0a94a;
+        }
+
+        .el-hero .btn.el-save:hover,
+        .el-hero .btn.el-save:focus,
+        .el-hero .btn.el-save:disabled {
+            color: #0b1f3a;
+            background: #eab963;
+            border-color: #eab963;
+        }
+
+        .el-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 8px;
+            margin-top: 14px;
+        }
+
+        .el-toolbar-label {
+            min-width: 64px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--bs-secondary-color);
+        }
+
+        .el-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #b42318;
+            background: rgba(217, 45, 32, .1);
+        }
+
+        .el-check::before {
+            content: "\2715";
+            font-size: 11px;
+        }
+
+        .el-check.is-ok {
+            color: #067647;
+            background: rgba(23, 178, 106, .13);
+        }
+
+        .el-check.is-ok::before {
+            content: "\2713";
+        }
+
+        .el-chip {
+            padding: 3px 10px;
+            border: 1px solid var(--bs-border-color);
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--bs-body-color);
+            background: var(--bs-body-bg);
+            transition: border-color .15s, color .15s, background-color .15s;
+        }
+
+        .el-chip:hover,
+        .el-chip:focus-visible {
+            color: #8a5a10;
+            border-color: #e0a94a;
+            background: rgba(224, 169, 74, .12);
+        }
+
+        .el-workspace {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .el-pane {
+            display: flex;
+            flex-direction: column;
+            height: 660px;
+            overflow: hidden;
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            background: var(--bs-body-bg);
+        }
+
+        .el-pane-header {
+            display: flex;
+            flex: 0 0 46px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--bs-border-color);
+        }
+
+        .el-pane-header.is-dark {
+            color: #e6edf5;
+            background: #1f2430;
+            border-bottom-color: #2c3342;
+        }
+
+        .el-pane-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .el-count {
+            font-size: 11.5px;
+            font-weight: 400;
+            color: #93a1b5;
+        }
+
+        .el-editor {
+            flex: 1 1 auto;
+            min-height: 0;
+            background: #212121;
+        }
+
+        .el-editor textarea {
+            display: block;
+            width: 100%;
+            height: 100%;
+            padding: 12px 14px;
+            border: 0;
+            outline: 0;
+            resize: none;
+            font: 13px/1.6 Consolas, Monaco, "Courier New", monospace;
+            color: #eeffff;
+            background: #212121;
+        }
+
+        .el-editor .CodeMirror {
+            height: 100%;
+            font: 13px/1.6 Consolas, Monaco, "Courier New", monospace;
+        }
+
+        .el-preview-stage {
+            display: flex;
+            flex: 1 1 auto;
+            justify-content: center;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--bs-tertiary-bg);
+        }
+
+        .el-preview-frame {
+            flex: none;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #fff;
+            transform-origin: 0 0;
+        }
+
+        .el-preview-stage:not(.is-mobile) {
+            justify-content: flex-start;
+        }
+
+        .el-preview-stage.is-mobile .el-preview-frame {
+            width: 375px;
+            max-width: 100%;
+            border-right: 1px solid var(--bs-border-color);
+            border-left: 1px solid var(--bs-border-color);
+        }
+
+        .el-updating {
+            font-size: 11.5px;
+            font-weight: 400;
+            color: var(--bs-secondary-color);
+        }
+
+        .el-note {
+            margin: 12px 2px 0;
+            font-size: 12.5px;
+            color: var(--bs-secondary-color);
+        }
+
+        @media (max-width: 991.98px) {
+            .el-workspace {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .el-pane {
+                height: 520px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+@endsection
 @section('content')
     <div class="container-fluid">
-        <div class="row">
+        <div class="row settings-row" id="settingsRow">
             <!-- Left Menu Column -->
-            <div class="col-md-4">
+            <div class="col-md-4 settings-menu-col">
                 <div class="card">
                     <div class="card-header bg-dark text-white">
                         <h5 class="mb-0">Settings Menu</h5>
@@ -65,6 +351,8 @@
                             type="button" id="menu-general" aria-controls="form-general">General Settings</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-email-signature"
                             type="button" id="menu-email-signature" aria-controls="form-email-signature">Email Signature</button>
+                        <button class="list-group-item list-group-item-action" data-target="#form-email-layout"
+                            type="button" id="menu-email-layout" aria-controls="form-email-layout">Email Layout</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-version"
                             type="button" id="menu-version" aria-controls="form-version">Application Version</button>
                         <button class="list-group-item list-group-item-action" data-target="#form-profile" type="button"
@@ -87,7 +375,7 @@
                 </div>
             </div>
             <!-- Right Forms Column -->
-            <div class="col-md-8">
+            <div class="col-md-8 settings-form-col">
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title" id="form-title">General Settings</h4>
@@ -148,6 +436,80 @@
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save Email Signature</button>
                                 </div>
+                            </form>
+                        </section>
+                        <section id="form-email-layout" class="settings-form-section">
+                            <form id="emailLayoutSettingsForm" data-type="email-layout" novalidate>
+                                @csrf
+                                <div class="el-hero">
+                                    <div>
+                                        <span class="el-hero-eyebrow">Outgoing emails</span>
+                                        <h5>Design the frame around every email</h5>
+                                    </div>
+                                    <div class="el-hero-actions">
+                                        <span class="el-status" id="emailLayoutStatus" role="status">All changes saved</span>
+                                        <button type="button" class="btn btn-sm el-reset"
+                                            id="emailLayoutReset">Restore default</button>
+                                        <button type="submit" class="btn btn-sm el-save">Save layout</button>
+                                    </div>
+                                </div>
+
+                                <div class="el-toolbar" aria-label="Required parts of the layout">
+                                    <span class="el-toolbar-label">Required</span>
+                                    <span class="el-check" data-token="@{{ email_content }}">Email content</span>
+                                    <span class="el-check" data-token="&lt;!-- EMAIL_SIGNATURE_START --&gt;">Signature start</span>
+                                    <span class="el-check" data-token="&lt;!-- EMAIL_SIGNATURE_END --&gt;">Signature end</span>
+                                </div>
+                                <div class="el-toolbar" aria-label="Insert a placeholder at the cursor">
+                                    <span class="el-toolbar-label">Insert</span>
+                                    <button type="button" class="el-chip" data-token="@{{ email_title }}">Title</button>
+                                    <button type="button" class="el-chip" data-token="@{{ email_subject }}">Subject</button>
+                                    <button type="button" class="el-chip" data-token="@{{ email_content }}">Content</button>
+                                    <button type="button" class="el-chip" data-token="@{{ sender_name }}">Sender name</button>
+                                    <button type="button" class="el-chip" data-token="@{{ logo_url }}">Logo URL</button>
+                                    <button type="button" class="el-chip" data-token="@{{ primary_email }}">Primary email</button>
+                                    <button type="button" class="el-chip" data-token="@{{ signature_company_name }}">Company</button>
+                                    <button type="button" class="el-chip" data-token="@{{ signature_phone }}">Phone</button>
+                                    <button type="button" class="el-chip" data-token="@{{ signature_email }}">Signature email</button>
+                                    <button type="button" class="el-chip" data-token="@{{ signature_address }}">Address</button>
+                                    <button type="button" class="el-chip" data-token="@{{ signature_image_url }}">Signature image URL</button>
+                                </div>
+
+                                <div class="el-workspace">
+                                    <div class="el-pane">
+                                        <div class="el-pane-header is-dark">
+                                            <span class="el-pane-title">
+                                                <iconify-icon icon="solar:code-square-outline" class="fs-18"></iconify-icon>
+                                                HTML
+                                            </span>
+                                            <span class="el-count" id="emailLayoutCount"></span>
+                                        </div>
+                                        <div class="el-editor">
+                                            <textarea id="email_layout_html" spellcheck="false"
+                                                aria-label="Email layout HTML">{{ $emailLayoutHtml }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="el-pane">
+                                        <div class="el-pane-header">
+                                            <span class="el-pane-title">
+                                                <iconify-icon icon="solar:eye-outline" class="fs-18"></iconify-icon>
+                                                Live preview
+                                                <span class="el-updating d-none" id="emailLayoutUpdating">Updating...</span>
+                                            </span>
+                                            <div class="btn-group btn-group-sm" role="group" aria-label="Preview size">
+                                                <button type="button" class="btn btn-outline-secondary active"
+                                                    data-preview-size="desktop" aria-pressed="true">Desktop</button>
+                                                <button type="button" class="btn btn-outline-secondary"
+                                                    data-preview-size="mobile" aria-pressed="false">Mobile</button>
+                                            </div>
+                                        </div>
+                                        <div class="el-preview-stage" id="emailLayoutStage">
+                                            <iframe class="el-preview-frame" id="emailLayoutPreview"
+                                                title="Email layout preview" sandbox="allow-same-origin"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="el-note">The preview uses sample text. Signature details come from the Email Signature tab.</p>
                             </form>
                         </section>
                         <section id="form-version" class="settings-form-section">
@@ -724,6 +1086,16 @@
     <!-- Moment JS -->
     <script src="{{ asset('js/moment.min.js') }}"></script>
 
+    <!-- CodeMirror: the Email Layout tab falls back to a plain textarea if these fail to load -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
+
     {{-- @vite(['resources/js/pages/settings.js']) --}}
 
     <script>
@@ -1263,11 +1635,236 @@
                 }
             });
 
+            // Email layout editor and live preview
+            const defaultEmailLayoutHtml = @json($defaultEmailLayoutHtml);
+            const emailLayoutCsrf = $('#emailLayoutSettingsForm [name="_token"]').val();
+            const $emailLayoutTextarea = $('#email_layout_html');
+            const emailLayoutFrame = document.getElementById('emailLayoutPreview');
+            let emailLayoutEditor = null;
+            let emailLayoutOpened = false;
+            let emailLayoutSaved = $emailLayoutTextarea.val();
+            let emailLayoutPreviewTimer = null;
+            let emailLayoutPreviewXhr = null;
+            let emailLayoutPreviewScroll = 0;
+
+            function getEmailLayoutHtml() {
+                return emailLayoutEditor ? emailLayoutEditor.getValue() : $emailLayoutTextarea.val();
+            }
+
+            function refreshEmailLayoutState() {
+                const html = getEmailLayoutHtml();
+                const isDirty = html !== emailLayoutSaved;
+
+                $('.el-check').each(function() {
+                    $(this).toggleClass('is-ok', html.includes(this.getAttribute('data-token')));
+                });
+                $('#emailLayoutCount')
+                    .text(html.length.toLocaleString() + ' / 60,000 characters')
+                    .toggleClass('text-danger', html.length > 60000);
+                $('#emailLayoutStatus')
+                    .toggleClass('is-dirty', isDirty)
+                    .text(isDirty ? 'Unsaved changes' : 'All changes saved');
+            }
+
+            function renderEmailLayoutPreview() {
+                const html = getEmailLayoutHtml();
+                if (emailLayoutPreviewXhr) {
+                    emailLayoutPreviewXhr.abort();
+                }
+                if (!html.trim() || html.length > 60000) {
+                    $('#emailLayoutUpdating').addClass('d-none');
+                    return;
+                }
+
+                $('#emailLayoutUpdating').text('Updating...').removeClass('d-none');
+                emailLayoutPreviewXhr = $.ajax({
+                    url: '{{ route('settings.email-layout.preview') }}',
+                    method: 'POST',
+                    data: {
+                        _token: emailLayoutCsrf,
+                        email_layout_html: html
+                    },
+                    success: function(response) {
+                        if (emailLayoutFrame.contentWindow) {
+                            emailLayoutPreviewScroll = emailLayoutFrame.contentWindow.scrollY || 0;
+                        }
+                        emailLayoutFrame.srcdoc = response.html;
+                        $('#emailLayoutUpdating').addClass('d-none');
+                    },
+                    error: function(xhr, status) {
+                        if (status !== 'abort') {
+                            $('#emailLayoutUpdating').text('Preview could not update').removeClass('d-none');
+                        }
+                    }
+                });
+            }
+
+            function onEmailLayoutChange() {
+                refreshEmailLayoutState();
+                clearTimeout(emailLayoutPreviewTimer);
+                emailLayoutPreviewTimer = setTimeout(renderEmailLayoutPreview, 350);
+            }
+
+            function openEmailLayoutEditor() {
+                if (emailLayoutOpened) {
+                    if (emailLayoutEditor) {
+                        emailLayoutEditor.refresh();
+                    }
+                    return;
+                }
+
+                emailLayoutOpened = true;
+                if (window.CodeMirror) {
+                    emailLayoutEditor = CodeMirror.fromTextArea($emailLayoutTextarea[0], {
+                        mode: 'htmlmixed',
+                        theme: 'material-darker',
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        indentUnit: 4,
+                        autoCloseTags: true,
+                        matchTags: { bothTags: true }
+                    });
+                    emailLayoutEditor.on('change', onEmailLayoutChange);
+                } else {
+                    $emailLayoutTextarea.on('input', onEmailLayoutChange);
+                }
+
+                refreshEmailLayoutState();
+                renderEmailLayoutPreview();
+            }
+
+            function saveEmailLayout($btn, originalText) {
+                const html = getEmailLayoutHtml();
+                $btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+                );
+
+                $.ajax({
+                    url: '{{ route('settings.email-layout.save') }}',
+                    method: 'POST',
+                    data: {
+                        _token: emailLayoutCsrf,
+                        _method: 'PUT',
+                        email_layout_html: html
+                    },
+                    success: function(response) {
+                        emailLayoutSaved = html;
+                        refreshEmailLayoutState();
+                        toastr.success(response.message);
+                    },
+                    error: function(xhr) {
+                        const errors = xhr.responseJSON?.errors?.email_layout_html;
+                        toastr.error(errors?.[0] || xhr.responseJSON?.message || 'Failed to save the email layout.');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).html(originalText);
+                    }
+                });
+            }
+
+            // Keep the reader's place when the preview reloads, and stop links from replacing it
+            emailLayoutFrame.addEventListener('load', function() {
+                const previewDocument = emailLayoutFrame.contentDocument;
+                if (!previewDocument) {
+                    return;
+                }
+                emailLayoutFrame.contentWindow.scrollTo(0, emailLayoutPreviewScroll);
+                previewDocument.addEventListener('click', function(event) {
+                    if (event.target.closest('a')) {
+                        event.preventDefault();
+                    }
+                });
+            });
+
+            // Desktop preview renders at true email width and scales down to fit the pane
+            const emailLayoutStage = document.getElementById('emailLayoutStage');
+
+            function fitEmailLayoutPreview() {
+                const stageWidth = emailLayoutStage.clientWidth;
+                if (!stageWidth || emailLayoutStage.classList.contains('is-mobile')) {
+                    emailLayoutFrame.style.width = '';
+                    emailLayoutFrame.style.height = '';
+                    emailLayoutFrame.style.transform = '';
+                    return;
+                }
+
+                const desktopWidth = Math.max(700, stageWidth);
+                const scale = stageWidth / desktopWidth;
+                emailLayoutFrame.style.width = desktopWidth + 'px';
+                emailLayoutFrame.style.height = (emailLayoutStage.clientHeight / scale) + 'px';
+                emailLayoutFrame.style.transform = 'scale(' + scale + ')';
+            }
+
+            new ResizeObserver(fitEmailLayoutPreview).observe(emailLayoutStage);
+
+            $menuButtons.on('click', function() {
+                const isEmailLayout = $(this).data('target') === '#form-email-layout';
+                $('#settingsRow').toggleClass('is-email-layout', isEmailLayout);
+                if (isEmailLayout) {
+                    openEmailLayoutEditor();
+                }
+            });
+
+            $('.el-chip').on('click', function() {
+                const token = this.getAttribute('data-token');
+                if (emailLayoutEditor) {
+                    emailLayoutEditor.replaceSelection(token);
+                    emailLayoutEditor.focus();
+                    return;
+                }
+
+                const textarea = $emailLayoutTextarea[0];
+                textarea.setRangeText(token, textarea.selectionStart, textarea.selectionEnd, 'end');
+                textarea.focus();
+                onEmailLayoutChange();
+            });
+
+            $('[data-preview-size]').on('click', function() {
+                const size = $(this).data('preview-size');
+                $('[data-preview-size]').removeClass('active').attr('aria-pressed', 'false');
+                $(this).addClass('active').attr('aria-pressed', 'true');
+                $('#emailLayoutStage').toggleClass('is-mobile', size === 'mobile');
+                fitEmailLayoutPreview();
+            });
+
+            $('#emailLayoutReset').on('click', function() {
+                Swal.fire({
+                    title: 'Restore the default layout?',
+                    text: 'This replaces the HTML in the editor. Nothing changes for your emails until you click Save layout.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Restore default'
+                }).then(function(result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+                    if (emailLayoutEditor) {
+                        emailLayoutEditor.setValue(defaultEmailLayoutHtml);
+                    } else {
+                        $emailLayoutTextarea.val(defaultEmailLayoutHtml);
+                        onEmailLayoutChange();
+                    }
+                });
+            });
+
+            window.addEventListener('beforeunload', function(event) {
+                if (emailLayoutOpened && getEmailLayoutHtml() !== emailLayoutSaved) {
+                    event.preventDefault();
+                    event.returnValue = '';
+                }
+            });
+
             // Handle form submissions
             $formSections.find('form').submit(function(e) {
                 e.preventDefault();
                 const $form = $(this);
                 const formType = $form.data('type');
+
+                if (formType === 'email-layout') {
+                    const $layoutButton = $form.find('[type="submit"]');
+                    saveEmailLayout($layoutButton, $layoutButton.html());
+                    return;
+                }
 
                 // get the actual submit button inside the form
                 const $btn = $form.find('[type="submit"]');

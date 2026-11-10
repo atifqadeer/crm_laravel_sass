@@ -35,6 +35,7 @@ use App\Traits\HidesPrivateContacts;
 use App\Observers\ActionObserver;
 
 use App\Support\DialLink;
+use App\Support\SaleEmailRestriction;
 
 // Import necessary classes
 use App\Exports\ApplicantsExport;
@@ -2908,6 +2909,7 @@ class ApplicantController extends Controller
     {
         $cvNote = CVNote::query()->findOrFail($cvNoteId);
         $documentPath = 'cv-questionnaires/' . $cvNote->getKey() . '.docx';
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
         $storage = Storage::disk('local');
 
         abort_unless($storage->exists($documentPath), 404, 'The questionnaire document was not found.');
@@ -3788,6 +3790,27 @@ class ApplicantController extends Controller
                         if ($applicant->is_in_nurse_home == false) {
                             $html .= '<li><a href="javascript:void(0);" class="dropdown-item" onclick="markNoNursingHomeModal(' . $applicant->id . ')">
                                                         Mark No Nursing Home</a></li>';
+                        }
+                        if (SaleEmailRestriction::applies($sale)) {
+                            $html .= SaleEmailRestriction::disabledDropdownItem();
+                        } elseif ($applicant->applicant_email || $applicant->applicant_email_secondary) {
+                            $escapeAttribute = fn ($value) => e((string) ($value ?? ''));
+                            $html .= '<li><a href="javascript:void(0);" class="dropdown-item email-btn"
+                                data-applicant-id="' . (int) $applicant->id . '"
+                                data-sale-id="' . (int) $sale->id . '"
+                                data-email="' . $escapeAttribute($applicant->applicant_email) . '"
+                                data-secondary-email="' . $escapeAttribute($applicant->applicant_email_secondary) . '"
+                                data-name="' . $escapeAttribute($applicant->applicant_name) . '"
+                                data-job-title="' . $escapeAttribute($sale->job_title_name) . '"
+                                data-office-name="' . $escapeAttribute($sale->office_name) . '"
+                                data-unit-name="' . $escapeAttribute($sale->unit_name) . '"
+                                data-position-type="' . $escapeAttribute($sale->position_type) . '"
+                                data-benefits="' . $escapeAttribute($sale->benefits) . '"
+                                data-salary="' . $escapeAttribute($sale->salary) . '"
+                                data-timing="' . $escapeAttribute($sale->timing) . '"
+                                data-experience="' . $escapeAttribute($sale->experience) . '"
+                                data-qualification="' . $escapeAttribute($sale->qualification) . '"
+                                data-location="' . $escapeAttribute($sale->sale_postcode) . '">Send Email</a></li>';
                         }
                         if ($sale->is_on_hold != 0) {
                             $html .= '<li><a href="javascript:void(0)" class="dropdown-item" >

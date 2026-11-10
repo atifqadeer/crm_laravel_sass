@@ -835,17 +835,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td style="padding:7px 12px;border-bottom:1px solid #e8edf2;color:#263445;">${renderRichText(value)}</td>
             </tr>
         `).join('');
-        const $emailForm = $('#emailForm');
-        const logoUrl = escapeHtml($emailForm.data('logo-url') || '');
-        const imagePath = String($emailForm.attr('data-signature-image') || '').trim();
-        const signatureImageUrl = imagePath
-            ? imagePath.startsWith('uploads/')
-                ? `${window.location.origin}/${imagePath}`
-                : `${window.location.origin}/storage/${imagePath}`
-            : logoUrl;
-        const signatureCompanyName = escapeHtml($emailForm.attr('data-signature-company-name') || 'Kingsbury Personnel');
-        const signaturePhone = escapeHtml($emailForm.attr('data-signature-phone') || '+44 (0) 1494 418312');
-        const signatureEmail = escapeHtml($emailForm.attr('data-signature-email') || '');
         const body = `
             <p>Hi ${escapeHtml(name || 'Applicant')},</p>
             <p>Hope you are doing well. Kindly have a look over the details below and let me know so that we may proceed with sharing your CV for shortlisting.</p>
@@ -853,20 +842,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 <tbody>${detailRows}</tbody>
             </table>
             <p style="margin-top:16px;">Kindly reply as soon as possible with <strong>YES</strong> and your interview availability so we can proceed with your CV. I look forward to your confirmation.</p>
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;padding-top:28px;border-top:2px solid #c9a45c;font-family:Arial,sans-serif;">
-                <tbody><tr>
-                    <td style="padding:0 18px 0 0;border-right:1px solid #e8edf2;vertical-align:middle;">
-                        <img src="${escapeHtml(signatureImageUrl)}" alt="${signatureCompanyName}" width="100" style="display:block;width:100px;max-width:100px;height:auto;">
-                    </td>
-                    <td style="padding:0 0 0 18px;vertical-align:middle;">
-                        <p style="margin:0 0 5px;color:#566273;font-size:13px;">Warm regards,</p>
-                        <p style="margin:0;color:#263445;font-size:16px;font-weight:700;">${escapeHtml(senderName)}</p>
-                        <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">${signatureCompanyName}</p>
-                        <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Phone: ${signaturePhone}</p>
-                        <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">${signatureEmail}</p>
-                    </td>
-                </tr></tbody>
-            </table>
         `;
         $('#emailStatus').empty();
         $('#sendEmailBtn').prop('disabled', false);
