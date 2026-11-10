@@ -792,12 +792,6 @@
                         }
                     },
                     {
-                        targets: 17, // Column index for 'status'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    },
-                    {
                         targets: 18, // Column index for 'action'
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
