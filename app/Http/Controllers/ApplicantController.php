@@ -2780,7 +2780,7 @@ class ApplicantController extends Controller
                     throw new Exception("CV can't be sent - the sale is currently on hold.");
                 }
                 
-                if ($sale->is_blacklisted != 0) {
+                if ($sale->is_blacklist != 0) {
                     throw new Exception("CV can't be sent - the sale is currently blacklisted.");
                 }
 

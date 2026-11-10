@@ -2046,6 +2046,10 @@ class SaleController extends Controller
                     return $sale->open_date ? Carbon::parse($sale->open_date)->format('d M Y, h:i A') : '-'; // Using accessor
                 })
                 ->addColumn('status', function ($sale) {
+                    if ($sale->is_blacklist == 1) {
+                        return StatusBadge::withBlacklist($this->saleStatusBadge($sale), true);
+                    }
+
                     $status = '';
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
                         $status = '<span class="badge bg-warning">On Hold</span>';
@@ -2168,6 +2172,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
                 ->rawColumns(['sale_notes', 'experience', 'qualification', 'position_type', 'sale_postcode', 'cv_limit', 'open_date', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
@@ -2469,6 +2474,10 @@ class SaleController extends Controller
                             </div>' . $urlCTA . '</div>';
                 })
                 ->addColumn('status', function ($sale) {
+                    if ($sale->is_blacklist == 1) {
+                        return StatusBadge::withBlacklist($this->saleStatusBadge($sale), true);
+                    }
+
                     $status = '';
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
                         $status = '<span class="badge bg-warning">On Hold</span>';
@@ -2569,6 +2578,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
                 ->rawColumns(['sale_notes', 'experience', 'salary', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'rejected_date', 'job_category', 'office_name', 'unit_name', 'status', 'action', 'statusFilter'])
                 ->make(true);
         }
@@ -2786,6 +2796,10 @@ class SaleController extends Controller
                     return '-';
                 })
                 ->addColumn('status', function ($sale) {
+                    if ($sale->is_blacklist == 1) {
+                        return StatusBadge::withBlacklist($this->saleStatusBadge($sale), true);
+                    }
+
                     if ($sale->status == 1 && $sale->is_on_hold == 1)
                         return '<span class="badge bg-warning">On Hold</span>';
                     if ($sale->status == 1 && $sale->is_re_open == 1)
@@ -2858,7 +2872,9 @@ class SaleController extends Controller
                                 </ul>
                             </div>';
                     return $action;
-                })->rawColumns(['sale_notes', 'experience', 'salary', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'closed_date', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
+                })
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
+                ->rawColumns(['sale_notes', 'experience', 'salary', 'position_type', 'sale_postcode', 'qualification', 'job_title', 'cv_limit', 'closed_date', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
     }
@@ -2902,6 +2918,7 @@ class SaleController extends Controller
                 'sales.status',
                 'sales.is_on_hold',
                 'sales.is_re_open',
+                'sales.is_blacklist',
                 'sales.lat',
                 'sales.lng',
                 'sales.sale_notes',
@@ -3122,6 +3139,10 @@ class SaleController extends Controller
                             </div>' . $urlCTA . '</div>';
                 })
                 ->addColumn('status', function ($sale) {
+                    if ($sale->is_blacklist == 1) {
+                        return StatusBadge::withBlacklist($this->saleStatusBadge($sale), true);
+                    }
+
                     if ($sale->status == 1 && $sale->is_on_hold == 1)
                         return '<span class="badge bg-warning">On Hold</span>';
                     if ($sale->status == 1 && $sale->is_re_open == 1)
@@ -3190,7 +3211,9 @@ class SaleController extends Controller
                                 </ul>
                             </div>';
                     return $action;
-                })->rawColumns(['sale_notes', 'job_source', 'experience', 'salary', 'position_type', 'sale_postcode', 'qualification', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
+                })
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
+                ->rawColumns(['sale_notes', 'job_source', 'experience', 'salary', 'position_type', 'sale_postcode', 'qualification', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
     }
@@ -3227,6 +3250,7 @@ class SaleController extends Controller
                 'sales.status',
                 'sales.is_on_hold',
                 'sales.is_re_open',
+                'sales.is_blacklist',
                 'sales.lat',
                 'sales.lng',
                 'sales.sale_notes',
@@ -3512,6 +3536,13 @@ class SaleController extends Controller
                         : "<span class='badge w-100 bg-primary' style='font-size:90%'>" . ((int) $sale->cv_limit - (int) $sale->no_of_sent_cv . '/' . (int) $sale->cv_limit) . "<br>Limit Remains</span>";
                 })
                 ->addColumn('status', function ($sale) {
+                    if ($sale->is_blacklist == 1) {
+                        $status = $sale->status == 1 && $sale->is_on_hold == 2
+                            ? '<span class="badge bg-warning">Pending On Hold</span>'
+                            : $this->saleStatusBadge($sale);
+                        return StatusBadge::withBlacklist($status, true);
+                    }
+
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
                         return '<span class="badge bg-warning">On Hold</span>';
                     }
@@ -3650,6 +3681,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
                 ->rawColumns(['sale_notes', 'experience', 'job_source', 'salary', 'position_type', 'sale_postcode', 'qualification', 'cv_limit', 'job_title', 'open_date', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
@@ -3897,6 +3929,10 @@ class SaleController extends Controller
                             </div>' . $urlCTA . '</div>';
                 })
                 ->addColumn('status', function ($sale) {
+                    if ($sale->is_blacklist == 1) {
+                        return StatusBadge::withBlacklist($this->saleStatusBadge($sale), true);
+                    }
+
                     $status = '';
                     if ($sale->status == 1 && $sale->is_on_hold == 1) {
                         $status = '<span class="badge bg-warning">On Hold</span>';
@@ -3994,6 +4030,7 @@ class SaleController extends Controller
 
                     return $action;
                 })
+                ->setRowClass(fn($sale) => $sale->is_blacklist == 1 ? 'table-danger blacklisted-row' : '')
                 ->rawColumns(['sale_notes', 'position_type', 'experience', 'salary', 'sale_postcode', 'qualification', 'cv_limit', 'job_title', 'job_category', 'office_name', 'unit_name', 'status', 'action'])
                 ->make(true);
         }
