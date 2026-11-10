@@ -2298,6 +2298,11 @@ class SaleController extends Controller
             $model->whereIn('sales.office_id', $officeFilter);
         }
 
+        // "Blacklisted only" checkbox
+        if ($request->boolean('blacklist_filter')) {
+            $model->where('sales.is_blacklist', 1);
+        }
+
         // Filter by category if it's not empty
         switch ($limitCountFilter) {
             case 'zero':
@@ -2692,6 +2697,11 @@ class SaleController extends Controller
             $model->whereIn('sales.job_title_id', (array) $titleFilter);
         }
 
+        // "Blacklisted only" checkbox
+        if ($request->boolean('blacklist_filter')) {
+            $model->where('sales.is_blacklist', 1);
+        }
+
         switch ($limitCountFilter) {
             case 'max':
                 $model->havingRaw('COALESCE(cv_counts.cv_count, 0) >= sales.cv_limit');
@@ -3038,6 +3048,11 @@ class SaleController extends Controller
             $model->whereIn('sales.user_id', $userFilter);
         }
 
+        // "Blacklisted only" checkbox
+        if ($request->boolean('blacklist_filter')) {
+            $model->where('sales.is_blacklist', 1);
+        }
+
         switch ($limitCountFilter) {
             case 'max':
                 $model->havingRaw('COALESCE(cv_counts.cv_count, 0) >= sales.cv_limit');
@@ -3050,28 +3065,29 @@ class SaleController extends Controller
                 break;
         }
 
+        $now = Carbon::today();
         if ($dateRangeFilter) {
+            // A picked date range replaces the period dropdown and its 3-month default.
             [$start, $end] = explode('|', $dateRangeFilter);
             $model->whereBetween('sales.updated_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
-        }
-
-        $now = Carbon::today();
-        switch ($dateFlockFilter) {
-            case 'last-3-months':
-                $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(3)->startOfDay(), $now->endOfDay()]);
-                break;
-            case 'last-6-months':
-                $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(9)->startOfDay(), $now->copy()->subMonths(3)->endOfDay()]);
-                break;
-            case 'last-9-months':
-                $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(18)->startOfDay(), $now->copy()->subMonths(9)->endOfDay()]);
-                break;
-            case 'other':
-                $model->where('sales.updated_at', '<', $now->copy()->subMonths(18)->endOfDay());
-                break;
-            default:
-                $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(3)->startOfDay(), $now->endOfDay()]);
-                break;
+        } else {
+            switch ($dateFlockFilter) {
+                case 'last-3-months':
+                    $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(3)->startOfDay(), $now->endOfDay()]);
+                    break;
+                case 'last-6-months':
+                    $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(9)->startOfDay(), $now->copy()->subMonths(3)->endOfDay()]);
+                    break;
+                case 'last-9-months':
+                    $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(18)->startOfDay(), $now->copy()->subMonths(9)->endOfDay()]);
+                    break;
+                case 'other':
+                    $model->where('sales.updated_at', '<', $now->copy()->subMonths(18)->endOfDay());
+                    break;
+                default:
+                    $model->whereBetween('sales.updated_at', [$now->copy()->subMonths(3)->startOfDay(), $now->endOfDay()]);
+                    break;
+            }
         }
 
         if ($request->ajax()) {
@@ -3343,6 +3359,11 @@ class SaleController extends Controller
 
         if ($titleFilter) {
             $model->whereIn('sales.job_title_id', $titleFilter);
+        }
+
+        // "Blacklisted only" checkbox
+        if ($request->boolean('blacklist_filter')) {
+            $model->where('sales.is_blacklist', 1);
         }
 
         // CV-limit filter is the only case that needs the cv_notes aggregation in SQL.
@@ -3786,6 +3807,11 @@ class SaleController extends Controller
 
         if ($sourceFilter) {
             $model->whereIn('sales.job_source_id', $sourceFilter);
+        }
+
+        // "Blacklisted only" checkbox
+        if ($request->boolean('blacklist_filter')) {
+            $model->where('sales.is_blacklist', 1);
         }
 
         // Filter by category if it's not empty
@@ -4834,6 +4860,7 @@ class SaleController extends Controller
                 'title_filter',
                 'office_filter',
                 'user_filter',
+                'blacklist_filter',
                 'cv_limit_filter',
                 'date_range_filter',
                 'date_flock_filter',

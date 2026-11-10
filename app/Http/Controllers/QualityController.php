@@ -1254,6 +1254,11 @@ class QualityController extends Controller
             $model->whereIn('sales.office_id', $officeFilter);
         }
 
+        // "Blacklisted only" checkbox
+        if ($request->boolean('blacklist_filter')) {
+            $model->where('sales.is_blacklist', 1);
+        }
+
         // Filter by category if it's not empty
         if ($limitCountFilter) {
             if ($limitCountFilter == 'zero') {
