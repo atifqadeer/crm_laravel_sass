@@ -276,6 +276,11 @@
                                         <a class="dropdown-item cv-limit-filter" href="#">Max</a>
                                     </div>
                                 </div>
+                                <!-- Blacklisted only checkbox -->
+                                <label class="btn btn-outline-primary me-1 my-1 mb-1" for="blacklistedOnlyFilter">
+                                    <input class="form-check-input mt-0 me-1" type="checkbox" id="blacklistedOnlyFilter" autocomplete="off">
+                                    Blacklisted only
+                                </label>
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -653,6 +658,7 @@
                                 currentUserFilters; // Send the current filter value as a parameter
                             d.source_filter =
                                 currentSourceFilters; // Send the current filter value as a parameter
+                            d.blacklist_filter = $('#blacklistedOnlyFilter').is(':checked') ? 1 : 0;
                             d.cv_limit_filter =
                                 currentCVLimitFilter; // Send the current filter value as a parameter
                         },
@@ -972,6 +978,10 @@
 
                     $('#showFilterType').html(formattedText);
                     table.ajax.reload(); // Reload with updated type filter
+                });
+                // Blacklisted only checkbox
+                $('#blacklistedOnlyFilter').on('change', function() {
+                    table.ajax.reload();
                 });
                 // cv limit filter dropdown handler
                 $('.cv-limit-filter').on('click', function() {
