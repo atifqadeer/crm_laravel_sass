@@ -1254,9 +1254,35 @@ class QualityController extends Controller
             $model->whereIn('sales.office_id', $officeFilter);
         }
 
-        // "Blacklisted only" checkbox
-        if ($request->boolean('blacklist_filter')) {
-            $model->where('sales.is_blacklist', 1);
+        // Sale list dropdown (same definitions as the sales list pages)
+        switch (strtolower(trim((string) $request->input('sale_list_filter', '')))) {
+            case 'open':
+                $model->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 0)
+                    ->where('sales.is_blacklist', 0);
+                break;
+            case 'closed':
+                $model->where('sales.status', 0)
+                    ->where('sales.is_on_hold', 0)
+                    ->where('sales.is_blacklist', 0);
+                break;
+            case 'pending':
+                $model->where('sales.status', 2)
+                    ->where('sales.is_blacklist', 0);
+                break;
+            case 'on hold':
+                $model->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 1)
+                    ->where('sales.is_blacklist', 0);
+                break;
+            case 'pending on hold':
+                $model->where('sales.status', 1)
+                    ->where('sales.is_on_hold', 2)
+                    ->where('sales.is_blacklist', 0);
+                break;
+            case 'blacklisted':
+                $model->where('sales.is_blacklist', 1);
+                break;
         }
 
         // Filter by category if it's not empty

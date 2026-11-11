@@ -209,11 +209,22 @@
                                         <a class="dropdown-item cv-limit-filter" href="#">Max</a>
                                     </div>
                                 </div>
-                                <!-- Blacklisted only checkbox -->
-                                <label class="btn btn-outline-primary me-1 my-1 mb-1" for="blacklistedOnlyFilter">
-                                    <input class="form-check-input mt-0 me-1" type="checkbox" id="blacklistedOnlyFilter" autocomplete="off">
-                                    Blacklisted only
-                                </label>
+                                <!-- Sale list Filter Dropdown -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuSaleList" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterSaleList">All Sales</span>
+                                    </button>
+                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuSaleList">
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="">All Sales</a>
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="open">Open</a>
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="closed">Closed</a>
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="pending">Pending</a>
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="on hold">On Hold</a>
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="pending on hold">Pending On Hold</a>
+                                        <a class="dropdown-item sale-list-filter" href="#" data-value="blacklisted">Blacklisted</a>
+                                    </div>
+                                </div>
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -364,6 +375,7 @@
             var currentOfficeFilters = [];
             var currentSourceFilters = [];
             var currentFilterCvLimit = '';
+            var currentSaleListFilter = '';
 
             // Create loader row
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
@@ -546,7 +558,7 @@
                             currentOfficeFilters; // Send the current filter value as a parameter
                         d.source_filter =
                             currentSourceFilters; // Send the current filter value as a parameter
-                        d.blacklist_filter = $('#blacklistedOnlyFilter').is(':checked') ? 1 : 0;
+                        d.sale_list_filter = currentSaleListFilter;
                         d.cv_limit_filter =
                             currentFilterCvLimit; // Send the current filter value as a parameter
                     },
@@ -858,8 +870,11 @@
                 $('#showFilterType').html(formattedText);
                 table.ajax.reload(); // Reload with updated type filter
             });
-            // Blacklisted only checkbox
-            $('#blacklistedOnlyFilter').on('change', function() {
+            // Sale list filter dropdown handler
+            $('.sale-list-filter').on('click', function(e) {
+                e.preventDefault();
+                currentSaleListFilter = $(this).data('value') || '';
+                $('#showFilterSaleList').text($(this).text());
                 table.ajax.reload();
             });
             // cv limit filter dropdown handler
