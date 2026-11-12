@@ -382,6 +382,10 @@ class CrmActionMenu
         $actionButtons = '';
         $emailText = '<span class="badge bg-warning"><i class="ri-inbox-line text-white" title="Sent"></i> Email Not Sent</span>';
         $sentEmail = $this->latestSentEmail($applicant);
+        // Interview email still to send: none sent yet, or the last one failed (status 2).
+        // Restricted (Hayaibu) sales never get it: Schedule Interview only takes the date/time.
+        $needsInterviewEmail = !$this->isEmailRestricted($applicant)
+            && (!$sentEmail || $sentEmail->status == '2');
 
         if ($sentEmail && $sentEmail->status == '1') {
             $emailText = '<span class="badge bg-success"><i class="ri-inbox-line text-white" title="Sent"></i> Email Sent</span>';
@@ -397,8 +401,8 @@ class CrmActionMenu
         if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
             $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger">
                                                         <i class="ri-lock-line"></i> Already Scheduled</a></li>';
-            // Interview saved but the email form was closed without sending: let them send it now.
-            if (!$sentEmail && $this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
+            // Interview saved but the email was never sent (form closed) or failed: let them send it now.
+            if ($needsInterviewEmail && $this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
                 $actionButtons .= '<li>
                                         <a href="javascript:void(0);" class="dropdown-item"
                                             data-bs-toggle="modal"
@@ -406,7 +410,7 @@ class CrmActionMenu
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
                                             onclick="crmSendApplicantEmailRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
-                                            Send Interview Email
+                                            ' . ($sentEmail ? 'Resend Interview Email' : 'Send Interview Email') . '
                                         </a>
                                     </li>';
             }
@@ -420,7 +424,7 @@ class CrmActionMenu
                                             data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', ' . ($sentEmail ? 'false' : 'true') . ')">
+                                            onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', ' . ($needsInterviewEmail ? 'true' : 'false') . ')">
                                             Schedule Interview
                                         </a>
                                     </li>';
@@ -491,6 +495,10 @@ class CrmActionMenu
         // $emailIcon = '<i class="fas fa-envelope text-secondary" title="Not Sent"></i>';
         $emailText = 'Not Sent';
         $sentEmail = $this->latestSentEmail($applicant);
+        // Interview email still to send: none sent yet, or the last one failed (status 2).
+        // Restricted (Hayaibu) sales never get it: Schedule Interview only takes the date/time.
+        $needsInterviewEmail = !$this->isEmailRestricted($applicant)
+            && (!$sentEmail || $sentEmail->status == '2');
 
         if ($sentEmail && $sentEmail->status == '1') {
             $emailText = '<span class="badge bg-success"><i class="ri-inbox-line text-white" title="Sent"></i> Email Sent</span>';
@@ -506,8 +514,8 @@ class CrmActionMenu
         $actionButtons .= '<li><a class="dropdown-item" href="javascript:void(0)" >Email ' . $emailText . '</a></li>';
         if ($applicant->schedule_time && $applicant->schedule_date && $applicant->interview_status == 1) {
             $actionButtons .= '<li><a href="javascript:void(0);" class="dropdown-item disabled text-danger">Already Scheduled</a></li>';
-            // Interview saved but the email form was closed without sending: let them send it now.
-            if (!$sentEmail && $this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
+            // Interview saved but the email was never sent (form closed) or failed: let them send it now.
+            if ($needsInterviewEmail && $this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
                 $actionButtons .= '<li>
                                         <a href="javascript:void(0);" class="dropdown-item"
                                             data-bs-toggle="modal"
@@ -515,7 +523,7 @@ class CrmActionMenu
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
                                             onclick="crmSendApplicantEmailRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
-                                            Send Interview Email
+                                            ' . ($sentEmail ? 'Resend Interview Email' : 'Send Interview Email') . '
                                         </a>
                                     </li>';
             }
@@ -529,7 +537,7 @@ class CrmActionMenu
                                             data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
                                             data-applicant-id="' . (int)$applicant->id . '"
                                             data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', ' . ($sentEmail ? 'false' : 'true') . ')">
+                                            onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', ' . ($needsInterviewEmail ? 'true' : 'false') . ')">
                                             Schedule Interview
                                         </a>
                                     </li>';
