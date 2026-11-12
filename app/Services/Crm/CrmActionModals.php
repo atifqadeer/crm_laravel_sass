@@ -3,6 +3,7 @@
 namespace App\Services\Crm;
 
 use Carbon\Carbon;
+use Horsefly\Interview;
 
 /**
  * The modals behind the CRM action menu. A row only gets the modals its tab's buttons
@@ -484,6 +485,29 @@ class CrmActionModals
         return $html;
     }
 
+    /**
+     * Date and time of the latest interview (highest id) for this applicant and sale,
+     * e.g. "22/01/2026 03:00 PM". Empty when no interview exists.
+     */
+    protected function latestInterviewDateTime($applicantId, $saleId): string
+    {
+        $interview = Interview::where('applicant_id', $applicantId)
+            ->where('sale_id', $saleId)
+            ->orderByDesc('id')
+            ->first(['schedule_date', 'schedule_time']);
+
+        if (!$interview) {
+            return '';
+        }
+
+        $raw = trim($interview->schedule_date . ' ' . $interview->schedule_time);
+        try {
+            return Carbon::parse($raw)->format('d/m/Y h:i A');
+        } catch (\Throwable $e) {
+            return $raw;
+        }
+    }
+
     protected function crmSendApplicantEmailRequestModal($applicant): string
     {
         $emailNotificationSetting = $this->emailNotificationSetting;
@@ -518,8 +542,13 @@ class CrmActionModals
 
             //replace variables into body
             $data = $request_configuration_email->template;
-            $replace = [$applicant_name, strtoupper($job_title), $unit_name, $job_postcode, $salary, $distance, $location];
-            $prev_val = ['(applicant_name)', '(job_title)', '(unit_name)', '(postcode)', '(salary)', '(distance)', '(location)'];
+            // With no interview yet, the placeholder stays in the body: the page fills it
+            // with the date/time entered in the Schedule Interview form (crm/list.blade.php).
+            $insert_datetime = str_contains($data, '(insert_datetime)')
+                ? ($this->latestInterviewDateTime($applicant->id, $applicant->sale_id) ?: '(insert_datetime)')
+                : '';
+            $replace = [$applicant_name, strtoupper($job_title), $unit_name, $job_postcode, $salary, $distance, $location, $insert_datetime];
+            $prev_val = ['(applicant_name)', '(job_title)', '(unit_name)', '(postcode)', '(salary)', '(distance)', '(location)', '(insert_datetime)'];
             $newPhrase = str_replace($prev_val, $replace, $data);
 
             //replace variables into subjects

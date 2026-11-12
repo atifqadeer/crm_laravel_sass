@@ -9,7 +9,9 @@
                 <p style="margin:0;color:#263445;font-size:16px;font-weight:700;">{{ $senderName }}</p>
                 <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">{{ $companyName }}</p>
                 <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Phone: {{ $phone }}</p>
-                <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">{{ $signatureEmail }}</p>
+                <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Email: {{ $signatureEmail }}</p>
+                <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;">Website: {{ $websiteAddressHtml }}</p>
+                <p style="margin:4px 0 0;color:#a27c38;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Address: {{ $signatureAddress }}</p>
             </td>
         </tr>
     </tbody>

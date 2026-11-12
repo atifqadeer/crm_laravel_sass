@@ -2791,7 +2791,44 @@
         });
 
         /** Schedule Interview Modal */
-        function crmScheduleInterviewModal(applicantID, saleID) {
+        // Matches the PHP format 'd/m/Y h:i A' used for (insert_datetime).
+        function formatInterviewDateTime(sdate, stime) {
+            const [y, m, d] = (sdate || '').split('-');
+            const [hh, mm] = (stime || '').split(':');
+            const hour = parseInt(hh, 10);
+            if (!y || !m || !d || isNaN(hour)) {
+                return `${sdate} ${stime}`.trim();
+            }
+            const hour12 = String(hour % 12 || 12).padStart(2, '0');
+            return `${d}/${m}/${y} ${hour12}:${mm || '00'} ${hour < 12 ? 'AM' : 'PM'}`;
+        }
+
+        // After the interview is saved: open the email form with (insert_datetime) filled in.
+        function openRequestEmailAfterInterview(applicantID, saleID, interviewDateTime) {
+            const emailModalId = `#crmSendApplicantEmailRequestModal${applicantID}-${saleID}`;
+            const emailBody = `#email_body_requested_${applicantID}-${saleID}`;
+            if (!$(emailModalId).length) {
+                $('#applicants_table').DataTable().ajax.reload();
+                return;
+            }
+
+            crmSendApplicantEmailRequestModal(applicantID, saleID);
+
+            // Fill after the modal's own show handler has reset the form.
+            $(emailModalId).one('shown.bs.modal', function() {
+                const html = ($(emailBody).val() || '').split('(insert_datetime)').join(interviewDateTime);
+                $(emailBody).val(html);
+                $(emailBody).summernote('code', html);
+            });
+            // Whether the email is sent or the form is closed, refresh the row afterwards.
+            $(emailModalId).one('hidden.bs.modal', function() {
+                $('#applicants_table').DataTable().ajax.reload();
+            });
+
+            $(emailModalId).modal('show');
+        }
+
+        function crmScheduleInterviewModal(applicantID, saleID, sendEmailAfter = false) {
             const formId = `#crmScheduleInterviewForm${applicantID}-${saleID}`;
             const modalId = `#crmScheduleInterviewModal${applicantID}-${saleID}`;
             const notificationAlert = `.notificationAlert${applicantID}-${saleID}`;
@@ -2870,6 +2907,19 @@
                                 ${response.message}
                             </div>
                         `).show();
+
+                        if (sendEmailAfter) {
+                            // No email sent yet: go straight to the email form once this closes.
+                            const interviewDateTime = formatInterviewDateTime(sdate, stime);
+                            setTimeout(() => {
+                                $(modalId).one('hidden.bs.modal', function() {
+                                    openRequestEmailAfterInterview(applicantID, saleID, interviewDateTime);
+                                });
+                                $(modalId).modal('hide');
+                                $(formId)[0].reset();
+                            }, 1000);
+                            return;
+                        }
 
                         setTimeout(() => {
                             $(modalId).modal('hide');

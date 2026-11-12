@@ -104,7 +104,26 @@ class SettingsTableSeeder extends Seeder
                 'type'  => 'string',
                 'group' => 'signature',
             ],
-            
+            [
+                'key'   => 'email_signature_disclaimer',
+                'value' => '',
+                'type'  => 'text',
+                'group' => 'signature',
+            ],
+            [
+                'key'   => 'website_address',
+                'value' => '',
+                'type'  => 'string',
+                'group' => 'general',
+            ],
+            [
+                // Up to 5 { "email": "...", "roles": ["<roles.type>", ...] } rows.
+                // The signature email is picked from the row containing the sender's role type.
+                'key'   => 'role_email_addresses',
+                'value' => '[]',
+                'type'  => 'json',
+                'group' => 'general',
+            ],
         ];
 
         foreach ($settings as $setting) {
@@ -116,7 +135,10 @@ class SettingsTableSeeder extends Seeder
                     'created_at' => now(),
                 ];
 
-            if (str_starts_with($setting['key'], 'email_signature_') || $setting['key'] === 'primary_email_address') {
+            if (
+                str_starts_with($setting['key'], 'email_signature_')
+                || in_array($setting['key'], ['primary_email_address', 'website_address', 'role_email_addresses'], true)
+            ) {
                 DB::table('settings')->insertOrIgnore(array_merge(['key' => $setting['key']], $values));
                 continue;
             }

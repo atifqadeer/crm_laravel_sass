@@ -89,17 +89,17 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="emailTitle" class="form-label fw-semibold">Email title</label>
+                {{-- <div class="mb-3">
+                    <label for="emailTitle" class="form-label fw-semibold">Email title</label> --}}
                     <input
-                        type="text"
+                        type="hidden"
                         class="form-control"
                         id="emailTitle"
                         name="email_title"
                         maxlength="191"
                         placeholder="Enter email title"
-                        required>
-                </div>
+                        >
+                {{-- </div> --}}
 
                 <div class="mb-0">
                     <label for="emailSubject" class="form-label fw-semibold">Subject

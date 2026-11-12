@@ -998,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const saleId = $('#emailSaleId').val();
         const fromEmail = $('#fromEmail').val().trim();
         const toEmail = $('#emailTo').val().trim();
-        const title = $('#emailTitle').val().trim();
+        const title = $('#emailTitle').val().trim() || $('#emailSubject').val().trim();
         const subject = $('#emailSubject').val().trim();
         const message = $('#emailBody').summernote('code').trim(); // get HTML content from Summernote
         const csrfToken = $('meta[name="csrf-token"]').attr('content');

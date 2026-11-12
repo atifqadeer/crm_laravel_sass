@@ -93,7 +93,15 @@ class SettingController extends Controller
             ->orderByDesc('application_version_history.id')
             ->get();
 
-        return view('settings.list', compact('appVersion', 'versionHistory', 'emailLayoutHtml', 'defaultEmailLayoutHtml'));
+        // Unique role types (roles.type), used by the Role Email Addresses dropdowns.
+        $roleTypes = DB::table('roles')
+            ->whereNotNull('type')
+            ->where('type', '!=', '')
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type');
+
+        return view('settings.list', compact('appVersion', 'versionHistory', 'emailLayoutHtml', 'defaultEmailLayoutHtml', 'roleTypes'));
     }
     public function emailTemplatesIndex()
     {
@@ -1367,10 +1375,40 @@ class SettingController extends Controller
         $validated = $request->validate([
             'site_name' => 'required|string|max:50',
             'primary_email_address' => 'required|email|max:255',
+            'website_address' => 'nullable|url|max:255',
+            'role_emails' => 'nullable|array|max:5',
+            'role_emails.*.email' => 'nullable|email|max:255|required_with:role_emails.*.roles',
+            'role_emails.*.roles' => 'nullable|array|required_with:role_emails.*.email',
+            // distinct across every row: a role type maps to one email only.
+            'role_emails.*.roles.*' => 'string|distinct|exists:roles,type',
+        ], [
+            'role_emails.*.email.required_with' => 'Each set of selected role types needs an email address.',
+            'role_emails.*.roles.required_with' => 'Each role email address needs at least one role type.',
+            'role_emails.*.roles.*.distinct' => 'A role type can only be assigned to one email address.',
+            'role_emails.*.roles.*.exists' => 'The selected role type does not exist.',
         ]);
 
+        // Keep only complete rows, in the order they were entered.
+        // Stored as [{ "email": "...", "roles": ["crm", "team_lead"] }, ...]
+        $roleEmails = collect($validated['role_emails'] ?? [])
+            ->filter(fn ($row) => !empty($row['email']) && !empty($row['roles']))
+            ->map(fn ($row) => [
+                'email' => $row['email'],
+                'roles' => array_values(array_unique($row['roles'])),
+            ])
+            ->values()
+            ->all();
+
         try {
-            DB::transaction(function () use ($validated) {
+            DB::transaction(function () use ($validated, $roleEmails) {
+                Setting::updateOrCreate(
+                    ['key' => 'website_address'],
+                    ['value' => $validated['website_address'] ?? '', 'type' => 'string', 'group' => 'general']
+                );
+                Setting::updateOrCreate(
+                    ['key' => 'role_email_addresses'],
+                    ['value' => json_encode($roleEmails), 'type' => 'json', 'group' => 'general']
+                );
                 Setting::updateOrCreate(
                     ['key' => 'site_name'],
                     ['value' => $validated['site_name'], 'type' => 'string', 'group' => 'general']
@@ -1401,6 +1439,7 @@ class SettingController extends Controller
             'email_signature_company_name' => 'required|string|max:191',
             'email_signature_phone' => 'required|string|max:50',
             'email_signature_address' => 'required|string|max:500',
+            'email_signature_disclaimer' => 'nullable|string|max:2000',
             'email_signature_image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
@@ -1432,6 +1471,10 @@ class SettingController extends Controller
                         'email_signature_address' => [
                             $validated['email_signature_address'],
                             'string',
+                        ],
+                        'email_signature_disclaimer' => [
+                            $validated['email_signature_disclaimer'] ?? '',
+                            'text',
                         ],
                     ] as $key => [$value, $type]
                 ) {

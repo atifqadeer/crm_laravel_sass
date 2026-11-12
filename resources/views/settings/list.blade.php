@@ -396,6 +396,40 @@
                                         name="primary_email_address" maxlength="255" required>
                                     <div class="form-text">Used as the From address for outgoing emails.</div>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="website_address" class="form-label">Website Address</label>
+                                    <input type="url" class="form-control" id="website_address" name="website_address"
+                                        maxlength="255" placeholder="https://www.example.com">
+                                    <div class="form-text">Shown in the email signature.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label mb-1">Role Email Addresses</label>
+                                    <div class="form-text mt-0 mb-2">
+                                        Pick one or more role types for each email. The email signature uses the address
+                                        assigned to the sender's role type. A role type can belong to only one email.
+                                        Senders with no matching role type get the Signature Email from the Email Signature tab.
+                                    </div>
+                                    @for ($i = 0; $i < 5; $i++)
+                                        <div class="row g-2 mb-2 role-email-row">
+                                            <div class="col-md-5">
+                                                <input type="email" class="form-control role-email-input"
+                                                    id="role_email_{{ $i }}" name="role_emails[{{ $i }}][email]"
+                                                    maxlength="255" placeholder="Email address {{ $i + 1 }}"
+                                                    aria-label="Role email address {{ $i + 1 }}">
+                                            </div>
+                                            <div class="col-md-7">
+                                                <select class="form-select role-email-role" id="role_email_role_{{ $i }}"
+                                                    name="role_emails[{{ $i }}][roles][]" multiple
+                                                    data-placeholder="Select role types"
+                                                    aria-label="Role types for email address {{ $i + 1 }}">
+                                                    @foreach ($roleTypes as $roleType)
+                                                        <option value="{{ $roleType }}">{{ ucwords(str_replace(['_', '-'], ' ', $roleType)) }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    @endfor
+                                </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save General</button>
                                 </div>
@@ -432,6 +466,12 @@
                                     <label for="email_signature_address" class="form-label">Signature Address</label>
                                     <textarea class="form-control" id="email_signature_address"
                                         name="email_signature_address" rows="3" maxlength="500" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email_signature_disclaimer" class="form-label">Signature Disclaimer</label>
+                                    <textarea class="form-control" id="email_signature_disclaimer"
+                                        name="email_signature_disclaimer" rows="4" maxlength="2000"></textarea>
+                                    <div class="form-text">Optional. Shown in small print under the signature.</div>
                                 </div>
                                 <div class="text-end">
                                     <button type="submit" class="btn btn-success">Save Email Signature</button>
@@ -473,6 +513,8 @@
                                     <button type="button" class="el-chip" data-token="@{{ signature_email }}">Signature email</button>
                                     <button type="button" class="el-chip" data-token="@{{ signature_address }}">Address</button>
                                     <button type="button" class="el-chip" data-token="@{{ signature_image_url }}">Signature image URL</button>
+                                    <button type="button" class="el-chip" data-token="@{{ signature_disclaimer_html }}">Signature disclaimer</button>
+                                    <button type="button" class="el-chip" data-token="@{{ website_address_html }}">Website</button>
                                 </div>
 
                                 <div class="el-workspace">
@@ -1098,6 +1140,45 @@
 
     {{-- @vite(['resources/js/pages/settings.js']) --}}
 
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        // Role Email Addresses: multi-select role types, each type usable in one row only.
+        $(function() {
+            const $roleSelects = $('.role-email-role');
+            if (!$.fn.select2) {
+                return; // plain multi-selects still work if the CDN fails
+            }
+
+            $roleSelects.each(function() {
+                $(this).select2({
+                    width: '100%',
+                    placeholder: $(this).data('placeholder'),
+                    closeOnSelect: false
+                });
+            });
+
+            // Disable a type in the other rows once it is picked in one row.
+            function syncTakenRoleTypes() {
+                const taken = {};
+                $roleSelects.each(function() {
+                    ($(this).val() || []).forEach(type => taken[type] = this.id);
+                });
+                $roleSelects.each(function() {
+                    const selectId = this.id;
+                    $(this).find('option').each(function() {
+                        const owner = taken[this.value];
+                        this.disabled = Boolean(owner) && owner !== selectId;
+                    });
+                });
+            }
+
+            $roleSelects.on('change', syncTakenRoleTypes);
+            syncTakenRoleTypes();
+        });
+    </script>
+
     <script>
         $(document).ready(function() {
             // Ensure jQuery is loaded
@@ -1149,10 +1230,20 @@
                     // General Settings
                     if (data.general) {
                         $('#site_name').val(data.general.site_name || '');
+                        $('#website_address').val(data.general.website_address || '');
+                        const roleEmails = Array.isArray(data.general.role_email_addresses)
+                            ? data.general.role_email_addresses : [];
+                        for (let i = 0; i < 5; i++) {
+                            const row = roleEmails[i] || {};
+                            // Older saves stored a single "role"; newer ones store a "roles" list.
+                            const types = Array.isArray(row.roles) ? row.roles : (row.role ? [row.role] : []);
+                            $('#role_email_' + i).val(row.email || '');
+                            $('#role_email_role_' + i).val(types).trigger('change');
+                        }
                     }
                     $('#primary_email_address').val('info@kingsburypersonnel.com');
                     $('#email_signature_company_name').val('Kingsbury Personnel');
-                    $('#email_signature_phone').val('01494 418312');
+                    $('#email_signature_phone').val('+44 (0) 1494 211220');
                     $('#email_signature_email').val('');
                     $('#email_signature_address').val('');
                     const signatureSettings = Object.assign({}, data.email || {}, data.signature || {});
@@ -1166,13 +1257,16 @@
                             signatureSettings.email_signature_company_name || 'Kingsbury Personnel'
                         );
                         $('#email_signature_phone').val(
-                            signatureSettings.email_signature_phone || '01494 418312'
+                            signatureSettings.email_signature_phone || '+44 (0) 1494 211220'
                         );
                         $('#email_signature_email').val(
                             signatureSettings.email_signature_email || ''
                         );
                         $('#email_signature_address').val(
                             signatureSettings.email_signature_address || ''
+                        );
+                        $('#email_signature_disclaimer').val(
+                            signatureSettings.email_signature_disclaimer || ''
                         );
 
                         if (signatureSettings.email_signature_image) {
@@ -1959,7 +2053,9 @@
                         },
                         error: function(xhr) {
                             console.error('Error saving general settings:', xhr.responseText);
-                            toastr.error('Failed to save general settings: ' + (xhr.responseJSON
+                            const firstError = xhr.responseJSON?.errors
+                                ? Object.values(xhr.responseJSON.errors)[0]?.[0] : null;
+                            toastr.error('Failed to save general settings: ' + (firstError || xhr.responseJSON
                                 ?.message || xhr.responseJSON?.error || 'Unknown error'));
                         },
                         complete: function() {

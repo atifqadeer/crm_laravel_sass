@@ -67,7 +67,7 @@
                     </tr>
                     <tr>
                         <td style="background:#08172b;padding:18px 32px;">
-                            <p style="margin:0;font-size:11px;color:#6f8296;">{{ $signatureAddress ?? '' }}</p>
+                            <p style="margin:0;font-size:11px;line-height:1.5;color:#6f8296;">{!! $signatureDisclaimerHtml ?? '' !!}</p>
                         </td>
                     </tr>
                 </table>
