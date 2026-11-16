@@ -416,18 +416,31 @@ class CrmActionMenu
             }
         } else {
             if ($this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
-                // Interview date/time first. If no email has been sent yet, the email
-                // form opens after the interview is saved (see crmScheduleInterviewModal).
-                $actionButtons .= '<li>
-                                        <a href="javascript:void(0);" class="dropdown-item" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
-                                            data-applicant-id="' . (int)$applicant->id . '"
-                                            data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', ' . ($needsInterviewEmail ? 'true' : 'false') . ')">
-                                            Schedule Interview
-                                        </a>
-                                    </li>';
+                // Email sent already (or email restricted for this sale): set the interview date/time.
+                if ($sentEmail || $this->isEmailRestricted($applicant)) {
+                    $actionButtons .= '<li>
+                                            <a href="javascript:void(0);" class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
+                                                data-applicant-id="' . (int)$applicant->id . '"
+                                                data-sale-id="' . (int)$applicant->sale_id . '"
+                                                onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                                Schedule Interview
+                                            </a>
+                                        </li>';
+                } else {
+                    // If no email has been sent yet, open the email modal first
+                    $actionButtons .= '<li>
+                                            <a href="javascript:void(0);" class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#crmSendApplicantEmailRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
+                                                data-applicant-id="' . (int)$applicant->id . '"
+                                                data-sale-id="' . (int)$applicant->sale_id . '"
+                                                onclick="crmSendApplicantEmailRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                                Schedule Interview
+                                            </a>
+                                        </li>';
+                }
             }
         }
         if ($this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
@@ -529,18 +542,31 @@ class CrmActionMenu
             }
         } else {
             if ($this->allows('crm-schedule-interview', [$applicant, $tabFilter])) {
-                // Interview date/time first. If no email has been sent yet, the email
-                // form opens after the interview is saved (see crmScheduleInterviewModal).
-                $actionButtons .= '<li>
-                                        <a href="javascript:void(0);" class="dropdown-item" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
-                                            data-applicant-id="' . (int)$applicant->id . '"
-                                            data-sale-id="' . (int)$applicant->sale_id . '"
-                                            onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ', ' . ($needsInterviewEmail ? 'true' : 'false') . ')">
-                                            Schedule Interview
-                                        </a>
-                                    </li>';
+                // Email sent already (or email restricted for this sale): set the interview date/time.
+                if ($sentEmail || $this->isEmailRestricted($applicant)) {
+                    $actionButtons .= '<li>
+                                            <a href="javascript:void(0);" class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#crmScheduleInterviewModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
+                                                data-applicant-id="' . (int)$applicant->id . '"
+                                                data-sale-id="' . (int)$applicant->sale_id . '"
+                                                onclick="crmScheduleInterviewModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                                Schedule Interview
+                                            </a>
+                                        </li>';
+                } else {
+                    // If no email has been sent yet, open the email modal first
+                    $actionButtons .= '<li>
+                                            <a href="javascript:void(0);" class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#crmSendApplicantEmailRequestModal' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" 
+                                                data-applicant-id="' . (int)$applicant->id . '"
+                                                data-sale-id="' . (int)$applicant->sale_id . '"
+                                                onclick="crmSendApplicantEmailRequestModal(' . (int)$applicant->id . ', ' . (int)$applicant->sale_id . ')">
+                                                Schedule Interview
+                                            </a>
+                                        </li>';
+                }
             }
         }
         if ($this->allows('crm-send-confirmation', [$applicant, $tabFilter])) {

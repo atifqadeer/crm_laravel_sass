@@ -542,13 +542,12 @@ class CrmActionModals
 
             //replace variables into body
             $data = $request_configuration_email->template;
-            // With no interview yet, the placeholder stays in the body: the page fills it
-            // with the date/time entered in the Schedule Interview form (crm/list.blade.php).
+            // Empty when no interview has been scheduled yet.
             $insert_datetime = str_contains($data, '(insert_datetime)')
-                ? ($this->latestInterviewDateTime($applicant->id, $applicant->sale_id) ?: '(insert_datetime)')
-                : '';
-            $replace = [$applicant_name, strtoupper($job_title), $unit_name, $job_postcode, $salary, $distance, $location, $insert_datetime];
-            $prev_val = ['(applicant_name)', '(job_title)', '(unit_name)', '(postcode)', '(salary)', '(distance)', '(location)', '(insert_datetime)'];
+                ? $this->latestInterviewDateTime($applicant->id, $applicant->sale_id)
+                : '(insert_datetime)';
+            $replace = [$applicant_name, strtoupper($job_title), $unit_name, $job_postcode, $salary, $distance, $location];
+            $prev_val = ['(applicant_name)', '(job_title)', '(unit_name)', '(postcode)', '(salary)', '(distance)', '(location)'];
             $newPhrase = str_replace($prev_val, $replace, $data);
 
             //replace variables into subjects
