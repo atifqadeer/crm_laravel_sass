@@ -220,6 +220,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('getResourcesNoJobApplicants', [ResourceController::class, 'getResourcesNoJobApplicants'])->name('getResourcesNoJobApplicants');
     Route::get('getResourcesNotInterestedApplicants', [ResourceController::class, 'getResourcesNotInterestedApplicants'])->name('getResourcesNotInterestedApplicants');
     Route::get('getResourcesCategoryWised', [ResourceController::class, 'getResourcesCategoryWised'])->name('getResourcesCategoryWised');
+    Route::get('exportCategoryWiseApplicants', [ResourceController::class, 'exportCategoryWiseApplicants'])->name('exportCategoryWiseApplicants');
     Route::post('markApplicantNotInterestedOnSale', [ResourceController::class, 'markApplicantNotInterestedOnSale'])->name('markApplicantNotInterestedOnSale');
     Route::post('markApplicantCallback', [ResourceController::class, 'markApplicantCallback'])->name('markApplicantCallback');
     Route::post('exportDirectApplicantsEmails', [ResourceController::class, 'exportDirectApplicantsEmails'])->name('exportDirectApplicantsEmails');

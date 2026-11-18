@@ -198,15 +198,24 @@
                                     </div>
                                 </div>
 
-                                <!-- Button Dropdown -->
-                                {{-- <div class="dropdown d-inline">
-                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button" id="dropdownMenuButton5" data-bs-toggle="dropdown" aria-expanded="false">
+                                <!-- Export Dropdown: exports with the current filters and search -->
+                                @canany(['resource-category-export', 'resource-category-export-emails','resource-category-export-all'])
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-download-line me-1"></i> Export
                                     </button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton5">
-                                        <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'allBlocked']) }}">Export All Data</a>
+                                    <div class="dropdown-menu" aria-labelledby="exportDropdown">
+                                        @can('resource-category-export-all')
+                                        <a class="dropdown-item category-export" href="#" data-export-type="all">Export All Data</a>
+                                        @endcan
+                                        @can('resource-category-export-emails')
+                                        <a class="dropdown-item category-export" href="#" data-export-type="emails">Export Emails</a>
+                                        @endcan
                                     </div>
-                                </div> --}}
+                                </div>
+                                @endcanany
+
                                 <!-- Button Dropdown -->
                                 <div class="dropdown d-inline">
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -830,8 +839,23 @@
                     selectedLabels[0] :
                     'Selected Statuses (' + selectedLabels.length + ')'
                 );
+                updateExportButtonState();
                 table.ajax.reload();
             });
+
+            // Blocked applicants are not exported, so Export is disabled while "Blocked" is selected.
+            function isBlockedFilterSelected() {
+                return currentStatusFilters.includes('blocked');
+            }
+
+            function updateExportButtonState() {
+                const blocked = isBlockedFilterSelected();
+                $('#exportDropdown')
+                    .prop('disabled', blocked)
+                    .attr('title', blocked ? 'Export is not available for blocked applicants' : '');
+            }
+
+            updateExportButtonState();
             // Status filter dropdown handler
             $('.date-range-filter').on('click', function() {
                 // Get the clicked text and convert to lowercase
@@ -990,6 +1014,31 @@
             });
 
             $('#titleSearchInput').on('input', refreshTitleOptions);
+
+            // Export with the same filters and search the table is using
+            $('.category-export').on('click', function(e) {
+                e.preventDefault();
+
+                if (isBlockedFilterSelected()) {
+                    toastr.error('Blocked applicants cannot be exported. Unselect the Blocked filter first.');
+                    return;
+                }
+
+                const params = {
+                    type: $(this).data('export-type'),
+                    status_filter: currentStatusFilters.length ? currentStatusFilters : ['all'],
+                    type_filter: currentTypeFilter,
+                    category_filter: currentCategoryFilters,
+                    title_filter: currentTitleFilters,
+                    source_filter: currentSourceFilters,
+                    date_range_filter: currentDateRangeFilter,
+                    search: {
+                        value: table.search()
+                    }
+                };
+
+                window.location.href = @json(route('exportCategoryWiseApplicants')) + '?' + $.param(params);
+            });
 
             $('#sourceSearchInput').on('keyup', function() {
                 const searchValue = this.value.toLowerCase();

@@ -221,6 +221,9 @@ class PermissionsTableSeeder extends Seeder
             'resource-category-upload-applicant-resume',
             'resource-category-upload-crm-resume',
             'resource-category-view',
+            'resource-category-export',
+            'resource-category-export-all',
+            'resource-category-export-emails',
 
             // Resource Sub Modules Rejected Resources Permissions
             'resource-rejected-index',

@@ -19,6 +19,7 @@ use Horsefly\User;
 use Horsefly\ModuleNote;
 
 use App\Exports\EmailExport;
+use App\Exports\CategoryWiseApplicantsExport;
 
 use App\Support\DialLink;
 use App\Support\SaleEmailRestriction;
@@ -50,7 +51,7 @@ class ResourceController extends Controller
         $this->middleware('permission:resource-crm-paid-index')->only(['crmPaidIndex', 'getResourcesPaidApplicants']);
         $this->middleware('permission:resource-no-job-index')->only(['noJobIndex', 'getResourcesNoJobApplicants']);
         $this->middleware('permission:resource-not-interested-index')->only(['notInterestedIndex', 'getResourcesNotInterestedApplicants']);
-        $this->middleware('permission:resource-category-index')->only(['categoryWiseApplicantIndex', 'getResourcesCategoryWised']);
+        $this->middleware('permission:resource-category-index')->only(['categoryWiseApplicantIndex', 'getResourcesCategoryWised', 'exportCategoryWiseApplicants']);
         $this->middleware('permission:resource-blocked-mark-unblock')->only(['revertBlockedApplicant']);
         $this->middleware('permission:resource-no-job-revert-btn')->only(['revertNoJobApplicant']);
         $this->middleware('permission:resource-not-interested-revert')->only(['revertNotInterestedApplicant']);
@@ -3564,7 +3565,33 @@ class ResourceController extends Controller
                     </div>
                 </div>';
     }
-    public function getResourcesCategoryWised(Request $request)
+    /**
+     * Export the category-wise applicants using the same filters and search as the table.
+     * type=all exports the full rows, type=emails only the applicants' emails.
+     */
+    public function exportCategoryWiseApplicants(Request $request)
+    {
+        $type = $request->query('type') === 'emails' ? 'emails' : 'all';
+
+        [$model, $applySearch] = $this->categoryWiseApplicantsQuery($request);
+        $applySearch($model);
+
+        // Blocked applicants are never exported.
+        $model->where('applicants.is_blocked', 0);
+
+        // The relations are only used by the table's HTML columns.
+        $model->setEagerLoads([]);
+
+        $fileName = 'category_wise_applicants_' . $type . '_' . now()->format('Y_m_d_His') . '.csv';
+
+        return Excel::download(new CategoryWiseApplicantsExport($model, $type), $fileName);
+    }
+
+    /**
+     * Build the category-wise applicants query from the page's filters.
+     * Returns [$query, $applySearch]; $applySearch applies the search box (search.value).
+     */
+    private function categoryWiseApplicantsQuery(Request $request): array
     {
         $typeFilter = $request->input('type_filter', ''); // Default is empty (no filter)
         $categoryFilter = $request->input('category_filter', ''); // Default is empty (no filter)
@@ -3735,6 +3762,10 @@ class ResourceController extends Controller
         if ($statusFilters) {
             $model->where(function ($query) use ($statusFilters, $statusPredicates) {
                 foreach ($statusFilters as $status) {
+                    // '' / 'all' mean no status filter
+                    if (!isset($statusPredicates[$status])) {
+                        continue;
+                    }
                     $query->orWhere(function ($statusQuery) use ($status, $statusPredicates) {
                         $statusPredicates[$status]($statusQuery);
                     });
@@ -3877,6 +3908,13 @@ class ResourceController extends Controller
         if ($sourceFilter) {
             $model->whereIn('applicants.job_source_id', $sourceFilter);
         }
+
+        return [$model, $applySearch];
+    }
+
+    public function getResourcesCategoryWised(Request $request)
+    {
+        [$model, $applySearch] = $this->categoryWiseApplicantsQuery($request);
 
         if ($request->ajax()) {
             return DataTables::eloquent($model)
