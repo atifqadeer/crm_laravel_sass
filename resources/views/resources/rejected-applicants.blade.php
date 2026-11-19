@@ -380,7 +380,7 @@
                 },
                 {
                     data: 'sub_stage',
-                    name: 'history.sub_stage'
+                    name: 'crm_notes.moved_tab_to'
                 },
                 {
                     data: 'action',

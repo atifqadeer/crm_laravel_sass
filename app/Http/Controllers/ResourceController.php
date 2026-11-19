@@ -1352,56 +1352,71 @@ class ResourceController extends Controller
         $dateFilter     = $request->input('date_filter', '');
         $radius         = 15; // in kilometers
 
-        $movedTabValues = [
-            'interview_not_attended',
-            'request_reject',
-            'cv_sent_reject',
-            'start_date_hold',
-            'start_date_hold_save',
-        ];
+        // A row on this page = an applicant that has an ACTIVE rejection
+        // (crm_rejected_cv.status = 1) on a sale. Reverting a rejection sets that
+        // status to 0 (CrmController / revertRejectedApplicant), so it is the source of
+        // truth; no crm_notes stage list or history lookup is needed.
+        //
+        // Latest active rejection per (applicant, sale), from crm_rejected_cv alone
+        // (~35k active rows), so the main query starts from this small set.
+        $latestRejectionIds = DB::table('crm_rejected_cv')
+            ->where('status', 1)
+            ->groupBy('applicant_id', 'sale_id')
+            ->selectRaw('applicant_id, MAX(id) as id');
 
-        $subStageValues = [
-            'crm_interview_not_attended',
-            'crm_request_reject',
-            'crm_reject',
-            'crm_start_date_hold',
-            'crm_start_date_hold_save',
-        ];
-
-        // Latest rejected CRM note / latest rejection history row per (applicant, sale).
-        // GROUP BY + MAX(id) only returns ids and can use the composite indexes
-        // (e.g. idx_history_quality_state), unlike ROW_NUMBER(), which sorts every
-        // matching row (history: ~370ms -> ~75ms). Full rows are then joined by primary key.
-        $latestNoteIdsPerPair = DB::table('crm_notes as cn')
-            ->join('crm_rejected_cv as rcv', function ($join) {
-                $join->on('rcv.crm_note_id', '=', 'cn.id')
-                    ->where('rcv.status', 1);
-            })
-            ->whereIn('cn.moved_tab_to', $movedTabValues)
-            ->groupBy('cn.applicant_id', 'cn.sale_id')
-            ->selectRaw('cn.applicant_id, MAX(cn.id) as id');
-
-        // The date filter is on the latest note, so apply it here, inside the derived
-        // table: the main join then only sees notes in range instead of walking every
-        // sale/history pair and discarding almost all of them at the end.
+        // The date filter is on the rejection's CRM note (updated_at).
         $dateRange = $this->rejectedDateRange($dateFilter);
 
-        $latestNoteIds = DB::query()
-            ->fromSub($latestNoteIdsPerPair, 'ln')
-            ->join('crm_notes as cn_latest', 'cn_latest.id', '=', 'ln.id')
-            ->select('ln.applicant_id', 'ln.id');
+        $activeRejections = DB::query()
+            ->fromSub($latestRejectionIds, 'lr')
+            ->join('crm_rejected_cv as rcv_range', 'rcv_range.id', '=', 'lr.id')
+            ->join('crm_notes as cn_range', 'cn_range.id', '=', 'rcv_range.crm_note_id');
 
         if ($dateRange) {
-            $latestNoteIds->whereBetween('cn_latest.updated_at', $dateRange);
+            $activeRejections->whereBetween('cn_range.updated_at', $dateRange);
         }
 
-        $latestHistoryIds = DB::table('history as h')
-            ->whereIn('h.sub_stage', $subStageValues)
-            ->where('h.status', 1)
-            ->groupBy('h.applicant_id', 'h.sale_id')
-            ->selectRaw('h.applicant_id, h.sale_id, MAX(h.id) as id');
+        // Two ways to start the main query from the active rejections; each is the
+        // faster one for its case (measured on ~35k active rejections):
+        //
+        //  - Bounded ranges (last 3/6/9 months: at most a few thousand rows): resolve
+        //    the ids up front (~130ms) and inline them as a primary-key list. Inside one
+        //    big statement MariaDB cannot tell how few rejections survive the date
+        //    filter, and starts the join from every sale/office/unit instead (~38k
+        //    loops, for the count and again for the page). ~600ms -> ~140ms.
+        //
+        //  - No date filter / "others" (~23-28k rows): a list that size is slower than
+        //    joining a materialised derived table, which also carries `rejected_at` so
+        //    the default sort runs on these narrow rows instead of on ~28k wide rows.
+        $useIdList = $dateRange !== null && $dateFilter !== 'others';
 
-        $model = Applicant::query()
+        $model = Applicant::query();
+
+        if ($useIdList) {
+            // whereIntegerInRaw inlines the ints (no placeholder limit).
+            $activeRejectionIds = $activeRejections->pluck('lr.id')->map(fn($id) => (int) $id)->all();
+            $rejectedAtColumn = 'crm_notes.updated_at';
+
+            $model->join('crm_rejected_cv', 'crm_rejected_cv.applicant_id', '=', 'applicants.id')
+                ->when(
+                    $activeRejectionIds,
+                    fn($q) => $q->whereIntegerInRaw('crm_rejected_cv.id', $activeRejectionIds),
+                    fn($q) => $q->whereRaw('1 = 0') // no active rejections in range
+                );
+        } else {
+            $activeRejections
+                ->select('lr.applicant_id', 'lr.id', 'cn_range.updated_at as rejected_at')
+                // Rows are already unique; DISTINCT stops MariaDB from merging this derived
+                // table into the outer query, so it is materialised and drives the join.
+                ->distinct();
+            $rejectedAtColumn = 'active_rejection.rejected_at';
+
+            $model->fromSub($activeRejections, 'active_rejection')
+                ->join('applicants', 'applicants.id', '=', 'active_rejection.applicant_id')
+                ->join('crm_rejected_cv', 'crm_rejected_cv.id', '=', 'active_rejection.id');
+        }
+
+        $model
             ->select([
                 'crm_notes.details',
                 'crm_notes.created_at as crm_notes_created',
@@ -1432,15 +1447,9 @@ class ResourceController extends Controller
 
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
-                DB::raw('
-                    CASE
-                        WHEN history.sub_stage = "crm_reject" THEN "Rejected CV"
-                        WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
-                        WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
-                        WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
-                        ELSE "Unknown Status"
-                    END AS sub_stage
-                '),
+                // Rejection type from the stage the CRM note moved the applicant to
+                'crm_notes.moved_tab_to as sub_stage',
+                'crm_rejected_cv.reason as rejection_reason',
 
                 // Offices
                 'offices.office_name as office_name',
@@ -1468,15 +1477,10 @@ class ResourceController extends Controller
                 'units.unit_postcode',
                 'units.unit_website',
             ])
-            ->joinSub($latestNoteIds, 'latest_crm_note', 'latest_crm_note.applicant_id', '=', 'applicants.id')
-            ->join('crm_notes', 'crm_notes.id', '=', 'latest_crm_note.id')
-            ->joinSub($latestHistoryIds, 'latest_history', function ($join) {
-                $join->on('latest_history.applicant_id', '=', 'applicants.id')
-                    ->on('latest_history.sale_id', '=', 'crm_notes.sale_id');
-            })
-            ->join('history', 'history.id', '=', 'latest_history.id')
+            ->addSelect(DB::raw($rejectedAtColumn . ' as rejected_at'))
+            ->join('crm_notes', 'crm_notes.id', '=', 'crm_rejected_cv.crm_note_id')
             ->join('sales', function ($join) {
-                $join->on('crm_notes.sale_id', '=', 'sales.id')
+                $join->on('crm_rejected_cv.sale_id', '=', 'sales.id')
                     ->whereNull('sales.deleted_at');
             })
             ->join('offices', function ($join) {
@@ -1526,51 +1530,73 @@ class ResourceController extends Controller
 
         // Hide rows for sales under offices/units with private notes, and rows whose CRM note
         // contains a private word (users without show-private-data), as on the CRM page.
-        $this->excludePrivateSales($model, 'crm_notes.sale_id');
+        $this->excludePrivateSales($model, 'crm_rejected_cv.sale_id');
         $this->excludePrivateNotes($model, 'crm_notes.details');
 
-        // ✅ Date filter: applied inside $latestNoteIds (see rejectedDateRange()).
+        // ✅ Date filter: applied inside $activeRejections (see rejectedDateRange()).
 
-        // ✅ Sorting — whitelist to prevent invalid/unsafe columns and ambiguous-column errors
+        // ✅ Sorting — whitelist (DataTables `data` key => SQL column), applied via
+        // ->order() below so DataTables does not add its own ORDER BY on top.
+        // The default (and the Date column) sorts on the rejection's note date; on the
+        // derived-table path that is the narrow active_rejection.rejected_at column.
         $sortMap = [
-            'job_source'      => 'applicants.job_source_id',
-            'job_category'    => 'applicants.job_category_id',
-            'job_title'       => 'applicants.job_title_id',
-            'applicant_name'  => 'applicants.applicant_name',
-            'applicant_email' => 'applicants.applicant_email',
-            'created_at'      => 'applicants.created_at',
-            'updated_at'      => 'crm_notes.updated_at',
-            // add any other DataTables-sortable columns explicitly here
+            'crm_notes_created' => $rejectedAtColumn,
+            'updated_at'        => $rejectedAtColumn,
+            'applicant_name'    => 'applicants.applicant_name',
+            'applicant_email'   => 'applicants.applicant_email',
+            'job_title'         => 'job_titles.name',
+            'job_category'      => 'job_categories.name',
+            'job_source'        => 'applicants.job_source_id',
+            'applicant_postcode' => 'applicants.applicant_postcode',
+            'office_name'       => 'offices.office_name',
+            'unit_name'         => 'units.unit_name',
+            'sale_postcode'     => 'sales.sale_postcode',
+            'sale_source_name'  => 'sale_job_sources.name',
+            'sub_stage'         => 'crm_notes.moved_tab_to',
+            'created_at'        => 'applicants.created_at',
         ];
 
-        if ($request->has('order')) {
-            $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
-            $orderDirection = $request->input('order.0.dir') === 'desc' ? 'desc' : 'asc';
+        $applyOrder = function ($query) use ($request, $sortMap, $rejectedAtColumn) {
+            $orderColumn = $request->input('columns.' . $request->input('order.0.column') . '.data');
+            $orderDirection = $request->input('order.0.dir') === 'asc' ? 'asc' : 'desc';
 
-            if (isset($sortMap[$orderColumn])) {
-                $model->orderBy($sortMap[$orderColumn], $orderDirection);
+            if ($orderColumn && isset($sortMap[$orderColumn])) {
+                $query->orderBy($sortMap[$orderColumn], $orderDirection);
             } else {
-                $model->orderBy('crm_notes.updated_at', 'desc');
+                $query->orderBy($rejectedAtColumn, 'desc');
             }
-        } else {
-            $model->orderBy('crm_notes.updated_at', 'desc');
-        }
+        };
 
-        // ✅ Search — filter on already-joined columns directly instead of orWhereHas
-        // (avoids a correlated EXISTS subquery per relation on every row)
-        if (!empty($searchTerm)) {
-            $model->where(function ($query) use ($searchTerm) {
-                $like = "%{$searchTerm}%";
-                $query->where('applicants.applicant_name', 'LIKE', $like)
-                    ->orWhere('applicants.applicant_postcode', 'LIKE', $like)
-                    ->orWhere('applicants.applicant_phone', 'LIKE', $like)
-                    ->orWhere('applicants.applicant_experience', 'LIKE', $like)
-                    ->orWhere('applicants.applicant_landline', 'LIKE', $like)
-                    ->orWhere('job_titles.name', 'LIKE', $like)
-                    ->orWhere('job_categories.name', 'LIKE', $like)
-                    ->orWhere('sale_job_sources.name', 'LIKE', $like);
+        // ✅ Search — run once via ->filter() below, on already-joined columns, so
+        // DataTables does not add its own per-column LIKEs on top of it.
+        $searchTerm = trim((string) $searchTerm);
+        $applySearch = function ($query) use ($searchTerm) {
+            if ($searchTerm === '') {
+                return;
+            }
+
+            $like = "%{$searchTerm}%";
+            $query->where(function ($q) use ($like) {
+                foreach ([
+                    'applicants.applicant_name',
+                    'applicants.applicant_email',
+                    'applicants.applicant_email_secondary',
+                    'applicants.applicant_postcode',
+                    'applicants.applicant_phone',
+                    'applicants.applicant_phone_secondary',
+                    'applicants.applicant_landline',
+                    'applicants.applicant_experience',
+                    'job_titles.name',
+                    'job_categories.name',
+                    'sale_job_sources.name',
+                    'offices.office_name',
+                    'units.unit_name',
+                    'sales.sale_postcode',
+                ] as $column) {
+                    $q->orWhere($column, 'LIKE', $like);
+                }
             });
-        }
+        };
 
         // ✅ Filters
         // Job source filter: the sale's source (the "Source (Sale)" column)
@@ -1603,6 +1629,10 @@ class ResourceController extends Controller
             $canSeeBlocked = Gate::allows('applicant-show-blocked-data');
 
             return DataTables::eloquent($model)
+                ->filter($applySearch)
+                ->order($applyOrder)
+                // Count with `SELECT 1` instead of every wide column of the page query.
+                ->ignoreSelectsInCountQuery()
                 ->addColumn('checkbox', function ($applicant) {
                     return '<input type="checkbox" name="applicant_checkbox[]" class="applicant_checkbox" value="' . $applicant->id . '|' . $applicant->sale_id . '"/>';
                 })
@@ -1720,13 +1750,20 @@ class ResourceController extends Controller
                 })
                 ->addColumn('crm_notes_created', fn($a) => Carbon::parse($a->crm_notes_created)->format('d M Y, h:i A'))
                 ->addColumn('sub_stage', function ($a) {
-                    return match ($a->sub_stage) {
-                        'Rejected CV'         => '<span class="badge bg-danger">Rejected CV</span>',
-                        'Rejected By Request' => '<span class="badge bg-primary">Rejected By Request</span>',
-                        'Not Attended'        => '<span class="badge bg-warning">Not Attended</span>',
-                        'Start Date Hold'     => '<span class="badge bg-info">Start Date Hold</span>',
-                        default               => '<span class="badge bg-warning">Unknown</span>',
+                    $badge = match ($a->sub_stage) {
+                        'cv_sent_reject'         => '<span class="badge bg-danger">Rejected CV</span>',
+                        'cv_sent_reject_no_job'  => '<span class="badge bg-danger">Rejected CV (No Job)</span>',
+                        'cv_sent_no_job_request' => '<span class="badge bg-warning">No Job Request</span>',
+                        default                  => '<span class="badge bg-secondary">' . e(ucwords(str_replace('_', ' ', (string) $a->sub_stage)) ?: 'Unknown') . '</span>',
                     };
+
+                    // Reason recorded with the rejection, e.g. position_filled -> "Position Filled"
+                    $reason = trim((string) $a->rejection_reason);
+                    if ($reason !== '' && strtolower($reason) !== 'select reason') {
+                        $badge .= '<br><small class="text-muted">' . e(ucwords(str_replace('_', ' ', $reason))) . '</small>';
+                    }
+
+                    return $badge;
                 })
                 ->addColumn('job_details', function ($applicant) use ($jobTitleNamesById, $jobCategoryNamesById) {
                     $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
@@ -4478,7 +4515,7 @@ class ResourceController extends Controller
                     'user_id' => Auth::id(),
                     'module_noteable_id' => $applicantId,
                     'module_noteable_type' => 'Horsefly\Applicant',
-                    'details' => 'Applicant has been removed from the rejected for the sale of ' . $sale ?? $sale->sale_postcode,
+                    'details' => 'Applicant has been removed from the rejected for the sale of ' . ($sale ? strtoupper($sale->sale_postcode) : '#' . $saleId),
                 ]);
 
                 $moduleNote->update([
