@@ -1,5 +1,6 @@
 @extends('layouts.vertical', ['title' => 'Rejected Resources List', 'subTitle' => 'Resources'])
-@section('style')
+{{-- The layout outputs @yield('css') in head-css; a 'style' section is never rendered --}}
+@section('css')
     <style>
         .dropdown-toggle::after {
             display: none !important;
@@ -53,22 +54,23 @@
                                     <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
                                         id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ri-filter-line me-1"></i> <span id="showFilterCategory">All
-                                            Category</span>
+                                            Categories</span>
                                     </button>
 
                                     <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton1">
                                         <!-- Search input -->
                                         <input type="text" class="form-control mb-2" id="categorySearchInput"
                                             placeholder="Search category...">
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".category-filter">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".category-filter" style="display:none">Deselect All</a>
+                                        </div>
 
                                         <!-- Scrollable checkbox list -->
                                         <div id="categoryList">
-                                            <div class="form-check">
-                                                <input class="form-check-input category-filter" type="checkbox"
-                                                    value="" id="all-categories" data-title-id="">
-                                                <label class="form-check-label" for="all-categories">All Category</label>
-                                            </div>
-
                                             @foreach ($jobCategories as $category)
                                                 <div class="form-check">
                                                     <input class="form-check-input category-filter" type="checkbox"
@@ -105,21 +107,59 @@
                                         <!-- Search input -->
                                         <input type="text" class="form-control mb-2" id="titleSearchInput"
                                             placeholder="Search titles...">
+                                        <!-- Select/Deselect All (applies to the titles currently listed) -->
+                                        <div class="d-flex justify-content-end px-1 mb-1">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".title-filter">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".title-filter" style="display:none">Deselect All</a>
+                                        </div>
 
-                                        <!-- Scrollable checkbox list -->
+                                        <!-- Scrollable checkbox list: narrowed to the selected categories and type -->
                                         <div id="titleList">
-                                            <div class="form-check">
-                                                <input class="form-check-input title-filter" type="checkbox"
-                                                    value="" id="all-titles" data-title-id="">
-                                                <label class="form-check-label" for="all-titles">All Titles</label>
-                                            </div>
                                             @foreach ($jobTitles as $title)
-                                                <div class="form-check">
+                                                <div class="form-check" data-title-category="{{ $title->job_category_id }}"
+                                                    data-title-type="{{ strtolower((string) $title->type) }}">
                                                     <input class="form-check-input title-filter" type="checkbox"
                                                         value="{{ $title->id }}" id="title_{{ $title->id }}"
                                                         data-title-id="{{ $title->id }}">
                                                     <label class="form-check-label"
                                                         for="title_{{ $title->id }}">{{ ucwords($title->name) }}</label>
+                                                </div>
+                                            @endforeach
+                                            <div class="text-muted small px-1 d-none" id="titleListEmpty">
+                                                No titles for the selected category and type.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Sources Filter Dropdown (sale's job source) -->
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
+                                        id="dropdownMenuButton10" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="ri-filter-line me-1"></i> <span id="showFilterSource">All Sources</span>
+                                    </button>
+
+                                    <div class="dropdown-menu filter-dropdowns" aria-labelledby="dropdownMenuButton10">
+                                        <!-- Search input -->
+                                        <input type="text" class="form-control mb-2" id="sourceSearchInput"
+                                            placeholder="Search Source...">
+                                        <!-- Select/Deselect All -->
+                                        <div class="d-flex justify-content-end px-1 mb-1">
+                                            <a href="#" class="filter-select-all text-primary small fw-semibold me-2"
+                                                data-target=".source-filter">Select All</a>
+                                            <a href="#" class="filter-deselect-all text-danger small fw-semibold"
+                                                data-target=".source-filter" style="display:none">Deselect All</a>
+                                        </div>
+                                        <!-- Scrollable checkbox list -->
+                                        <div id="sourceList">
+                                            @foreach ($jobSources as $source)
+                                                <div class="form-check">
+                                                    <input class="form-check-input source-filter" type="checkbox"
+                                                        value="{{ $source->id }}" id="source_{{ $source->id }}"
+                                                        data-source-id="{{ $source->id }}">
+                                                    <label class="form-check-label"
+                                                        for="source_{{ $source->id }}">{{ ucwords($source->name) }}</label>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -138,6 +178,12 @@
                                         {{-- <a class="dropdown-item" href="{{ route('applicantsExport', ['type' => 'emailsRejected']) }}">Export Emails</a> --}}
                                     </div>
                                 </div>
+                                @canany(['resource-rejected-revert'])
+                                    <!-- Add Updated Sales Filter Button -->
+                                    <button class="btn btn-primary my-1" type="button" id="submitSelectedButton">
+                                        <i class="ri-arrow-go-forward-line me-1"></i> Revert
+                                    </button>
+                                @endcanany
                             </div>
                         </div><!-- end col-->
                     </div>
@@ -150,11 +196,28 @@
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-body p-3">
+                    <div id="columnsToolbar" class="dropdown d-inline">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
+                            id="dropdownMenuApplicantColumns" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ri-layout-column-line me-1"></i> Columns
+                        </button>
+                        <div class="dropdown-menu filter-dropdowns p-2" aria-labelledby="dropdownMenuApplicantColumns"
+                            style="min-width: 230px;">
+                            <div class="d-flex justify-content-between align-items-center px-1 mb-2">
+                                <a href="#" id="columnsSelectAll" class="text-primary small fw-semibold">Show All</a>
+                                <a href="#" id="columnsResetDefault" class="text-secondary small fw-semibold">Reset
+                                    Default</a>
+                            </div>
+                            <div id="columnsList" style="max-height: 280px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table id="applicants_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
                                 <tr>
-                                    <th>#</th>
+                                    @canany(['resource-rejected-revert'])
+                                        <th><input type="checkbox" id="master-checkbox"></th>
+                                    @endcanany
                                     <th>Date</th>
                                     <th>Name</th>
                                     <th>Email</th>
@@ -162,8 +225,11 @@
                                     <th>Category</th>
                                     <th>PostCode</th>
                                     <th>Phone / Landline</th>
-                                    <th>Experience</th>
-                                    <th>Source</th>
+                                    <th>Job</th>
+                                    <th>Head Office</th>
+                                    <th>Unit</th>
+                                    <th>PostCode (Sale)</th>
+                                    <th>Source (Sale)</th>
                                     <th>Notes</th>
                                     <th>Rejection Type</th>
                                     <th>Action</th>
@@ -214,48 +280,213 @@
     <script src="{{ asset('js/daterangepicker.min.js') }}"></script>
 
     <script>
+        // Disable the Unblock button by default
+        $('#submitSelectedButton').prop('disabled', true);
+
+
         $(document).ready(function() {
-            // Store the current filter in a variable
-            var currentTypeFilter = '';
-            var currentCategoryFilters = [];
-            var currentTitleFilters = [];
-            var currentDateFilter = '';
+            // ---------- State ----------
+            let currentTypeFilter = '';
+            let currentCategoryFilters = [];
+            let currentTitleFilters = [];
+            let currentSourceFilters = [];
+            let currentDateFilter = '';
 
-            // Create loader row
+            const canSelect = @json(auth()->user()->can('resource-rejected-revert'));
+
+            // ---------- Loader ----------
             const loadingRow = `<tr><td colspan="100%" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td></tr>`;
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </td></tr>`;
 
-            // Function to show loader
             function showLoader() {
                 $('#applicants_table tbody').empty().append(loadingRow);
             }
 
-            // Initialize DataTable with server-side processing
-            var table = $('#applicants_table').DataTable({
-                processing: false, // Disable default processing state
-                serverSide: true, // Enables server-side processing
+            // ---------- Columns ----------
+            const columns = [
+                // Checkbox column only if the user has permission
+                ...(canSelect ? [{
+                    data: 'checkbox',
+                    name: 'checkbox',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center'
+                }] : []),
+                {
+                    data: 'crm_notes_created',
+                    name: 'crm_notes.created_at'
+                },
+                {
+                    data: 'applicant_name',
+                    name: 'applicants.applicant_name'
+                },
+                {
+                    data: 'applicantEmail',
+                    name: 'applicantEmail',
+                    orderable: false,
+                    searchable: true
+                },
+                {
+                    data: 'job_title',
+                    name: 'job_titles.name'
+                },
+                {
+                    data: 'job_category',
+                    name: 'job_categories.name'
+                },
+                {
+                    data: 'applicant_postcode',
+                    name: 'applicants.applicant_postcode'
+                },
+                {
+                    data: 'applicantPhone',
+                    name: 'applicantPhone',
+                    orderable: false,
+                    searchable: true
+                },
+                {
+                    data: 'job_details',
+                    name: 'job_details',
+                    orderable: false, // computed column, not in DB
+                    searchable: false, // computed column, not in DB
+                    className: 'text-center'
+                },
+                {
+                    data: 'office_name',
+                    name: 'offices.office_name'
+                },
+                {
+                    data: 'unit_name',
+                    name: 'units.unit_name'
+                },
+                {
+                    data: 'sale_postcode',
+                    name: 'sales.sale_postcode',
+                    className: 'text-center'
+                },
+                {
+                    data: 'sale_source_name',
+                    name: 'sale_job_sources.name',
+                    className: 'text-center'
+                },
+                {
+                    data: 'applicant_notes',
+                    name: 'applicants.applicant_notes',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    data: 'sub_stage',
+                    name: 'history.sub_stage'
+                },
+                {
+                    data: 'action',
+                    name: 'action',
+                    orderable: false,
+                    searchable: false
+                }
+            ];
+
+            // ---------- Column visibility ----------
+            // Titles come from the table header so indexes always match `columns`
+            // (the checkbox column only exists with the revert permission).
+            const columnConfig = columns.map(function(column, index) {
+                const title = $('#applicants_table thead th').eq(index).text().trim();
+                return {
+                    title: title,
+                    toggleable: !['checkbox', 'action'].includes(column.data),
+                    default: true
+                };
+            });
+            const COLUMN_VISIBILITY_STORAGE_KEY = 'resources_rejected_applicants_column_visibility_v1';
+
+            // Stored by column `data` key so it survives the checkbox column appearing/disappearing.
+            function loadColumnVisibility() {
+                let stored = {};
+                try {
+                    stored = JSON.parse(localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY)) || {};
+                } catch (error) {
+                    stored = {};
+                }
+
+                return columnConfig.map(function(column, index) {
+                    if (!column.toggleable) {
+                        return true;
+                    }
+                    const key = columns[index].data;
+                    return Object.prototype.hasOwnProperty.call(stored, key) ? !!stored[key] : column.default;
+                });
+            }
+
+            function saveColumnVisibility() {
+                const stored = {};
+                columnConfig.forEach(function(column, index) {
+                    if (column.toggleable) {
+                        stored[columns[index].data] = !!columnVisibility[index];
+                    }
+                });
+                try {
+                    localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(stored));
+                } catch (error) {
+                    // storage unavailable: visibility just won't be remembered
+                }
+            }
+
+            let columnVisibility = loadColumnVisibility();
+
+            function renderColumnsDropdown() {
+                const $list = $('#columnsList').empty();
+                columnConfig.forEach(function(column, index) {
+                    if (!column.toggleable) {
+                        return;
+                    }
+
+                    const checked = columnVisibility[index] ? 'checked' : '';
+                    $list.append(`
+                        <div class="form-check">
+                            <input class="form-check-input column-toggle" type="checkbox"
+                                id="rejected_column_${index}" data-column-index="${index}" ${checked}>
+                            <label class="form-check-label" for="rejected_column_${index}">${column.title}</label>
+                        </div>
+                    `);
+                });
+            }
+
+            function getHiddenColumnIndices() {
+                return columnVisibility
+                    .map(function(visible, index) {
+                        return visible ? null : index;
+                    })
+                    .filter(function(index) {
+                        return index !== null;
+                    });
+            }
+
+            renderColumnsDropdown();
+
+            // ---------- DataTable ----------
+            const table = $('#applicants_table').DataTable({
+                processing: false,
+                serverSide: true,
                 ajax: {
-                    url: @json(route('getResourcesRejectedApplicants')), // Fetch data from the backend
+                    url: @json(route('getResourcesRejectedApplicants')),
                     type: 'GET',
                     data: function(d) {
-                        // Add the current filter to the request parameters
-                        d.type_filter =
-                            currentTypeFilter; // Send the current filter value as a parameter
-                        d.category_filter =
-                            currentCategoryFilters; // Send the current filter value as a parameter
-                        d.title_filter =
-                            currentTitleFilters; // Send the current filter value as a parameter
-                        d.date_filter =
-                            currentDateFilter; // Send the current filter value as a parameter
+                        d.type_filter = currentTypeFilter;
+                        d.category_filter = currentCategoryFilters;
+                        d.title_filter = currentTitleFilters;
+                        d.source_filter = currentSourceFilters;
+                        d.date_filter = currentDateFilter;
+
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
                     },
                     beforeSend: function() {
-                        showLoader(); // Show loader before AJAX request starts
+                        showLoader();
                     },
                     error: function(xhr) {
                         console.error('DataTable AJAX error:', xhr.status, xhr.responseJSON);
@@ -264,88 +495,26 @@
                         );
                     }
                 },
-                columns: [{
-                        data: 'DT_RowIndex',
-                        name: 'DT_RowIndex',
-                        orderable: false,
-                        searchable: false
-                    },
-                    {
-                        data: 'crm_notes_created',
-                        name: 'crm_notes.created_at'
-                    },
-                    {
-                        data: 'applicant_name',
-                        name: 'applicants.applicant_name'
-                    },
-                    {
-                        data: 'applicantEmail',
-                        name: 'applicantEmail',
-                        orderable: false,
-                        searchable: true
-                    },
-                    {
-                        data: 'job_title',
-                        name: 'job_titles.name'
-                    },
-                    {
-                        data: 'job_category',
-                        name: 'job_categories.name'
-                    },
-                    {
-                        data: 'applicant_postcode',
-                        name: 'applicants.applicant_postcode'
-                    },
-                    {
-                        data: 'applicantPhone',
-                        name: 'applicantPhone', // ← Use the same as data key
-                        orderable: false,
-                        searchable: true,
-                    },
-                    {
-                        data: 'applicant_experience',
-                        name: 'applicants.applicant_experience'
-                    },
-                    {
-                        data: 'job_source',
-                        name: 'job_sources.name'
-                    },
-                    {
-                        data: 'applicant_notes',
-                        name: 'applicants.applicant_notes',
-                        orderable: false,
-                        searchable: false
-                    },
-                    {
-                        data: 'sub_stage',
-                        name: 'history.sub_stage'
-                    },
-                    {
-                        data: 'action',
-                        name: 'action',
-                        orderable: false,
-                        searchable: false
-                    }
-                ],
+                columns: columns,
                 columnDefs: [{
-                        targets: 11, // Column index for 'job_details'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    },
-                    {
-                        targets: 12, // Column index for 'job_details'
-                        createdCell: function(td, cellData, rowData, row, col) {
-                            $(td).css('text-align', 'center'); // Center the text in this column
-                        }
-                    }
+                    targets: getHiddenColumnIndices(),
+                    visible: false
+                }],
+                // Skip the checkbox column when it exists (it is not orderable)
+                order: [
+                    [canSelect ? 1 : 0, 'desc']
                 ],
                 rowId: function(data) {
-                    return 'row_' + data
-                        .id; // Assign a unique ID to each row using the 'id' field from the data
+                    return 'row_' + data.id;
                 },
-                dom: 'lrtip', // Change the order to 'filter' (f), 'length' (l), 'table' (r), 'pagination' (p), and 'information' (i)
-                drawCallback: function(settings) {
+                dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rtip',
+                initComplete: function() {
+                    // Put the Columns button next to the "Show N entries" selector
+                    $(this.api().table().container())
+                        .find('.dataTables_length')
+                        .after($('#columnsToolbar'));
+                },
+                drawCallback: function() {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
                     pagination.empty();
@@ -354,32 +523,33 @@
                     const currentPage = pageInfo.page + 1;
                     const totalPages = pageInfo.pages;
 
+                    // Uncheck "select all" after every redraw
+                    $('#select-all').prop('checked', false);
+
                     if (pageInfo.recordsTotal === 0) {
                         $('#applicants_table tbody').html(
-                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>');
+                            '<tr><td colspan="100%" class="text-center">Data not found</td></tr>'
+                        );
                         return;
                     }
 
                     let paginationHtml = `
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <nav aria-label="Page navigation">
-                                    <ul class="pagination pagination-rounded mb-0">
-                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                            <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>`;
-
-                    const visiblePages = 3;
-                    const showDots = totalPages > visiblePages + 2;
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-rounded mb-0">
+                            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="javascript:void(0);" aria-label="Previous" onclick="movePage('previous')">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>`;
 
                     // Always show page 1
                     paginationHtml += `<li class="page-item ${currentPage === 1 ? 'active' : ''}">
-                            <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
-                        </li>`;
+                    <a class="page-link" href="javascript:void(0);" onclick="movePage(1)">1</a>
+                </li>`;
 
-                    let start = Math.max(2, currentPage - 1);
-                    let end = Math.min(totalPages - 1, currentPage + 1);
+                    const start = Math.max(2, currentPage - 1);
+                    const end = Math.min(totalPages - 1, currentPage + 1);
 
                     if (start > 2) {
                         paginationHtml +=
@@ -388,8 +558,8 @@
 
                     for (let i = start; i <= end; i++) {
                         paginationHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
-                            </li>`;
+                        <a class="page-link" href="javascript:void(0);" onclick="movePage(${i})">${i}</a>
+                    </li>`;
                     }
 
                     if (end < totalPages - 1) {
@@ -399,11 +569,10 @@
 
                     if (totalPages > 1) {
                         paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
-                            </li>`;
+                        <a class="page-link" href="javascript:void(0);" onclick="movePage(${totalPages})">${totalPages}</a>
+                    </li>`;
                     }
 
-                    // Next button
                     paginationHtml += `
                             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="javascript:void(0);" aria-label="Next" onclick="movePage('next')">
@@ -411,168 +580,259 @@
                                 </a>
                             </li>
                         </ul>
-                        </nav>
+                    </nav>
 
-                        <div class="d-flex align-items-center ms-3 text-primary">
-                            <span class="me-2">Go to page:</span>
-                            <input type="number" id="goToPageInput" min="1" max="${totalPages}" class="form-control form-control-sm" style="width: 80px;" 
-                                onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
-                        </div>
-                        <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
-                        </div>`;
+                    <div class="d-flex align-items-center ms-3 text-primary">
+                        <span class="me-2">Go to page:</span>
+                        <input type="number" id="goToPageInput" min="1" max="${totalPages}"
+                            class="form-control form-control-sm" style="width: 80px;"
+                            onkeydown="if(event.key === 'Enter') goToPage(${totalPages})">
+                    </div>
+                    <small id="goToPageError" class="text-danger mt-1" style="font-size: 12px;"></small>
+                </div>`;
 
                     pagination.html(paginationHtml);
-                },
+                }
             });
 
-            // Search logic helper
+            // ---------- Select all (only if permitted) ----------
+            if (canSelect) {
+                $(document).on('change', '#select-all', function() {
+                    $('.applicant_checkbox').prop('checked', this.checked);
+                });
+
+                $(document).on('change', '.applicant_checkbox', function() {
+                    const total = $('.applicant_checkbox').length;
+                    const checked = $('.applicant_checkbox:checked').length;
+                    $('#select-all').prop('checked', total > 0 && total === checked);
+                });
+            }
+
+            // ---------- Column visibility handlers ----------
+            $(document).on('change', '#columnsList .column-toggle', function() {
+                const index = Number($(this).data('column-index'));
+                columnVisibility[index] = this.checked;
+                table.column(index).visible(this.checked);
+                saveColumnVisibility();
+            });
+
+            $('#columnsSelectAll').on('click', function(event) {
+                event.preventDefault();
+                columnConfig.forEach(function(column, index) {
+                    if (column.toggleable) {
+                        columnVisibility[index] = true;
+                        table.column(index).visible(true, false);
+                    }
+                });
+                table.columns.adjust().draw(false);
+                saveColumnVisibility();
+                renderColumnsDropdown();
+            });
+
+            $('#columnsResetDefault').on('click', function(event) {
+                event.preventDefault();
+                columnConfig.forEach(function(column, index) {
+                    if (column.toggleable) {
+                        columnVisibility[index] = !!column.default;
+                        table.column(index).visible(columnVisibility[index], false);
+                    }
+                });
+                table.columns.adjust().draw(false);
+                saveColumnVisibility();
+                renderColumnsDropdown();
+            });
+
+            // ---------- Search ----------
             function handleCustomSearch() {
-                let searchValue = $('#customSearchInput').val().trim();
+                const searchValue = $('#customSearchInput').val().trim();
                 table.search(searchValue).draw();
             }
 
-            // Custom Search Button Event
-            $('#customSearchBtn').on('click', function() {
-                handleCustomSearch();
-            });
+            $('#customSearchBtn').on('click', handleCustomSearch);
 
-            // Custom Search Input Enter Key Event
             $('#customSearchInput').on('keypress', function(e) {
-                if (e.which == 13) { // Enter key
+                if (e.which === 13) {
                     e.preventDefault();
                     handleCustomSearch();
                 }
             });
 
-            // Show/Hide Clear button
             $('#customSearchInput').on('keyup change', function() {
-                if ($(this).val().trim() !== '') {
-                    $('#customClearBtn').removeClass('d-none');
-                } else {
-                    $('#customClearBtn').addClass('d-none');
-                }
+                $('#customClearBtn').toggleClass('d-none', $(this).val().trim() === '');
             });
 
-            // Clear Button Event
             $('#customClearBtn').on('click', function() {
                 $('#customSearchInput').val('');
                 $(this).addClass('d-none');
                 table.search('').draw();
             });
 
-            // Type filter dropdown handler
+            // ---------- Type filter ----------
             $('.type-filter').on('click', function() {
-                currentTypeFilter = $(this).text().toLowerCase();
+                currentTypeFilter = $(this).text().trim().toLowerCase();
 
-                // Capitalize each word
                 const formattedText = currentTypeFilter
                     .split(' ')
                     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                     .join(' ');
 
                 $('#showFilterType').html(formattedText);
-                table.ajax.reload(); // Reload with updated type filter
-            });
-            /*** Category filter handler ***/
-            $('.category-filter').on('click', function() {
-                const id = $(this).data('category-id');
-                // Handle "All Titles"
-                if (id === '' || id === undefined) {
-                    currentCategoryFilters = [];
-                    $('.category-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
-                    if (this.checked) {
-                        currentCategoryFilters.push(id);
-                        // Uncheck "All Titles"
-                        $('.category-filter[data-category-id=""]').prop('checked', false);
-                    } else {
-                        currentCategoryFilters = currentCategoryFilters.filter(x => x !== id);
-                    }
-                }
 
-                // Update dropdown display text
-                const selectedLabels = $('.category-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
+                // Titles follow the selected type (and categories).
+                refreshTitleOptions();
 
-                $('#showFilterCategory').text(selectedLabels.length ? 'Selected Categories (' +
-                    selectedLabels.length +
-                    ')' : 'All Categories');
-
-                // Trigger DataTable reload with the selected filters
                 table.ajax.reload();
             });
-            /*** Title Filter Handler ***/
+
+            // ---------- Category / Title / Source filters ----------
+            // Ids of the checked boxes for a filter class, e.g. '.category-filter' + 'category-id'.
+            function checkedIds(selector, dataKey) {
+                return $(selector + ':checked').map(function() {
+                    return $(this).data(dataKey);
+                }).get();
+            }
+
+            function setFilterLabel(labelSelector, count, noun) {
+                $(labelSelector).text(count ? 'Selected ' + noun + ' (' + count + ')' : 'All ' + noun);
+            }
+
+            // Show "Select All" while some listed box is unchecked, "Deselect All" while any is checked.
+            function updateSelectToggles(target) {
+                const $visible = $(target).filter(function() {
+                    return $(this).closest('.form-check').css('display') !== 'none';
+                });
+                const $menu = $(target).first().closest('.dropdown-menu');
+                $menu.find('.filter-select-all').toggle($visible.not(':checked').length > 0);
+                $menu.find('.filter-deselect-all').toggle($(target + ':checked').length > 0);
+            }
+
+            function syncCategories() {
+                currentCategoryFilters = checkedIds('.category-filter', 'category-id');
+                setFilterLabel('#showFilterCategory', currentCategoryFilters.length, 'Categories');
+                updateSelectToggles('.category-filter');
+                refreshTitleOptions();
+            }
+
+            function syncTitles() {
+                currentTitleFilters = checkedIds('.title-filter', 'title-id');
+                setFilterLabel('#showFilterTitle', currentTitleFilters.length, 'Titles');
+                updateSelectToggles('.title-filter');
+            }
+
+            function syncSources() {
+                currentSourceFilters = checkedIds('.source-filter', 'source-id');
+                setFilterLabel('#showFilterSource', currentSourceFilters.length, 'Sources');
+                updateSelectToggles('.source-filter');
+            }
+
+            /**
+             * List only the titles that belong to the selected categories (all, if none
+             * selected) and the selected type (all, for "All Types"), also matching the
+             * title search box. Titles that drop out of the list are unchecked.
+             */
+            function refreshTitleOptions() {
+                const categories = currentCategoryFilters.map(String);
+                const type = (currentTypeFilter || '').toLowerCase();
+                const search = ($('#titleSearchInput').val() || '').toLowerCase();
+                let shown = 0;
+
+                $('#titleList .form-check').each(function() {
+                    const $item = $(this);
+                    const matchesCategory = categories.length === 0 ||
+                        categories.includes(String($item.data('title-category')));
+                    const matchesType = type === '' || type === 'all types' ||
+                        String($item.data('title-type')) === type;
+                    const matchesSearch = $item.find('label').text().toLowerCase().includes(search);
+                    const available = matchesCategory && matchesType;
+
+                    if (!available) {
+                        $item.find('.title-filter').prop('checked', false);
+                    }
+
+                    $item.toggle(available && matchesSearch);
+                    if (available && matchesSearch) {
+                        shown++;
+                    }
+                });
+
+                $('#titleListEmpty').toggleClass('d-none', shown > 0);
+                syncTitles();
+            }
+
+            $('.category-filter').on('change', function() {
+                syncCategories();
+                table.ajax.reload();
+            });
+
             $('.title-filter').on('change', function() {
-                const id = $(this).data('title-id');
-
-                // Handle "All Titles"
-                if (id === '' || id === undefined) {
-                    currentTitleFilters = [];
-                    $('.title-filter').not(this).prop('checked', false);
-                } else {
-                    // Remove or add to array
-                    if (this.checked) {
-                        currentTitleFilters.push(id);
-                        // Uncheck "All Titles"
-                        $('.title-filter[data-title-id=""]').prop('checked', false);
-                    } else {
-                        currentTitleFilters = currentTitleFilters.filter(x => x !== id);
-                    }
-                }
-
-                // Update dropdown display text
-                const selectedLabels = $('.title-filter:checked')
-                    .map(function() {
-                        return $(this).next('label').text().trim();
-                    }).get();
-
-                $('#showFilterTitle').text(selectedLabels.length ? 'Selected Titles (' + selectedLabels
-                    .length +
-                    ')' : 'All Titles');
-
-                // Trigger DataTable reload with the selected filters
+                syncTitles();
                 table.ajax.reload();
             });
-            // Status filter dropdown handler
-            $('.date-filter').on('click', function() {
-                // Get the clicked text and convert to lowercase
-                currentDateFilter = $(this).text().toLowerCase().replace(/\s+/g, '-');
 
-                // Format text for display: capitalize each word (using the original string)
-                const formattedText = $(this).text()
-                    .toLowerCase()
+            $('.source-filter').on('change', function() {
+                syncSources();
+                table.ajax.reload();
+            });
+
+            // Select All / Deselect All: only the boxes currently listed (not hidden by search,
+            // category or type), then one table reload.
+            const filterSyncs = {
+                '.category-filter': syncCategories,
+                '.title-filter': syncTitles,
+                '.source-filter': syncSources,
+            };
+
+            $(document).on('click', '.filter-select-all, .filter-deselect-all', function(e) {
+                const target = $(this).data('target');
+                if (!filterSyncs[target]) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation(); // keep the dropdown open
+
+                const selectAll = $(this).hasClass('filter-select-all');
+                $(target).each(function() {
+                    if ($(this).closest('.form-check').css('display') !== 'none') {
+                        $(this).prop('checked', selectAll);
+                    }
+                });
+
+                filterSyncs[target]();
+                table.ajax.reload();
+            });
+
+            // Dropdown search boxes
+            $('#titleSearchInput').on('input', refreshTitleOptions);
+
+            $('#categorySearchInput').on('input', function() {
+                const searchValue = this.value.toLowerCase();
+                $('#categoryList .form-check').each(function() {
+                    $(this).toggle($(this).find('label').text().toLowerCase().includes(searchValue));
+                });
+                updateSelectToggles('.category-filter');
+            });
+
+            $('#sourceSearchInput').on('input', function() {
+                const searchValue = this.value.toLowerCase();
+                $('#sourceList .form-check').each(function() {
+                    $(this).toggle($(this).find('label').text().toLowerCase().includes(searchValue));
+                });
+                updateSelectToggles('.source-filter');
+            });
+
+            // ---------- Date filter ----------
+            $('.date-filter').on('click', function() {
+                const text = $(this).text().trim().toLowerCase();
+                currentDateFilter = text.replace(/\s+/g, '-');
+
+                const formattedText = text
                     .split(' ')
                     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                     .join(' ');
 
-                // Update the dropdown display label
                 $('#showDateRange').html(formattedText);
-
-                // Reload table (assuming it uses currentDateRangeFilter somehow)
                 table.ajax.reload();
-            });
-        });
-
-        document.getElementById('categorySearchInput').addEventListener('keyup', function() {
-            const searchValue = this.value.toLowerCase();
-            const checkboxes = document.querySelectorAll('#categoryList .form-check');
-
-            checkboxes.forEach(function(item) {
-                const label = item.querySelector('label').innerText.toLowerCase();
-                item.style.display = label.includes(searchValue) ? '' : 'none';
-            });
-        });
-
-        document.getElementById('titleSearchInput').addEventListener('keyup', function() {
-            const searchValue = this.value.toLowerCase();
-            const checkboxes = document.querySelectorAll('#titleList .form-check');
-
-            checkboxes.forEach(function(item) {
-                const label = item.querySelector('label').innerText.toLowerCase();
-                item.style.display = label.includes(searchValue) ? '' : 'none';
             });
         });
 
@@ -730,6 +990,65 @@
             });
         }
 
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('.job-details');
+            if (!link) return;
+
+            e.preventDefault();
+
+            let job;
+            try {
+                job = JSON.parse(link.dataset.job);
+            } catch (err) {
+                console.error('Invalid job data', err);
+                return;
+            }
+
+            showJobDetailsModal(job);
+        });
+
+        function showJobDetailsModal(job) {
+            const modalId = `job-modal-${job.sale_id}`;
+            document.getElementById(modalId)?.remove();
+
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="${modalId}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Job Details</h5>
+                                <button class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-bordered">
+                                    <tr><th>Sale ID</th><td>${job.sale_id}</td></tr>
+                                    <tr><th>Posted Date</th><td>${job.posted_date}</td></tr>
+                                    <tr><th>Head Office</th><td>${job.office_name}</td></tr>
+                                    <tr><th>Unit Name</th><td>${job.unit_name}</td></tr>
+                                    <tr><th>Postcode</th><td>${job.postcode}</td></tr>
+                                    <tr><th>Job Category</th><td>${job.job_category}</td></tr>
+                                    <tr><th>Job Title</th><td>${job.job_title}</td></tr>
+                                    <tr><th>Job Source</th><td>${job.sale_source_name}</td></tr>
+                                    <tr><th>Status</th><td>${job.status}</td></tr>
+                                    <tr><th>Timing</th><td>${job.timing}</td></tr>
+                                    <tr><th>Experience</th><td>${job.experience}</td></tr>
+                                    <tr><th>Salary</th><td>${job.salary}</td></tr>
+                                    <tr><th>Position</th><td>${job.position}</td></tr>
+                                    <tr><th>Qualification</th><td>${job.qualification}</td></tr>
+                                    <tr><th>Benefits</th><td>${job.benefits}</td></tr>
+                                </table>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            new bootstrap.Modal(document.getElementById(modalId)).show();
+        }
+
         function showDetailsModal(applicantId, name, email, secondaryEmail, postcode, landline, phone, jobTitle,
             jobCategory, jobSource, createdAt, status) {
             const modalId = 'showDetailsModal-' + applicantId;
@@ -791,6 +1110,91 @@
                 $(this).remove();
             });
         }
+
+
+        // Enable the Unblock button when any checkbox is checked, disable if none checked
+        $(document).on('change', '.applicant_checkbox, #master-checkbox', function() {
+            var anyChecked = $('.applicant_checkbox:checked').length > 0;
+            $('#submitSelectedButton').prop('disabled', !anyChecked);
+        });
+
+        $('#master-checkbox').on('change', function() {
+            var isChecked = $(this).prop('checked');
+            $('.applicant_checkbox').prop('checked', isChecked);
+
+            // Manually toggle the DataTables selected class
+            $('.applicant_checkbox').each(function() {
+                var $row = $(this).closest('tr');
+                if (isChecked) {
+                    $row.addClass('selected');
+                } else {
+                    $row.removeClass('selected');
+                }
+            });
+        });
+
+        // Add a listener to individual checkboxes to update the master checkbox state
+        $(document).on('change', '.applicant_checkbox', function() {
+            var allCheckboxesChecked = $('.applicant_checkbox:checked').length === $('.applicant_checkbox').length;
+            $('#master-checkbox').prop('checked', allCheckboxesChecked);
+
+            // Manually toggle the DataTables selected class
+            var $row = $(this).closest('tr');
+            if ($(this).prop('checked')) {
+                $row.addClass('selected');
+            } else {
+                $row.removeClass('selected');
+            }
+        });
+
+        // Add a listener to the "Select All" button for additional actions
+        $('#submitSelectedButton').on('click', function() {
+            var selectedIds = [];
+
+            // Get selected IDs
+            $('.applicant_checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'These applicants will be revert from the rejected. Are you sure you want to continue?',
+                icon: 'warning',
+                showCancelButton: true,
+                customClass: {
+                    confirmButton: 'btn bg-danger text-white me-2 mt-2',
+                    cancelButton: 'btn btn-dark mt-2'
+                },
+                confirmButtonText: 'Yes, Continue!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'revertRejectedApplicant', // Update the URL to match your route
+                        type: 'post',
+                        data: {
+                            ids: selectedIds,
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+
+                                // Display a success message
+                                toastr.success(response.message);
+
+                                // Reload the DataTable
+                                $('#applicants_table').DataTable().ajax.reload();
+                            } else {
+                                // Display an error message
+                                toastr.error(response.message);
+                            }
+                        },
+                        error: function(error) {
+                            // Handle other errors (e.g., network issues)
+                            toastr.error('Error: ' + error.statusText);
+                        }
+                    });
+                }
+            });
+        });
     </script>
 @endsection
 @endsection

@@ -206,6 +206,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('not-interested-applicants', [ResourceController::class, 'notInterestedIndex'])->name('resources.notInterestedIndex');
         Route::get('category-wise-applicants', [ResourceController::class, 'categoryWiseApplicantIndex'])->name('resources.categoryWiseApplicantIndex');
         Route::post('revertBlockedApplicant', [ResourceController::class, 'revertBlockedApplicant'])->name('resources.revertBlockedApplicant');
+        Route::post('revertRejectedApplicant', [ResourceController::class, 'revertRejectedApplicant'])->name('resources.revertRejectedApplicant');
         Route::post('revertNoJobApplicant', [ResourceController::class, 'revertNoJobApplicant'])->name('resources.revertNoJobApplicant');
         Route::post('revertNotInterestedApplicant', [ResourceController::class, 'revertNotInterestedApplicant'])->name('resources.revertNotInterestedApplicant');
     });

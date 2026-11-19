@@ -234,6 +234,7 @@ class PermissionsTableSeeder extends Seeder
             'resource-rejected-export',
             'resource-rejected-export-all',
             'resource-rejected-export-emails',
+            'resource-rejected-revert',
 
             // Resource Sub Modules Blocked Resources Permissions
             'resource-blocked-index',

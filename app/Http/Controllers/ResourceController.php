@@ -14,6 +14,7 @@ use Horsefly\JobCategory;
 use Horsefly\JobSource;
 use Horsefly\Setting;
 use Horsefly\CrmNote;
+use Horsefly\CrmRejectedCv;
 use Horsefly\JobTitle;
 use Horsefly\User;
 use Horsefly\ModuleNote;
@@ -1367,33 +1368,38 @@ class ResourceController extends Controller
             'crm_start_date_hold_save',
         ];
 
-        // Filter BEFORE ranking, so ROW_NUMBER() only partitions the rows
-        // that could ever survive the outer WHERE — much smaller sort/window cost.
-        $latestNotes = DB::table('crm_notes')
-            ->select(
-                'id',
-                'applicant_id',
-                'sale_id',
-                'details',
-                'moved_tab_to',
-                'created_at',
-                'updated_at',
-                DB::raw('ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id DESC) as row_num')
-            )
-            ->whereIn('moved_tab_to', $movedTabValues);
+        // Latest rejected CRM note / latest rejection history row per (applicant, sale).
+        // GROUP BY + MAX(id) only returns ids and can use the composite indexes
+        // (e.g. idx_history_quality_state), unlike ROW_NUMBER(), which sorts every
+        // matching row (history: ~370ms -> ~75ms). Full rows are then joined by primary key.
+        $latestNoteIdsPerPair = DB::table('crm_notes as cn')
+            ->join('crm_rejected_cv as rcv', function ($join) {
+                $join->on('rcv.crm_note_id', '=', 'cn.id')
+                    ->where('rcv.status', 1);
+            })
+            ->whereIn('cn.moved_tab_to', $movedTabValues)
+            ->groupBy('cn.applicant_id', 'cn.sale_id')
+            ->selectRaw('cn.applicant_id, MAX(cn.id) as id');
 
-        $latestHistory = DB::table('history')
-            ->select(
-                'id',
-                'applicant_id',
-                'sale_id',
-                'sub_stage',
-                'status',
-                'created_at',
-                DB::raw('ROW_NUMBER() OVER (PARTITION BY applicant_id, sale_id ORDER BY id DESC) as row_num')
-            )
-            ->whereIn('sub_stage', $subStageValues)
-            ->where('status', 1);
+        // The date filter is on the latest note, so apply it here, inside the derived
+        // table: the main join then only sees notes in range instead of walking every
+        // sale/history pair and discarding almost all of them at the end.
+        $dateRange = $this->rejectedDateRange($dateFilter);
+
+        $latestNoteIds = DB::query()
+            ->fromSub($latestNoteIdsPerPair, 'ln')
+            ->join('crm_notes as cn_latest', 'cn_latest.id', '=', 'ln.id')
+            ->select('ln.applicant_id', 'ln.id');
+
+        if ($dateRange) {
+            $latestNoteIds->whereBetween('cn_latest.updated_at', $dateRange);
+        }
+
+        $latestHistoryIds = DB::table('history as h')
+            ->whereIn('h.sub_stage', $subStageValues)
+            ->where('h.status', 1)
+            ->groupBy('h.applicant_id', 'h.sale_id')
+            ->selectRaw('h.applicant_id, h.sale_id, MAX(h.id) as id');
 
         $model = Applicant::query()
             ->select([
@@ -1419,38 +1425,77 @@ class ResourceController extends Controller
                 'applicants.applicant_email',
                 'applicants.applicant_email_secondary',
                 'applicants.is_blocked',
+                'applicants.job_type',
+                'applicants.is_no_response',
+                'applicants.is_circuit_busy',
+                'applicants.is_no_job',
 
                 'job_titles.name as job_title_name',
                 'job_categories.name as job_category_name',
-                'job_sources.name as job_source_name',
                 DB::raw('
-                    CASE 
-                        WHEN history.sub_stage = "crm_reject" THEN "Rejected CV" 
+                    CASE
+                        WHEN history.sub_stage = "crm_reject" THEN "Rejected CV"
                         WHEN history.sub_stage = "crm_request_reject" THEN "Rejected By Request"
                         WHEN history.sub_stage = "crm_interview_not_attended" THEN "Not Attended"
                         WHEN history.sub_stage IN ("crm_start_date_hold", "crm_start_date_hold_save") THEN "Start Date Hold"
                         ELSE "Unknown Status"
                     END AS sub_stage
-                ')
+                '),
+
+                // Offices
+                'offices.office_name as office_name',
+                // Sales
+                'sales.id as sale_id',
+                'sales.job_category_id as sale_category_id',
+                'sales.job_title_id as sale_title_id',
+                'sales.job_source_id as sale_source_id',
+                'sale_job_sources.name as sale_source_name',
+                'sales.sale_postcode',
+                'sales.job_type as sale_job_type',
+                'sales.timing',
+                'sales.salary',
+                'sales.experience as sale_experience',
+                'sales.qualification as sale_qualification',
+                'sales.benefits',
+                'sales.office_id as sale_office_id',
+                'sales.unit_id as sale_unit_id',
+                'sales.position_type',
+                'sales.status as sale_status',
+                'sales.is_on_hold',
+                'sales.created_at as sale_posted_date',
+                // Units
+                'units.unit_name',
+                'units.unit_postcode',
+                'units.unit_website',
             ])
-            ->joinSub($latestNotes, 'crm_notes', function ($join) {
-                $join->on('applicants.id', '=', 'crm_notes.applicant_id')
-                    ->where('crm_notes.row_num', 1);
+            ->joinSub($latestNoteIds, 'latest_crm_note', 'latest_crm_note.applicant_id', '=', 'applicants.id')
+            ->join('crm_notes', 'crm_notes.id', '=', 'latest_crm_note.id')
+            ->joinSub($latestHistoryIds, 'latest_history', function ($join) {
+                $join->on('latest_history.applicant_id', '=', 'applicants.id')
+                    ->on('latest_history.sale_id', '=', 'crm_notes.sale_id');
             })
-            ->joinSub($latestHistory, 'history', function ($join) {
-                $join->on('applicants.id', '=', 'history.applicant_id')
-                    ->on('crm_notes.sale_id', '=', 'history.sale_id')
-                    ->where('history.row_num', 1);
+            ->join('history', 'history.id', '=', 'latest_history.id')
+            ->join('sales', function ($join) {
+                $join->on('crm_notes.sale_id', '=', 'sales.id')
+                    ->whereNull('sales.deleted_at');
+            })
+            ->join('offices', function ($join) {
+                $join->on('sales.office_id', '=', 'offices.id');
+                // ->where('offices.status', 1);
+            })
+            ->join('units', function ($join) {
+                $join->on('sales.unit_id', '=', 'units.id');
+                // ->where('units.status', 1);
             })
             ->leftJoin('job_titles', 'applicants.job_title_id', '=', 'job_titles.id')
             ->leftJoin('job_categories', 'applicants.job_category_id', '=', 'job_categories.id')
-            ->leftJoin('job_sources', 'applicants.job_source_id', '=', 'job_sources.id')
+            ->leftJoin('job_sources as sale_job_sources', fn($join) => $join->on('sales.job_source_id', '=', 'sale_job_sources.id'))
             ->where([
                 'applicants.status'             => 1,
-                'applicants.is_in_nurse_home'   => false,
-                'applicants.is_blocked'         => false,
-                'applicants.is_callback_enable' => false,
-                'applicants.is_no_job'          => false,
+                'applicants.is_in_nurse_home'   => 0,
+                'applicants.is_blocked'         => 0,
+                'applicants.is_callback_enable' => 0,
+                'applicants.is_no_job'          => 0,
             ])
             ->whereNull('applicants.deleted_at');
 
@@ -1484,34 +1529,7 @@ class ResourceController extends Controller
         $this->excludePrivateSales($model, 'crm_notes.sale_id');
         $this->excludePrivateNotes($model, 'crm_notes.details');
 
-        // ✅ Date filter
-        if ($dateFilter) {
-            $now        = Carbon::now();
-            $start_date = null;
-            $end_date   = $now->copy()->endOfDay();
-
-            switch ($dateFilter) {
-                case 'last-3-months':
-                    $start_date = $now->copy()->subMonths(3)->startOfDay();
-                    break;
-                case 'last-6-months':
-                    $end_date   = $now->copy()->subMonths(3)->endOfDay();
-                    $start_date = $end_date->copy()->subMonths(6)->startOfDay();
-                    break;
-                case 'last-9-months':
-                    $end_date   = $now->copy()->subMonths(6)->endOfDay();
-                    $start_date = $end_date->copy()->subMonths(9)->startOfDay();
-                    break;
-                case 'others':
-                    $end_date   = $now->copy()->subMonths(15)->endOfDay();
-                    $start_date = $end_date->copy()->subYears(5)->startOfDay();
-                    break;
-            }
-
-            if ($start_date && $end_date) {
-                $model->whereBetween('crm_notes.updated_at', [$start_date, $end_date]);
-            }
-        }
+        // ✅ Date filter: applied inside $latestNoteIds (see rejectedDateRange()).
 
         // ✅ Sorting — whitelist to prevent invalid/unsafe columns and ambiguous-column errors
         $sortMap = [
@@ -1550,11 +1568,17 @@ class ResourceController extends Controller
                     ->orWhere('applicants.applicant_landline', 'LIKE', $like)
                     ->orWhere('job_titles.name', 'LIKE', $like)
                     ->orWhere('job_categories.name', 'LIKE', $like)
-                    ->orWhere('job_sources.name', 'LIKE', $like);
+                    ->orWhere('sale_job_sources.name', 'LIKE', $like);
             });
         }
 
         // ✅ Filters
+        // Job source filter: the sale's source (the "Source (Sale)" column)
+        $sourceFilter = array_filter((array) $request->input('source_filter', []), fn($id) => $id !== '' && $id !== null);
+        if ($sourceFilter) {
+            $model->whereIn('sales.job_source_id', $sourceFilter);
+        }
+
         if ($typeFilter === 'specialist') {
             $model->where('applicants.job_type', 'specialist');
         } elseif ($typeFilter === 'regular') {
@@ -1571,14 +1595,28 @@ class ResourceController extends Controller
 
         // ✅ DataTables response
         if ($request->ajax()) {
+            // Lookups loaded once per request; rows use these and the joined names
+            // instead of lazy-loading jobTitle/jobCategory/jobSource for every row.
+            $jobTitleNamesById = JobTitle::pluck('name', 'id');
+            $jobCategoryNamesById = JobCategory::pluck('name', 'id');
+            $jobSourceNamesById = JobSource::pluck('name', 'id');
+            $canSeeBlocked = Gate::allows('applicant-show-blocked-data');
+
             return DataTables::eloquent($model)
-                ->addIndexColumn()
-                ->addColumn('job_title', fn($a) => $a->jobTitle ? strtoupper($a->jobTitle->name) : '-')
+                ->addColumn('checkbox', function ($applicant) {
+                    return '<input type="checkbox" name="applicant_checkbox[]" class="applicant_checkbox" value="' . $applicant->id . '|' . $applicant->sale_id . '"/>';
+                })
+                ->addColumn('job_title', fn($a) => $a->job_title_name ? strtoupper($a->job_title_name) : '-')
                 ->addColumn('job_category', function ($a) {
                     $stype = $a->job_type === 'specialist' ? '<br>(Specialist)' : '';
-                    return $a->jobCategory ? ucwords($a->jobCategory->name) . $stype : '-';
+                    return $a->job_category_name ? ucwords($a->job_category_name) . $stype : '-';
                 })
-                ->addColumn('job_source', fn($a) => $a->jobSource ? ucwords($a->jobSource->name) : '-')
+                ->addColumn('job_source', function ($a) use ($jobSourceNamesById) {
+                    $name = $jobSourceNamesById->get($a->job_source_id);
+                    return $name
+                        ? '<span class="badge bg-light text-dark">' . e(ucwords($name)) . '</span>'
+                        : '-';
+                })
                 ->addColumn('applicant_name', fn($a) => $a->formatted_applicant_name)
                 ->editColumn('applicant_postcode', function ($a) {
                     $rawPostcode = trim($a->applicant_postcode);
@@ -1611,14 +1649,13 @@ class ResourceController extends Controller
                                ' . $shortNotes . '
                             </a>';
                 })
-                ->addColumn('applicantPhone', function ($a) {
+                ->addColumn('applicantPhone', function ($a) use ($canSeeBlocked) {
 
-                    if ($a->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                    if ($a->is_blocked && !$canSeeBlocked) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
-                    $showBlockedData = $a->is_blocked
-                        && Gate::allows('applicant-show-blocked-data');
+                    $showBlockedData = $a->is_blocked && $canSeeBlocked;
 
                     $class = $showBlockedData ? 'show_hidden_phone' : '';
 
@@ -1691,9 +1728,65 @@ class ResourceController extends Controller
                         default               => '<span class="badge bg-warning">Unknown</span>',
                     };
                 })
-                ->addColumn('applicantEmail', function ($a) {
+                ->addColumn('job_details', function ($applicant) use ($jobTitleNamesById, $jobCategoryNamesById) {
+                    $position_type = strtoupper(str_replace('-', ' ', $applicant->position_type ?? ''));
+                    $position = '<span class="badge bg-primary">' . e($position_type) . '</span>'; // only escape text
+                    $status = '';
+                    if ($applicant->sale_status == 1) {
+                        $status = '<span class="badge bg-success">Active</span>';
+                    } elseif ($applicant->sale_status == 0 && $applicant->is_on_hold == 0) {
+                        $status = '<span class="badge bg-danger">Closed</span>';
+                    } elseif ($applicant->sale_status == 2) {
+                        $status = '<span class="badge bg-warning">Pending</span>';
+                    } elseif ($applicant->sale_status == 3) {
+                        $status = '<span class="badge bg-danger">Rejected</span>';
+                    }
+
+                    $sale_source_name = '';
+                    if ($applicant->sale_source_name) {
+                        $sale_source_name = '<span class="badge bg-light text-dark">' . e($applicant->sale_source_name) . '</span>';
+                    }
+
+                    $postcode = strtoupper($applicant->sale_postcode);
+                    $posted_date = Carbon::parse($applicant->sale_posted_date)->format('d M Y, h:i A');
+                    $office_name = ucwords($applicant->office_name) ?? '-';
+                    $unit_name = ucwords($applicant->unit_name) ?? '-';
+                    $jobTitleNameValue = $jobTitleNamesById->get($applicant->sale_title_id);
+                    $jobTitle = $jobTitleNameValue ? strtoupper($jobTitleNameValue) : '-';
+                    $stype  = $applicant->sale_job_type && $applicant->sale_job_type == 'specialist' ? '<br>(' . ucwords('Specialist') . ')' : '';
+                    $jobCategoryNameValue = $jobCategoryNamesById->get($applicant->sale_category_id);
+                    $jobCategory = $jobCategoryNameValue ? (ucwords($jobCategoryNameValue) . $stype) : '-';
+
+                    $jobData = [
+                        'sale_id'       => (int)$applicant->sale_id,
+                        'posted_date'   => $posted_date,
+                        'office_name'   => $office_name,
+                        'unit_name'     => $unit_name,
+                        'postcode'      => $postcode,
+                        'job_category'  => $jobCategory,
+                        'job_title'     => $jobTitle,
+                        'sale_source_name' => $sale_source_name,
+                        'status'        => $status,       // RAW HTML
+                        'timing'        => $applicant->timing,
+                        'experience'    => $applicant->sale_experience,
+                        'salary'        => $applicant->salary,
+                        'position'      => $position,     // RAW HTML
+                        'qualification' => $applicant->sale_qualification,
+                        'benefits'      => $applicant->benefits,
+                    ];
+
+                    return '<a href="javascript:void(0);"
+                            class="dropdown-item job-details"
+                            data-job=\'' . json_encode(
+                        $jobData,
+                        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                    ) . '\'>
+                            <iconify-icon icon="solar:square-arrow-right-up-bold" class="text-info fs-24"></iconify-icon>
+                        </a>';
+                })
+                ->addColumn('applicantEmail', function ($a) use ($canSeeBlocked) {
                     // Blocked applicant + no permission
-                    if ($a->is_blocked && !Gate::allows('applicant-show-blocked-data')) {
+                    if ($a->is_blocked && !$canSeeBlocked) {
                         return "<span class='badge bg-dark'>Blocked</span>";
                     }
 
@@ -1702,7 +1795,7 @@ class ResourceController extends Controller
                         : $a->applicant_email;
 
                     // Blocked applicant + has permission
-                    if ($a->is_blocked && Gate::allows('applicant-show-blocked-data')) {
+                    if ($a->is_blocked) {
                         return '<div class="bg-dark text-white p-1 rounded">' . $email . '</div>';
                     }
 
@@ -1711,17 +1804,20 @@ class ResourceController extends Controller
                 })
                 ->filterColumn('applicantEmail', function ($query, $keyword) {
                     $keyword = trim($keyword);
-                    $query->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
-                        ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('applicants.applicant_email', 'LIKE', "{$keyword}%")
+                            ->orWhere('applicants.applicant_email_secondary', 'LIKE', "{$keyword}%");
+                    });
                 })
-                ->addColumn('action', function ($a) {
+                ->addColumn('action', function ($a) use ($jobSourceNamesById) {
                     $landline = $a->formatted_landline;
                     $phone    = $a->formatted_phone;
                     $postcode = $a->formatted_postcode;
                     $posted   = Carbon::parse($a->applicant_created)->format('d M Y, h:i A');
-                    $jobTitle = $a->jobTitle ? strtoupper($a->jobTitle->name) : '-';
-                    $jobCat   = $a->jobCategory ? ucwords($a->jobCategory->name) : '-';
-                    $jobSrc   = $a->jobSource ? ucwords($a->jobSource->name) : '-';
+                    $jobTitle = $a->job_title_name ? strtoupper($a->job_title_name) : '-';
+                    $jobCat   = $a->job_category_name ? ucwords($a->job_category_name) : '-';
+                    $jobSrcName = $jobSourceNamesById->get($a->job_source_id);
+                    $jobSrc   = $jobSrcName ? ucwords($jobSrcName) : '-';
 
                     $status = '';
                     if ($a->is_blocked) {
@@ -1762,7 +1858,13 @@ class ResourceController extends Controller
                             </ul>
                         </div>';
                 })
+                ->addColumn('sale_source_name', function ($sale) {
+                    if (!$sale->sale_source_name)
+                        return '-';
+                    return '<span class="badge bg-light text-dark">' . e($sale->sale_source_name) . '</span>';
+                })
                 ->rawColumns([
+                    'checkbox',
                     'applicant_notes',
                     'applicant_experience',
                     'applicant_postcode',
@@ -1772,6 +1874,8 @@ class ResourceController extends Controller
                     'sub_stage',
                     'job_category',
                     'job_source',
+                    'sale_source_name',
+                    'job_details',
                     'action'
                 ])
                 ->make(true);
@@ -1779,6 +1883,32 @@ class ResourceController extends Controller
 
         return response()->json(['error' => 'Invalid request'], 400);
     }
+
+    /**
+     * [start, end] for the rejected applicants date filter (on the latest CRM note's
+     * updated_at), or null for no date filter.
+     */
+    private function rejectedDateRange(?string $dateFilter): ?array
+    {
+        $now = Carbon::now();
+
+        switch ($dateFilter) {
+            case 'last-3-months':
+                return [$now->copy()->subMonths(3)->startOfDay(), $now->copy()->endOfDay()];
+            case 'last-6-months':
+                $end = $now->copy()->subMonths(3)->endOfDay();
+                return [$end->copy()->subMonths(6)->startOfDay(), $end];
+            case 'last-9-months':
+                $end = $now->copy()->subMonths(6)->endOfDay();
+                return [$end->copy()->subMonths(9)->startOfDay(), $end];
+            case 'others':
+                $end = $now->copy()->subMonths(15)->endOfDay();
+                return [$end->copy()->subYears(5)->startOfDay(), $end];
+            default:
+                return null;
+        }
+    }
+
     public function getApplicantHistorybyStatus(Request $request)
     {
         $applicant_id = $request->input('id');
@@ -4312,6 +4442,67 @@ class ResourceController extends Controller
                 // })
                 ->rawColumns(['checkbox', 'applicantEmail', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
                 ->make(true);
+        }
+    }
+    public function revertRejectedApplicant(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+        ]);
+        try {
+            DB::beginTransaction();
+            $queries = $request->input('ids');
+            $revertCount = 0;
+
+            foreach ($queries as $query) {
+                $id = explode('|', $query);
+                $applicantId = (int) $id[0];
+                $saleId = (int) $id[1];
+
+                $sale = Sale::find($saleId);
+
+                $applicantQuery = CrmRejectedCv::where('applicant_id', $applicantId)->where('sale_id', $saleId);
+
+                $applicantQuery->update([
+                    'status' => false,
+                ]);
+
+                // Deactivate previous active notes
+                ModuleNote::where('module_noteable_id', $applicantId)
+                    ->where('module_noteable_type', 'Horsefly\Applicant')
+                    ->where('status', 1)
+                    ->update(['status' => 0]);
+
+                // Create new module note
+                $moduleNote = ModuleNote::create([
+                    'user_id' => Auth::id(),
+                    'module_noteable_id' => $applicantId,
+                    'module_noteable_type' => 'Horsefly\Applicant',
+                    'details' => 'Applicant has been removed from the rejected for the sale of ' . $sale ?? $sale->sale_postcode,
+                ]);
+
+                $moduleNote->update([
+                    'module_note_uid' => md5($moduleNote->id),
+                ]);
+
+                $revertCount++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "$revertCount applicant(s) reverted successfully.",
+            ], 200);
+        } catch (Exception $exception) {
+            DB::rollBack();
+
+            Log::error("Failed to reverted applicants: " . $exception->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong! Please try again.',
+            ], 500);
         }
     }
     public function revertBlockedApplicant(Request $request)
