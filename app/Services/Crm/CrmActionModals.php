@@ -213,6 +213,11 @@ class CrmActionModals
                                                     <textarea class="form-control" name="details" id="revertInQualityDetails' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '" rows="4" required></textarea>
                                                     <div class="invalid-feedback">Please provide details.</div>
                                                 </div>
+                                                <div class="form-check mb-3">
+                                                    <input class="form-check-input" type="checkbox" name="exclude_from_stats" value="1" id="revertInQualityExcludeStats' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">
+                                                    <label class="form-check-label" for="revertInQualityExcludeStats' . (int)$applicant->id . '-' . (int)$applicant->sale_id . '">Exclude from stats</label>
+                                                    <div class="form-text">When ticked, this revert is not saved as a cleared-then-reverted CV, so it doesn\'t count in the statistics.</div>
+                                                </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Cancel</button>
                                                     <button type="button" class="btn btn-success saveCrmRevertInQualityButton" data-applicant-id="' . (int)$applicant->id . '" data-sale-id="' . (int)$applicant->sale_id . '">Save</button>

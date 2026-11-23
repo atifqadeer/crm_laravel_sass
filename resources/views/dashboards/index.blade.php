@@ -630,11 +630,16 @@
                     <div class="row mb-4 text-center">
                         <div class="col-md-6">
                             <h6>Regular</h6>
-                            <h3 id="regularCount">0</h3>
+                            <h3 id="regularCount" class="stats-jobtype-link text-primary" role="button"
+                                data-job-type="regular" title="Show these applicants">0</h3>
                         </div>
                         <div class="col-md-6">
                             <h6>Specialist</h6>
-                            <h3 id="specialistCount">0</h3>
+                            <h3 id="specialistCount" class="stats-jobtype-link text-primary" role="button"
+                                data-job-type="specialist" title="Show these applicants">0</h3>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">Click a number to see the applicants and their notes.</small>
                         </div>
                     </div>
 
@@ -653,6 +658,30 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applicants behind a Regular / Specialist count (Statistics cards) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="statsApplicantsOffcanvas"
+        aria-labelledby="statsApplicantsOffcanvasLabel" style="width: min(760px, 100vw);">
+        <div class="offcanvas-header border-bottom">
+            <div>
+                <h5 class="offcanvas-title mb-0" id="statsApplicantsOffcanvasLabel">Applicants</h5>
+                <small class="text-muted" id="statsApplicantsSummary"></small>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="input-group input-group-sm mb-3">
+                <span class="input-group-text"><i class="ri-search-line"></i></span>
+                <input type="search" class="form-control" id="statsApplicantsSearch"
+                    placeholder="Search name, phone, email, postcode, title or notes">
+            </div>
+            <div id="statsApplicantsList"></div>
+            <div class="text-center mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary d-none" id="statsApplicantsMore">Load
+                    more</button>
             </div>
         </div>
     </div>
@@ -895,6 +924,12 @@
                 console.warn('⚠️ Missing data-filter-type on this .stat-box element.');
                 return;
             }
+            // Remember which card and dates the Regular/Specialist counts belong to.
+            window.statsDetailsContext = {
+                type: type,
+                range: currentRange,
+                date_range: currentDateRange
+            };
 
             $.ajax({
                 url: '/dashboard/statistics-details',
@@ -933,6 +968,110 @@
                 }
             });
         });
+
+        // ── Regular / Specialist count → applicants offcanvas ─────────
+        (function() {
+            const LIST_URL = @json(route('dashboard.statisticsApplicants'));
+            let listState = null;
+            let searchTimer = null;
+
+            function esc(value) {
+                return $('<div>').text(value ?? '').html();
+            }
+
+            function applicantCard(a) {
+                const notes = (a.notes || '').trim();
+                const contact = a.is_blocked && !a.phone ?
+                    '<span class="badge bg-dark">Blocked</span>' :
+                    [a.phone, a.email].filter(Boolean).map(esc).join(' · ');
+                return `<div class="border rounded p-2 mb-2">
+                    <div class="d-flex justify-content-between flex-wrap gap-1">
+                        <div class="fw-semibold">${esc(a.name)} <span class="text-muted small">#${a.id}</span>
+                            ${a.is_blocked ? '<span class="badge bg-dark ms-1">Blocked</span>' : ''}</div>
+                        <small class="text-muted">${esc(listState.dateLabel)} ${esc(a.date)}</small>
+                    </div>
+                    <div class="small text-muted">${esc(a.job_title || '-')} · ${esc(a.job_category || '-')}
+                        · ${esc(a.postcode || '-')}${a.job_source ? ' · <span class="badge bg-light text-dark">' + esc(a.job_source) + '</span>' : ''}</div>
+                    <div class="small">${contact}</div>
+                    <div class="mt-1 small ${notes ? '' : 'text-muted'}" style="white-space: pre-line;">
+                        <strong>Notes:</strong> ${notes ? esc(notes) : 'No notes'}</div>
+                </div>`;
+            }
+
+            function loadPage(reset) {
+                if (reset) {
+                    listState.page = 1;
+                    $('#statsApplicantsList').html(
+                        '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>');
+                }
+                $('#statsApplicantsMore').prop('disabled', true);
+
+                $.get(LIST_URL, Object.assign({}, listState.params, {
+                    page: listState.page,
+                    search: listState.search
+                })).done(function(res) {
+                    listState.dateLabel = res.date_label;
+                    $('#statsApplicantsOffcanvasLabel').text(res.title);
+                    $('#statsApplicantsSummary').text(
+                        res.filtered === res.total ?
+                        `${res.total} applicant${res.total === 1 ? '' : 's'}` :
+                        `${res.filtered} of ${res.total} applicants match the search`
+                    );
+                    const html = res.data.length ? res.data.map(applicantCard).join('') :
+                        (reset ? '<p class="text-muted text-center my-4">No applicants found.</p>' : '');
+                    if (reset) {
+                        $('#statsApplicantsList').html(html);
+                    } else {
+                        $('#statsApplicantsList').append(html);
+                    }
+                    $('#statsApplicantsMore').toggleClass('d-none', !res.has_more).prop('disabled', false);
+                }).fail(function(xhr) {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.error) ? [].concat(xhr.responseJSON.error)[0] :
+                        'Could not load the applicants.';
+                    $('#statsApplicantsList').html(`<p class="text-danger text-center my-4">${esc(msg)}</p>`);
+                    $('#statsApplicantsMore').addClass('d-none');
+                });
+            }
+
+            $(document).on('click', '.stats-jobtype-link', function() {
+                const ctx = window.statsDetailsContext;
+                if (!ctx) return;
+                if (Number($(this).text()) === 0) {
+                    if (typeof toastr !== 'undefined') toastr.info('There are no applicants for this count.');
+                    return;
+                }
+                listState = {
+                    params: {
+                        type: ctx.type,
+                        job_type: $(this).data('job-type'),
+                        range: ctx.range,
+                        date_range: ctx.date_range || todayYmd()
+                    },
+                    page: 1,
+                    search: '',
+                    dateLabel: ''
+                };
+                $('#statsApplicantsSearch').val('');
+                $('#statsApplicantsSummary').text('');
+                bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('statsApplicantsOffcanvas')).show();
+                loadPage(true);
+            });
+
+            $('#statsApplicantsMore').on('click', function() {
+                listState.page++;
+                loadPage(false);
+            });
+
+            $('#statsApplicantsSearch').on('input', function() {
+                clearTimeout(searchTimer);
+                const value = this.value.trim();
+                searchTimer = setTimeout(function() {
+                    if (!listState) return;
+                    listState.search = value;
+                    loadPage(true);
+                }, 350);
+            });
+        })();
 
         let chart;
 

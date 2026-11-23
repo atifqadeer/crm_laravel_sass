@@ -348,6 +348,7 @@ class CrmController extends Controller
                 'applicant_id' => 'required|integer',
                 'sale_id' => 'required|integer',
                 'details' => 'required',
+                'exclude_from_stats' => 'nullable|boolean',
             ]);
 
             $user = Auth::user();
@@ -363,7 +364,9 @@ class CrmController extends Controller
                     $request->input('applicant_id'),
                     $user->id,
                     $request->input('sale_id'),
-                    $details
+                    $details,
+                    // "Exclude from stats" ticked: don't record it in cleared_revert_cvs
+                    !$request->boolean('exclude_from_stats')
                 );
 
                 return response()->json(['success' => true, 'message' => 'CRM CV Reverted In Quality Successfully']);
@@ -3983,7 +3986,11 @@ class CrmController extends Controller
             throw $e;
         }
     }
-    private function crmRevertCVInQualityAction($applicant_id, $user_id, $sale_id, $details)
+    /**
+     * @param bool $recordClearedRevert false = "Exclude from stats" was ticked:
+     *                                  skip the cleared_revert_cvs row (the revert itself still happens).
+     */
+    private function crmRevertCVInQualityAction($applicant_id, $user_id, $sale_id, $details, bool $recordClearedRevert = true)
     {
         try {
             Applicant::where("id", $applicant_id)->update([
@@ -4028,7 +4035,7 @@ class CrmController extends Controller
                 'status'        => 1,
             ])->first();
 
-            if ($cvNoteToRevert) {
+            if ($cvNoteToRevert && $recordClearedRevert) {
                 ClearedRevertCv::create([
                     'cv_note_id'          => $cvNoteToRevert->id,
                     'applicant_id'        => $applicant_id,

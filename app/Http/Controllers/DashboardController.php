@@ -61,7 +61,7 @@ class DashboardController extends Controller
         $this->middleware('permission:dashboard-sales-weekly-analytics')->only(['getWeeklySales']);
         $this->middleware('permission:dashboard-sales-analytics-chart')->only(['getSalesAnalytic']);
         $this->middleware('permission:dashboard-weekly-analytics,dashboard-monthly-analytics,dashboard-yearly-analytics,dashboard-daily-analytics,dashboard-agents-stats,dashboard-agents-chart')
-            ->only(['getStats', 'getStatisticsDetails', 'getChartData', 'getStatusDetails', 'statisticsReportIndex', 'getStatisticsApplicants']);
+            ->only(['getStats', 'getStatisticsDetails', 'statisticsApplicantsList', 'getChartData', 'getStatusDetails', 'statisticsReportIndex', 'getStatisticsApplicants']);
     }
 
     public function index()
@@ -2525,40 +2525,8 @@ class DashboardController extends Controller
         /** -------------------------
          *  APPLICANTS SECTION
          *  ------------------------*/
-        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-        // Get the base query for Applicants filtered by date
-        $baseQuery = Applicant::query()
-            ->where('status', 1);
-
-        // Filter by applicant type (based on clicked box)
-        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
-
-        if ($job_category_nurse) {
-            switch ($type) {
-                case 'nurses-created':
-                    $baseQuery->where('job_category_id', $job_category_nurse->id)
-                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
-                    break;
-
-                case 'non-nurses-created':
-                    $baseQuery->where('job_category_id', '!=', $job_category_nurse->id)
-                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
-                    break;
-
-                case 'nurses-updated':
-                    $baseQuery->where('job_category_id', $job_category_nurse->id)
-                        ->whereBetween('applicants.updated_at', [$startDate, $endDate])
-                        ->whereColumn('applicants.updated_at', '!=', 'applicants.created_at');
-                    break;
-
-                case 'non-nurses-updated':
-                    $baseQuery->where('job_category_id', '!=', $job_category_nurse->id)
-                        ->whereBetween('applicants.updated_at', [$startDate, $endDate])
-                        ->whereColumn('applicants.updated_at', '!=', 'applicants.created_at');
-                    break;
-            }
-        }
+        // Same filters as the applicant list in the offcanvas (statisticsApplicantsList).
+        $baseQuery = $this->statisticsApplicantsBaseQuery($type, $startDate, $endDate);
 
         // ✅ Group by job_type (regular / specialist)
         $jobTypeCounts = (clone $baseQuery)
@@ -2584,6 +2552,166 @@ class DashboardController extends Controller
             ],
             'sources' => $jobSources
         ]);
+    }
+
+    /**
+     * Applicants behind a Statistics card (nurses / non-nurses, created / updated).
+     * Shared by the Regular/Specialist counts and the offcanvas list, so the list
+     * always matches the number that was clicked.
+     */
+    private function statisticsApplicantsBaseQuery(?string $type, Carbon $startDate, Carbon $endDate)
+    {
+        $baseQuery = Applicant::query()->where('applicants.status', 1);
+        $job_category_nurse = JobCategory::whereRaw('LOWER(name) = ?', ['nurse'])->first();
+
+        if ($job_category_nurse) {
+            switch ($type) {
+                case 'nurses-created':
+                    $baseQuery->where('applicants.job_category_id', $job_category_nurse->id)
+                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+                    break;
+
+                case 'non-nurses-created':
+                    $baseQuery->where('applicants.job_category_id', '!=', $job_category_nurse->id)
+                        ->whereBetween('applicants.created_at', [$startDate, $endDate]);
+                    break;
+
+                case 'nurses-updated':
+                    $baseQuery->where('applicants.job_category_id', $job_category_nurse->id)
+                        ->whereBetween('applicants.updated_at', [$startDate, $endDate])
+                        ->whereColumn('applicants.updated_at', '!=', 'applicants.created_at');
+                    break;
+
+                case 'non-nurses-updated':
+                    $baseQuery->where('applicants.job_category_id', '!=', $job_category_nurse->id)
+                        ->whereBetween('applicants.updated_at', [$startDate, $endDate])
+                        ->whereColumn('applicants.updated_at', '!=', 'applicants.created_at');
+                    break;
+            }
+        }
+
+        return $baseQuery;
+    }
+
+    /**
+     * Offcanvas list behind a Regular / Specialist count on a Statistics card.
+     * GET /dashboard/statistics-applicants?type=nurses-created&job_type=regular&range=daily&date_range=2026-11-23
+     */
+    public function statisticsApplicantsList(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'type' => 'required|in:nurses-created,non-nurses-created,nurses-updated,non-nurses-updated',
+            'job_type' => 'required|in:regular,specialist',
+            'range' => 'required|in:daily,weekly,monthly,yearly,aggregate',
+            'date_range' => 'required|string',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string|max:100',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->all()], 422);
+        }
+
+        try {
+            [$startDate, $endDate] = $this->statisticsDateBounds($request->input('range'), $request->input('date_range'));
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['Invalid date for the selected range.']], 422);
+        }
+
+        $type = $request->input('type');
+        $dateColumn = str_ends_with($type, '-created') ? 'applicants.created_at' : 'applicants.updated_at';
+        $perPage = 25;
+
+        $query = $this->statisticsApplicantsBaseQuery($type, $startDate, $endDate)
+            ->where('applicants.job_type', $request->input('job_type'))
+            ->leftJoin('job_titles', 'job_titles.id', '=', 'applicants.job_title_id')
+            ->leftJoin('job_categories', 'job_categories.id', '=', 'applicants.job_category_id')
+            ->leftJoin('job_sources', 'job_sources.id', '=', 'applicants.job_source_id');
+
+        $total = (clone $query)->count();
+
+        if ($search = trim((string) $request->input('search', ''))) {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('applicants.applicant_name', 'like', $like)
+                    ->orWhere('applicants.applicant_email', 'like', $like)
+                    ->orWhere('applicants.applicant_phone', 'like', $like)
+                    ->orWhere('applicants.applicant_postcode', 'like', $like)
+                    ->orWhere('applicants.applicant_notes', 'like', $like)
+                    ->orWhere('job_titles.name', 'like', $like);
+            });
+        }
+
+        $filtered = (clone $query)->count();
+        $page = (int) $request->input('page', 1);
+
+        $canSeeBlocked = Gate::allows('applicant-show-blocked-data');
+        $rows = $query
+            ->orderByDesc($dateColumn)
+            ->orderByDesc('applicants.id')
+            ->forPage($page, $perPage)
+            ->get([
+                'applicants.id',
+                'applicants.applicant_name',
+                'applicants.applicant_phone',
+                'applicants.applicant_email',
+                'applicants.applicant_postcode',
+                'applicants.applicant_notes',
+                'applicants.is_blocked',
+                'applicants.created_at',
+                'applicants.updated_at',
+                'job_titles.name as job_title',
+                'job_categories.name as job_category',
+                'job_sources.name as job_source',
+            ])
+            ->map(function ($a) use ($canSeeBlocked, $dateColumn) {
+                $hide = $a->is_blocked && !$canSeeBlocked;
+                $when = $dateColumn === 'applicants.created_at' ? $a->created_at : $a->updated_at;
+
+                return [
+                    'id' => $a->id,
+                    'name' => $a->applicant_name,
+                    'phone' => $hide ? null : $a->applicant_phone,
+                    'email' => $hide ? null : $a->applicant_email,
+                    'postcode' => strtoupper((string) $a->applicant_postcode),
+                    'job_title' => $a->job_title,
+                    'job_category' => $a->job_category,
+                    'job_source' => $a->job_source,
+                    'notes' => $a->applicant_notes,
+                    'is_blocked' => (bool) $a->is_blocked,
+                    'date' => $when ? Carbon::parse($when)->format('d M Y H:i') : null,
+                ];
+            });
+
+        return response()->json([
+            'title' => ucfirst(str_replace('-', ' ', $type)) . ' · ' . ucfirst($request->input('job_type')),
+            'date_label' => str_ends_with($type, '-created') ? 'Created' : 'Updated',
+            'total' => $total,
+            'filtered' => $filtered,
+            'page' => $page,
+            'per_page' => $perPage,
+            'has_more' => $page * $perPage < $filtered,
+            'data' => $rows,
+        ]);
+    }
+
+    /** Start/end of the dashboard's range + date picker value (same rules as getStats). */
+    private function statisticsDateBounds(string $range, string $inputDate): array
+    {
+        if ($range === 'daily') {
+            return [Carbon::createFromFormat('Y-m-d', $inputDate)->startOfDay(), Carbon::createFromFormat('Y-m-d', $inputDate)->endOfDay()];
+        }
+        if (in_array($range, ['weekly', 'aggregate'], true)) {
+            $parts = explode(' to ', $inputDate);
+            $start = trim($parts[0]);
+            $end = trim($parts[1] ?? $parts[0]);
+
+            return [Carbon::createFromFormat('Y-m-d', $start)->startOfDay(), Carbon::createFromFormat('Y-m-d', $end)->endOfDay()];
+        }
+        if ($range === 'monthly') {
+            return [Carbon::createFromFormat('Y-m', $inputDate)->startOfMonth(), Carbon::createFromFormat('Y-m', $inputDate)->endOfMonth()];
+        }
+
+        return [Carbon::createFromFormat('Y', $inputDate)->startOfYear(), Carbon::createFromFormat('Y', $inputDate)->endOfYear()];
     }
 
     // Private function returning Builder

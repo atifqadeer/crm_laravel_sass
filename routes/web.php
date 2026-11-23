@@ -66,6 +66,7 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/dashboard/counts', [DashboardController::class, 'getCounts'])->name('dashboard.counts');
     Route::get('/dashboard/statistics-data', [DashboardController::class, 'getStats']);
     Route::get('/dashboard/statistics-details', [DashboardController::class, 'getStatisticsDetails']);
+    Route::get('/dashboard/statistics-applicants', [DashboardController::class, 'statisticsApplicantsList'])->name('dashboard.statisticsApplicants');
     Route::get('/statistics/status-details', [DashboardController::class, 'getStatusDetails']);
     Route::post('/dashboard/statistics-report', [DashboardController::class, 'statisticsReportIndex'])->name('dashboard.report-applicants');
     Route::get('getStatisticsApplicants', [DashboardController::class, 'getStatisticsApplicants'])->name('getStatisticsApplicants');

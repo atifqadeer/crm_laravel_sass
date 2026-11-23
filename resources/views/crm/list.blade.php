@@ -1379,6 +1379,8 @@
                         sale_id: saleID,
                         details: notes,
                         tab : tab,
+                        // Ticked: don't record this revert in cleared_revert_cvs (left out of stats)
+                        exclude_from_stats: $(`#revertInQualityExcludeStats${applicantID}-${saleID}`).is(':checked') ? 1 : 0,
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {
