@@ -490,6 +490,8 @@
                                             <a class="dropdown-item cv-status-filter" href="#">CRM Active</a>
                                         </div>
                                     </div>
+                                    <!-- AI agent call status for this sale -->
+                                    @include('partials.ai-status-filter')
                                     @canany(['applicant-export-from-sale-page'])
                                         <div class="dropdown d-inline" id="exportDropdown">
                                             <button class="btn btn-outline-primary me-1 my-1 dropdown-toggle" type="button"
@@ -563,6 +565,9 @@
                                                     <th>Source</th>
                                                     <th>Notes</th>
                                                     <th>Status</th>
+                                                    @if (\App\Support\AiCallStatus::enabled())
+                                                        <th>AI Status</th>
+                                                    @endif
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>
@@ -736,6 +741,13 @@
                     title: 'Status',
                     default: true
                 },
+                @if (\App\Support\AiCallStatus::enabled())
+                    // Added before Action so saved (by position) choices above keep their place.
+                    {
+                        title: 'AI Status',
+                        default: true
+                    },
+                @endif
                 {
                     title: 'Action',
                     toggleable: false
@@ -818,6 +830,7 @@
                         d.title_filter = (typeof window.getVisibleListingTitleIds === 'function' ?
                             window.getVisibleListingTitleIds() : currentTitleFilters);
                         d.source_filter = currentSourceFilters;
+                        d.ai_status_filter = window.aiStatusFilter || [];
                         // Clean up search parameter
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
@@ -900,6 +913,14 @@
                         name: 'applicants.paid_status',
                         searchable: false
                     },
+                    @if (\App\Support\AiCallStatus::enabled())
+                        {
+                            data: 'ai_status',
+                            name: 'ai_status',
+                            orderable: false,
+                            searchable: false
+                        },
+                    @endif
                     {
                         data: 'action',
                         name: 'action',
@@ -926,7 +947,8 @@
                         }
                     },
                     {
-                        targets: 14, // Column index for 'job_details'
+                        // 14 = AI Status when enabled (else Action); -1 = Action (always last)
+                        targets: [14, -1],
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
@@ -2565,6 +2587,14 @@
                     $text.text('Export');
                 }
             });
+        });
+    </script>
+
+    {{-- AI agent: call history modal + AI Status filter (for this sale) --}}
+    @include('partials.ai-call-history')
+    <script>
+        $(document).on('ai-status-filter:changed', function() {
+            $('#applicants_table').DataTable().ajax.reload();
         });
     </script>
 @endsection

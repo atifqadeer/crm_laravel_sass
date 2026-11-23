@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Support\SettingApiKey;
 
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -954,21 +955,12 @@ class ApiController extends Controller
         return trim($value);
     }
     /**
-     * Validate shared portal API token (Bearer / X-API-Token / ?api_token=).
+     * Validate the portal API key (Bearer / X-API-Token / ?api_token=).
+     * The key lives in the settings table as "api_key_active_sales".
      */
     private function assertPortalApiToken(Request $request): void
     {
-        $expected = config('services.portal.token');
-        $provided = $request->bearerToken()
-            ?: $request->header('X-API-Token')
-            ?: $request->query('api_token');
-
-        if (empty($expected) || !is_string($provided) || !hash_equals((string) $expected, (string) $provided)) {
-            abort(response()->json([
-                'success' => false,
-                'message' => 'Unauthorized. Invalid or missing portal API token.',
-            ], 401));
-        }
+        SettingApiKey::assert($request, SettingApiKey::ACTIVE_SALES);
     }
     /**
      * Accept filter values as array, CSV string, or scalar.

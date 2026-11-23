@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Support\AiCallStatus;
 
 use Horsefly\Unit;
 use Horsefly\Office;
@@ -4189,6 +4190,22 @@ class SaleController extends Controller
         // Title / category / source / Open-Sent status filters
         $this->applyRadiusApplicantFilters($model, $sale_id, $filters, false);
 
+        // AI agent: latest call about THIS sale, for the "AI Status" column + its filter
+        if (AiCallStatus::enabled()) {
+            $latestAiCallForSale = fn(string $column) => DB::table('ai_agent_calls')
+                ->select($column)
+                ->whereColumn('ai_agent_calls.applicant_id', 'applicants.id')
+                ->where('ai_agent_calls.sale_id', $sale_id)
+                ->orderByDesc('ai_agent_calls.id')
+                ->limit(1);
+
+            $model->selectSub($latestAiCallForSale('status'), 'ai_status_value')
+                ->selectSub($latestAiCallForSale('called_at'), 'ai_called_at')
+                ->selectSub($latestAiCallForSale('callback_at'), 'ai_callback_at');
+
+            AiCallStatus::applyFilter($model, AiCallStatus::cleanFilter($request->input('ai_status_filter', [])), $sale_id);
+        }
+
         // Sorting logic
         if ($request->has('order')) {
             $orderColumn    = $request->input('columns.' . $request->input('order.0.column') . '.data');
@@ -4472,6 +4489,17 @@ class SaleController extends Controller
                 return '<span class="badge ' . $color_class . '">' . ucwords($status_value) . '</span>';
             })
             ->orderColumn('paid_status', 'paid_status_order $1')
+            ->addColumn('ai_status', function ($applicant) use ($sale_id) {
+                // Latest AI call about this sale (selected above); the badge opens this sale's call history.
+                return AiCallStatus::badge(
+                    $applicant->ai_status_value ?? null,
+                    $applicant->ai_called_at ?? null,
+                    null,
+                    (int) $applicant->id,
+                    $sale_id,
+                    $applicant->ai_callback_at ?? null
+                );
+            })
             ->addColumn('action', function ($applicant) use ($sale_id, $sale, $sale_cv_counts, $is_email_restricted) {
                 $status_value = $this->getApplicantStatusForSale($applicant, $sale_id);
                 $escapeAttribute = fn ($value) => e((string) ($value ?? ''));
@@ -4551,6 +4579,7 @@ class SaleController extends Controller
                 'crm_resume',
                 'applicant_resume',
                 'paid_status',
+                'ai_status',
                 'job_category',
                 'job_source',
                 'action'

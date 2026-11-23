@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CallLogController;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\ApplicantMatchApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +18,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // ── External portal: open / active sales feed ─────────────────────────────
-// Auth: Authorization: Bearer <PORTAL_API_TOKEN>  (or X-API-Token / ?api_token=)
+// Auth: Authorization: Bearer <api_key_active_sales setting>  (or X-API-Token / ?api_token=)
 // Same membership rules as SaleController::getOpenSales() (status=1, not on hold).
 Route::get('/sales/open', [ApiController::class, 'openSalesApi'])
      ->name('api.sales.open');
@@ -30,6 +31,28 @@ Route::get('/sales/details/{id}', [ApiController::class, 'getSaleDetailsApi'])
 
 Route::get('/regions/active', [ApiController::class, 'activeRegionsApi'])
      ->name('api.regions.active');
+
+// ── Applicant ⇄ job APIs ─────────────────────────────────────────────────
+// Auth: settings key "api_key_ai_automation" (Authorization: Bearer / X-API-Token / api_token).
+// Separate from the open-sales feed key above, so each can be changed or revoked on its own.
+Route::middleware('throttle:60,1')->group(function () {
+     // 1. Send data: applicants for the sales + radius published from the CRM page.
+     //    GET /api/applicants/job-matches?page=1&per_page=100   (no sale ids needed)
+     Route::get('/applicants/job-matches', [ApplicantMatchApiController::class, 'jobMatches'])
+          ->name('api.applicants.jobMatches');
+
+     // 2. Receive updates: change applicant records by applicant_id.
+     //    POST /api/applicants/update  {"applicant_id":1,"phone":"07..."} or {"applicants":[...]}
+     Route::post('/applicants/update', [ApplicantMatchApiController::class, 'updateApplicants'])
+          ->name('api.applicants.update');
+});
+
+// 3. Call outcomes: the AI agent reports every call (stored in ai_agent_calls).
+//    POST /api/applicants/call-outcome  one call, or {"calls":[...]}
+//    Higher limit: the agent may report many calls at once.
+Route::post('/applicants/call-outcome', [ApplicantMatchApiController::class, 'callOutcome'])
+     ->middleware('throttle:300,1')
+     ->name('api.applicants.callOutcome');
 
 
 // ── xplosip softphone integration ─────────────────────────────────────────

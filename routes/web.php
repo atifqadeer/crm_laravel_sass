@@ -14,6 +14,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\IPAddressController;
 use App\Http\Controllers\CrmController;
+use App\Http\Controllers\ApplicantMatchApiController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\PostcodeController;
 use App\Http\Controllers\CommunicationController;
@@ -123,6 +124,19 @@ Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
         Route::get('', [PostcodeController::class, 'index'])->name('postcode-finder.index');
     });
     Route::post('getPostcodeResults', [PostcodeController::class, 'getPostcodeResults'])->name('getPostcodeResults');
+
+    Route::middleware('permission:administrator-applicant-match-api-index')->prefix('administrator')->group(function () {
+        Route::get('applicant-match-api', [ApplicantMatchApiController::class, 'index'])->name('administrator.applicantMatchApi');
+        Route::post('applicant-match-api/preview', [ApplicantMatchApiController::class, 'preview'])->name('administrator.applicantMatchApi.preview');
+        Route::post('applicant-match-api/publish', [ApplicantMatchApiController::class, 'publish'])->name('administrator.applicantMatchApi.publish');
+        Route::delete('applicant-match-api/publish', [ApplicantMatchApiController::class, 'unpublish'])->name('administrator.applicantMatchApi.unpublish');
+    });
+
+    // AI agent call history (modal on Applicants list, Category Wise Resources and Sale radius pages)
+    Route::get('ai-calls/{applicant}', [ApplicantMatchApiController::class, 'callHistory'])
+        ->whereNumber('applicant')
+        ->middleware('permission:applicant-index|resource-category-index|sale-view|sale-direct-view|sale-open-view|administrator-applicant-match-api-index')
+        ->name('aiCalls.history');
 
     Route::group(['prefix' => 'head-offices'], function () {
         Route::get('', [HeadOfficeController::class, 'index'])->name('head-offices.list');

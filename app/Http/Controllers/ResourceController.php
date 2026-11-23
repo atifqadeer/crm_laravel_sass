@@ -23,6 +23,7 @@ use App\Exports\EmailExport;
 use App\Exports\CategoryWiseApplicantsExport;
 
 use App\Support\DialLink;
+use App\Support\AiCallStatus;
 use App\Support\SaleEmailRestriction;
 
 use Carbon\Carbon;
@@ -4076,6 +4077,17 @@ class ResourceController extends Controller
             $model->whereIn('applicants.job_source_id', $sourceFilter);
         }
 
+        // AI agent: latest call (any job) for the "AI Status" column + its filter.
+        // The export uses this query too, so it follows the AI Status filter.
+        if (AiCallStatus::enabled()) {
+            $model->with([
+                'latestAiCall:ai_agent_calls.id,ai_agent_calls.applicant_id,ai_agent_calls.sale_id,ai_agent_calls.status,ai_agent_calls.called_at,ai_agent_calls.callback_at',
+                'latestAiCall.sale:id,job_title_id,sale_postcode',
+                'latestAiCall.sale.jobTitle:id,name',
+            ]);
+            AiCallStatus::applyFilter($model, AiCallStatus::cleanFilter($request->input('ai_status_filter', [])));
+        }
+
         return [$model, $applySearch];
     }
 
@@ -4379,6 +4391,17 @@ class ResourceController extends Controller
                     $status .= '</span>';
                     return $status;
                 })
+                ->addColumn('ai_status', function ($applicant) {
+                    $call = AiCallStatus::enabled() ? $applicant->latestAiCall : null;
+                    if (!$call) {
+                        return AiCallStatus::badge(null);
+                    }
+                    $job = $call->sale
+                        ? trim((optional($call->sale->jobTitle)->name ?? 'Job') . ' (' . strtoupper((string) $call->sale->sale_postcode) . ')')
+                        : null;
+
+                    return AiCallStatus::badge($call->status, $call->called_at, $job, (int) $applicant->id, null, $call->callback_at);
+                })
                 ->addColumn('action', function ($applicant) {
                     $landline = $applicant->formatted_landline ?? '-';
                     $phone = $applicant->formatted_phone ?? '-';
@@ -4477,7 +4500,7 @@ class ResourceController extends Controller
                 //     }
                 //     return $row_class;
                 // })
-                ->rawColumns(['checkbox', 'applicantEmail', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['checkbox', 'applicantEmail', 'applicant_experience', 'applicant_notes', 'applicant_postcode', 'applicantPhone', 'job_title', 'applicant_resume', 'crm_resume', 'customStatus', 'ai_status', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

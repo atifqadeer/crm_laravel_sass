@@ -161,6 +161,9 @@
                                             <a class="dropdown-item status-filter" href="#">Not Interested</a>
                                         </div>
                                     </div>
+
+                                    <!-- AI agent call status filter -->
+                                    @include('partials.ai-status-filter')
                                 @endcanany
                                 <!-- Button Dropdown -->
                                 @canany(['applicant-export', 'applicant-export-all', 'applicant-export-emails'])
@@ -233,6 +236,23 @@
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-body p-3">
+                    <!-- Column show/hide (moved next to "Show N entries" once the table loads) -->
+                    <div id="columnsToolbar" class="dropdown d-inline">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
+                            id="dropdownMenuApplicantColumns" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            aria-expanded="false">
+                            <i class="ri-layout-column-line me-1"></i> Columns
+                        </button>
+                        <div class="dropdown-menu filter-dropdowns p-2" aria-labelledby="dropdownMenuApplicantColumns"
+                            style="min-width: 230px;">
+                            <div class="d-flex justify-content-between align-items-center px-1 mb-2">
+                                <a href="#" id="columnsSelectAll" class="text-primary small fw-semibold">Show All</a>
+                                <a href="#" id="columnsResetDefault" class="text-secondary small fw-semibold">Reset
+                                    Default</a>
+                            </div>
+                            <div id="columnsList" style="max-height: 280px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table id="applicants_table" class="table align-middle mb-3">
                             <thead class="bg-light-subtle">
@@ -256,6 +276,9 @@
                                         <th width="10%">Notes</th>
                                     @endcanany
                                     <th>Status</th>
+                                    @if (\App\Support\AiCallStatus::enabled())
+                                        <th>AI Status</th>
+                                    @endif
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -359,6 +382,7 @@
         const hasResumePermission = @json(auth()->user()->can('applicant-download-resume'));
         const hasViewNotePermission = @json(auth()->user()->can('applicant-view-note'));
         const hasAddNotePermission = @json(auth()->user()->can('applicant-add-note'));
+        const aiStatusEnabled = @json(\App\Support\AiCallStatus::enabled());
 
         $(document).ready(function() {
             let currentFilter = '';
@@ -453,7 +477,16 @@
                 name: 'customStatus',
                 orderable: false,
                 searchable: false
-            }, {
+            });
+            if (aiStatusEnabled) {
+                columns.push({
+                    data: 'ai_status',
+                    name: 'ai_status',
+                    orderable: false,
+                    searchable: false
+                });
+            }
+            columns.push({
                 data: 'action',
                 name: 'action',
                 orderable: false,
@@ -466,7 +499,7 @@
             const centerAlignedIndices = [];
             for (let i = 0; i < columns.length; i++) {
                 const key = columns[i].data;
-                if (['applicant_resume', 'crm_resume', 'customStatus', 'action'].includes(key)) {
+                if (['applicant_resume', 'crm_resume', 'customStatus', 'ai_status', 'action'].includes(key)) {
                     centerAlignedIndices.push(i);
                 }
             }
@@ -478,6 +511,107 @@
                         $(td).css('text-align', 'center');
                     }
                 });
+            });
+
+            // ── Column show/hide ────────────────────────────────
+            // Which columns exist depends on permissions, so choices are saved by
+            // column key (not position) and titles are read from the table header.
+            const COLUMN_VISIBILITY_STORAGE_KEY = 'applicants_list_column_visibility_v1';
+            const ALWAYS_VISIBLE = ['DT_RowIndex', 'action'];
+            const headerTitles = $('#applicants_table thead th').map(function() {
+                return $(this).text().trim();
+            }).get();
+            const columnConfig = columns.map((column, index) => ({
+                key: column.data,
+                title: headerTitles[index] || column.data,
+                toggleable: !ALWAYS_VISIBLE.includes(column.data)
+            }));
+
+            function loadColumnVisibility() {
+                let stored = {};
+                try {
+                    stored = JSON.parse(localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY)) || {};
+                } catch (error) {
+                    stored = {};
+                }
+                return columnConfig.map(column =>
+                    !column.toggleable || !Object.prototype.hasOwnProperty.call(stored, column.key) ?
+                    true :
+                    !!stored[column.key]
+                );
+            }
+
+            function saveColumnVisibility() {
+                const stored = {};
+                columnConfig.forEach((column, index) => {
+                    if (column.toggleable) {
+                        stored[column.key] = !!columnVisibility[index];
+                    }
+                });
+                try {
+                    localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(stored));
+                } catch (error) {
+                    // Storage blocked (private window): choices just won't be remembered.
+                }
+            }
+
+            let columnVisibility = loadColumnVisibility();
+
+            function renderColumnsDropdown() {
+                const $list = $('#columnsList').empty();
+                columnConfig.forEach((column, index) => {
+                    if (!column.toggleable) return;
+                    $list.append(`
+                        <div class="form-check">
+                            <input class="form-check-input column-toggle" type="checkbox"
+                                id="applicant_column_${index}" data-column-index="${index}" ${columnVisibility[index] ? 'checked' : ''}>
+                            <label class="form-check-label" for="applicant_column_${index}">${$('<div>').text(column.title).html()}</label>
+                        </div>
+                    `);
+                });
+            }
+
+            const hiddenColumnIndices = columnVisibility
+                .map((visible, index) => visible ? null : index)
+                .filter(index => index !== null);
+            if (hiddenColumnIndices.length) {
+                columnDefs.push({
+                    targets: hiddenColumnIndices,
+                    visible: false
+                });
+            }
+
+            renderColumnsDropdown();
+
+            // Handlers run on click, after `table` below has been created.
+            $('#columnsList').on('change', '.column-toggle', function() {
+                const index = Number($(this).data('column-index'));
+                columnVisibility[index] = this.checked;
+                table.column(index).visible(this.checked, false);
+                table.columns.adjust().draw(false);
+                saveColumnVisibility();
+            });
+
+            function setAllColumns(visibleFor) {
+                columnConfig.forEach((column, index) => {
+                    if (column.toggleable) {
+                        columnVisibility[index] = visibleFor(column);
+                        table.column(index).visible(columnVisibility[index], false);
+                    }
+                });
+                table.columns.adjust().draw(false);
+                saveColumnVisibility();
+                renderColumnsDropdown();
+            }
+
+            $('#columnsSelectAll').on('click', function(event) {
+                event.preventDefault();
+                setAllColumns(() => true);
+            });
+
+            $('#columnsResetDefault').on('click', function(event) {
+                event.preventDefault();
+                setAllColumns(() => true); // default: every column shown
             });
 
             const table = $('#applicants_table').DataTable({
@@ -495,6 +629,7 @@
                             currentSourceFilters; // Send the current filter value as a parameter
                         d.title_filters = (typeof window.getVisibleListingTitleIds === 'function' ?
                             window.getVisibleListingTitleIds() : currentTitleFilters);
+                        d.ai_status_filter = window.aiStatusFilter || [];
                         if (d.search && d.search.value) {
                             d.search.value = d.search.value.toString().trim();
                         }
@@ -514,7 +649,13 @@
                 rowId: function(data) {
                     return 'row_' + data.id;
                 },
-                dom: 'lrtip',
+                dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rtip',
+                initComplete: function() {
+                    // Put the Columns button next to "Show N entries".
+                    $(this.api().table().container())
+                        .find('.dataTables_length')
+                        .after($('#columnsToolbar'));
+                },
                 drawCallback: function(settings) {
                     const api = this.api();
                     const pagination = $(api.table().container()).find('.dataTables_paginate');
@@ -1822,6 +1963,14 @@
                     $text.text('Export');
                 }
             });
+        });
+    </script>
+
+    {{-- AI agent: call history modal + AI Status filter --}}
+    @include('partials.ai-call-history')
+    <script>
+        $(document).on('ai-status-filter:changed', function() {
+            $('#applicants_table').DataTable().ajax.reload();
         });
     </script>
 @endsection

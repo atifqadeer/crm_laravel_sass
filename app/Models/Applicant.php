@@ -320,6 +320,18 @@ class Applicant extends Model
     {
         return $this->morphMany(Audit::class, 'auditable');
     }
+
+    /** Every call the AI agent made to this applicant (all jobs). */
+    public function aiCalls()
+    {
+        return $this->hasMany(AiAgentCall::class, 'applicant_id');
+    }
+
+    /** The AI agent's most recent call to this applicant, for any job. */
+    public function latestAiCall()
+    {
+        return $this->hasOne(AiAgentCall::class, 'applicant_id')->latestOfMany();
+    }
     public function module_note()
     {
         return $this->morphMany(ModuleNote::class, 'module_noteable');

@@ -198,6 +198,9 @@
                                     </div>
                                 </div>
 
+                                <!-- AI agent call status filter -->
+                                @include('partials.ai-status-filter')
+
                                 <!-- Export Dropdown: exports with the current filters and search -->
                                 @canany(['resource-category-export', 'resource-category-export-emails','resource-category-export-all'])
                                 <div class="dropdown d-inline">
@@ -300,6 +303,9 @@
                                     <th>Source</th>
                                     <th width="15%">Notes</th>
                                     <th>Status</th>
+                                    @if (\App\Support\AiCallStatus::enabled())
+                                        <th>AI Status</th>
+                                    @endif
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -429,6 +435,13 @@
                     title: 'Status',
                     default: true
                 },
+                @if (\App\Support\AiCallStatus::enabled())
+                    // Added before Action so saved (by position) choices above keep their place.
+                    {
+                        title: 'AI Status',
+                        default: true
+                    },
+                @endif
                 {
                     title: 'Action',
                     toggleable: false
@@ -515,6 +528,7 @@
                             currentSourceFilters; // Send the current filter value as a parameter
                         d.date_range_filter =
                             currentDateRangeFilter; // Send the current filter value as a parameter
+                        d.ai_status_filter = window.aiStatusFilter || [];
                     },
                     beforeSend: function() {
                         showLoader(); // Show loader before AJAX request starts
@@ -595,6 +609,14 @@
                         orderable: false,
                         searchable: false
                     },
+                    @if (\App\Support\AiCallStatus::enabled())
+                        {
+                            data: 'ai_status',
+                            name: 'ai_status',
+                            orderable: false,
+                            searchable: false
+                        },
+                    @endif
                     {
                         data: 'action',
                         name: 'action',
@@ -625,7 +647,8 @@
                         }
                     },
                     {
-                        targets: 15, // Column index for 'job_details'
+                        // 15 = AI Status when enabled (else Action); -1 = Action (always last)
+                        targets: [15, -1],
                         createdCell: function(td, cellData, rowData, row, col) {
                             $(td).css('text-align', 'center'); // Center the text in this column
                         }
@@ -1032,6 +1055,7 @@
                     title_filter: currentTitleFilters,
                     source_filter: currentSourceFilters,
                     date_range_filter: currentDateRangeFilter,
+                    ai_status_filter: window.aiStatusFilter || [],
                     search: {
                         value: table.search()
                     }
@@ -1767,6 +1791,14 @@
                 toastr.error('No file selected or applicant ID missing.');
             }
         }
+    </script>
+
+    {{-- AI agent: call history modal + AI Status filter --}}
+    @include('partials.ai-call-history')
+    <script>
+        $(document).on('ai-status-filter:changed', function() {
+            $('#applicants_table').DataTable().ajax.reload();
+        });
     </script>
 @endsection
 @endsection

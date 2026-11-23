@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Support\AiCallStatus;
 
 // Import necessary models
 use Horsefly\Sale;
@@ -559,6 +560,16 @@ class ApplicantController extends Controller
             // Eager load only needed columns from relations
             ->with(['jobTitle:id,name', 'jobCategory:id,name', 'jobSource:id,name', 'cv_notes:id,applicant_id,status']);
 
+        // AI agent: latest call (any job) for the "AI Status" column + its filter
+        if (AiCallStatus::enabled()) {
+            $model->with([
+                'latestAiCall:ai_agent_calls.id,ai_agent_calls.applicant_id,ai_agent_calls.sale_id,ai_agent_calls.status,ai_agent_calls.called_at,ai_agent_calls.callback_at',
+                'latestAiCall.sale:id,job_title_id,sale_postcode',
+                'latestAiCall.sale.jobTitle:id,name',
+            ]);
+            AiCallStatus::applyFilter($model, AiCallStatus::cleanFilter($request->input('ai_status_filter', [])));
+        }
+
         $hidePrivateDataSetting = Setting::where('key', 'hide_private_data')->value('value');
         $hidePrivateData = array_filter(
             array_map('trim', explode(',', $hidePrivateDataSetting ?? ''))
@@ -1056,6 +1067,17 @@ class ApplicantController extends Controller
 
                     return $status;
                 })
+                ->addColumn('ai_status', function ($applicant) {
+                    $call = AiCallStatus::enabled() ? $applicant->latestAiCall : null;
+                    if (!$call) {
+                        return AiCallStatus::badge(null);
+                    }
+                    $job = $call->sale
+                        ? trim((optional($call->sale->jobTitle)->name ?? 'Job') . ' (' . strtoupper((string) $call->sale->sale_postcode) . ')')
+                        : null;
+
+                    return AiCallStatus::badge($call->status, $call->called_at, $job, (int) $applicant->id, null, $call->callback_at);
+                })
                 ->addColumn('action', function ($applicant) {
                     $landline = $applicant->is_blocked ? '<span class="badge bg-dark">Blocked</span>' : $applicant->formatted_landline;
                     $phone = $applicant->is_blocked ? '<span class="badge bg-dark">Blocked</span>' : $applicant->formatted_phone;
@@ -1138,7 +1160,7 @@ class ApplicantController extends Controller
 
                     return $html;
                 })
-                ->rawColumns(['applicant_notes', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'customStatus', 'job_category', 'job_source', 'action'])
+                ->rawColumns(['applicant_notes', 'applicantPhone', 'applicant_postcode', 'job_title', 'applicant_experience', 'applicantEmail', 'applicant_resume', 'crm_resume', 'customStatus', 'ai_status', 'job_category', 'job_source', 'action'])
                 ->make(true);
         }
     }

@@ -416,7 +416,7 @@
             @canany(['administrator-user-index', 'administrator-role-index', 'administrator-permission-index',
                 'administrator-ip-address-index', 'administrator-job-category-index', 'administrator-job-title-index',
                 'administrator-job-source-index', 'administrator-email-template-index', 'administrator-sms-template-index',
-                'administrator-setting-index'])
+                'administrator-setting-index', 'administrator-applicant-match-api-index'])
                 <li class="menu-title">Administrator</li>
                 @canany(['administrator-user-index'])
                     <!-- users Menu -->
@@ -533,6 +533,18 @@
                         </a>
                     </li>
                     <!-- end SMS Templates -->
+                @endcanany
+                @canany(['administrator-applicant-match-api-index'])
+                    <!-- Applicant Match API -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('administrator.applicantMatchApi') }}">
+                            <span class="nav-icon">
+                                <i class="ri-code-s-slash-line"></i>
+                            </span>
+                            <span class="nav-text">Applicant Match API</span>
+                        </a>
+                    </li>
+                    <!-- end Applicant Match API -->
                 @endcanany
                 @canany(['administrator-setting-index'])
                     <!-- settings Menu -->
