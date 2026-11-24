@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CallLogController;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\ApplicantApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,13 @@ Route::get('/sales/details/{id}', [ApiController::class, 'getSaleDetailsApi'])
 
 Route::get('/regions/active', [ApiController::class, 'activeRegionsApi'])
      ->name('api.regions.active');
+
+// ── Website candidate form → new CRM applicant ────────────────────────────
+// POST /api/applicants  (JSON or multipart; CV as file "cv" or "cv_base64"+"cv_filename")
+// Auth: Authorization: Bearer <PORTAL_API_TOKEN>
+Route::post('/applicants/create', [ApplicantApiController::class, 'store'])
+     ->middleware('throttle:30,1')
+     ->name('api.applicants.store');
 
 
 // ── xplosip softphone integration ─────────────────────────────────────────

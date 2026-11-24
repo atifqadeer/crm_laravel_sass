@@ -41,6 +41,9 @@ return [
     */
     'portal' => [
         'token' => 'v8Kq2mZ7xP4nR9tL6wY3cF1sD5hJ0uA8eG2bN7qX9mV4pT6z',
+        // Job source + CRM user recorded on applicants created via POST /api/applicants
+        'applicant_source' => env('PORTAL_APPLICANT_SOURCE', 'Kingsbury Lead'),
+        'applicant_user_id' => env('PORTAL_APPLICANT_USER_ID', 1),
     ],
 
     'microsip' => [
